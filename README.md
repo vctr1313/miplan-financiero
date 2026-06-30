@@ -2,6 +2,11 @@
 
 App de control de gastos y plan de ahorro, sincronizada en la nube entre tú y tu pareja, instalable como app en el móvil.
 
+## Tu configuración
+
+- **Supabase**: `https://hbtogqkofnitfufmluik.supabase.co`
+- **GitHub**: `https://github.com/vctr1313/miplan-financiero`
+
 ## Funcionalidades
 
 - **Sincronización en tiempo real** entre dispositivos vía Supabase (móvil, ordenador, portátil)
@@ -19,59 +24,58 @@ App de control de gastos y plan de ahorro, sincronizada en la nube entre tú y t
 - **Consejero financiero IA** (modo gratuito copiar/pegar o con API key para respuestas directas)
 - **Modo oscuro**
 
-## 1. Configurar Supabase (5 min)
+## Pasos exactos para desplegar
 
-1. Ve a [supabase.com](https://supabase.com) → "Start your project" → crea cuenta
-2. "New project" → región **West EU (Ireland)** → guarda la contraseña de la BD
-3. Espera ~2 min a que arranque
-4. Ve a **SQL Editor** → "New query" → pega TODO el contenido de `supabase_schema.sql` → "Run"
-5. Ve a **Authentication → Providers** → activa "Email" (ya viene activo por defecto)
-6. (Opcional, recomendado) Activa "Google" como provider si quieres login con Google:
-   - Necesitas un Client ID de Google Cloud Console
-   - Si no quieres configurarlo ahora, el login por email/contraseña funciona igual
-7. Ve a **Project Settings → API** y copia:
-   - `Project URL`
-   - `anon public` key
+### 1. Ejecutar el SQL en Supabase (5 min, solo una vez)
 
-## 2. Configurar variables de entorno
+1. Ve a tu proyecto: [supabase.com/dashboard/project/hbtogqkofnitfufmluik](https://supabase.com/dashboard/project/hbtogqkofnitfufmluik)
+2. Menú lateral → **SQL Editor** → **New query**
+3. Abre `supabase_schema.sql` (incluido en este paquete), copia TODO el contenido, pégalo en el editor
+4. Pulsa **Run** (o Ctrl+Enter)
+5. Deberías ver "Success. No rows returned" — eso confirma que las 7 tablas, políticas RLS y triggers se crearon bien
 
-Copia `.env.example` a `.env.local` y rellena:
+### 2. Subir el código a tu GitHub
 
-```
-REACT_APP_SUPABASE_URL=https://tu-proyecto.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=tu-anon-key-aqui
-```
-
-## 3. Instalar y probar en local
+Este paquete ya viene con un repositorio git inicializado y el primer commit hecho. Solo te falta conectarlo a tu GitHub y subirlo:
 
 ```bash
+cd miplan
+git remote add origin https://github.com/vctr1313/miplan-financiero.git
+git push -u origin main
+```
+
+Si te pide autenticación, usa un [Personal Access Token](https://github.com/settings/tokens) de GitHub como contraseña (no la contraseña normal de tu cuenta).
+
+### 3. Probar en local (opcional pero recomendado)
+
+El archivo `.env.local` con tus credenciales de Supabase ya está creado dentro de la carpeta `miplan/`. Solo necesitas:
+
+```bash
+cd miplan
 npm install
 npm start
 ```
 
-Se abrirá en `http://localhost:3000`. Crea tu cuenta, luego comparte el código de invitación (en Ajustes → Hogar compartido) con tu pareja para que se una desde otro dispositivo.
+Se abre en `http://localhost:3000`. Crea tu cuenta con tu email, confirma el correo, y ya puedes usar la app. Para que tu pareja se una, comparte el código de invitación que aparece en **Ajustes → Hogar compartido**.
 
-## 4. Desplegar en Vercel (gratis)
+### 4. Desplegar en Vercel (gratis, ~3 min)
 
-### Opción A — Desde la web de Vercel
-1. Sube este código a un repositorio de GitHub
-2. Ve a [vercel.com](https://vercel.com) → "Add New Project" → importa el repo
-3. En "Environment Variables" añade:
-   - `REACT_APP_SUPABASE_URL`
-   - `REACT_APP_SUPABASE_ANON_KEY`
-4. Deploy
+1. Ve a [vercel.com/new](https://vercel.com/new)
+2. "Import Git Repository" → busca `vctr1313/miplan-financiero` → **Import**
+3. En "Environment Variables" añade estas dos (cópialas tal cual):
 
-### Opción B — Desde la terminal
-```bash
-npm install -g vercel
-vercel login
-vercel --prod
-```
-Te preguntará las variables de entorno la primera vez.
+   | Name | Value |
+   |---|---|
+   | `REACT_APP_SUPABASE_URL` | `https://hbtogqkofnitfufmluik.supabase.co` |
+   | `REACT_APP_SUPABASE_ANON_KEY` | (la clave larga que empieza por `eyJhbGci...`, está en tu `.env.local`) |
 
-## 5. Instalar como app en el móvil (PWA)
+4. Pulsa **Deploy**
 
-Una vez desplegado en Vercel (URL tipo `https://miplan-financiero.vercel.app`):
+En ~2 minutos tendrás una URL tipo `https://miplan-financiero.vercel.app` funcionando con HTTPS automático.
+
+### 5. Instalar como app en el móvil (PWA)
+
+Una vez tengas la URL de Vercel:
 
 **iPhone (Safari):**
 1. Abre la URL en Safari
@@ -85,11 +89,13 @@ Una vez desplegado en Vercel (URL tipo `https://miplan-financiero.vercel.app`):
 
 La app se instalará con icono propio, pantalla completa, y funcionará offline para ver datos ya cargados.
 
-## 6. Generar los iconos de la PWA
+### 6. Generar los iconos de la PWA (opcional)
 
-Necesitas crear `public/icon-192.png` y `public/icon-512.png`. Puedes:
+Necesitas crear `public/icon-192.png` y `public/icon-512.png` para que el icono se vea bien al instalar. Puedes:
 - Usar [realfavicongenerator.net](https://realfavicongenerator.net) con tu logo
 - O generarlos rápido con un emoji 🏠 en [favicon.io](https://favicon.io/emoji-favicons/house)
+
+Sin estos archivos la app funciona igual, pero el icono al instalar será genérico.
 
 ## Estructura del proyecto
 
