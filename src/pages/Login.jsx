@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signIn, signUp, signInWithGoogle, joinHousehold } from '../lib/supabase'
+import { useApp } from '../App'
 import '../styles/global.css'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { session, loading: appLoading } = useApp()
   const [mode, setMode] = useState('signin') // signin | signup | join
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -13,6 +15,31 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [signedUpOk, setSignedUpOk] = useState(false)
+
+  // ── OAUTH REDIRECT FIX ────────────────────────────────────────
+  // After Google sign-in, Supabase appends #access_token=... to the URL
+  // and processes it client-side, which fires onAuthStateChange in
+  // AppProvider. But Login.jsx itself never read that session before,
+  // so it just sat on the login form forever even though auth had
+  // actually succeeded. This effect watches the shared session state
+  // and navigates away as soon as it appears.
+  useEffect(() => {
+    if (session) navigate('/', { replace: true })
+  }, [session, navigate])
+
+  // While Supabase is still parsing the OAuth callback hash on first
+  // load, show a brief loading state instead of flashing the login
+  // form (which would look like "it kicked me back to login").
+  if (appLoading) {
+    return (
+      <div style={pageStyle}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 32, animation: 'spin 1s linear infinite', display: 'inline-block' }}>⚙️</div>
+          <p style={{ color: 'var(--muted, #6b7280)', marginTop: 12, fontSize: 14 }}>Completando inicio de sesión…</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
