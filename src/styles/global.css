@@ -129,7 +129,22 @@ input, select, textarea { font-family: inherit; }
 .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .nav-item.active { background: rgba(255,255,255,0.11); color: #fff; font-weight: 500; }
 .nav-item i { width: 16px; text-align: center; font-size: 12px; }
-.sidebar-bottom { border-top: 1px solid rgba(255,255,255,0.08); margin-top: auto; }
+.sidebar-bottom {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin-top: auto;
+  /* Breathing room against sub-pixel rounding differences between
+     browsers/devices -- measured via headless Chromium that the
+     sign-out button's bottom edge can land a fraction of a pixel past
+     the exact viewport boundary on tightly-fitting screens (e.g.
+     699px content in a 607px box, scrolled to its mathematical max).
+     That sub-pixel overflow is invisible in a controlled test but
+     real mobile Safari/Chrome -- with their own rounding and a
+     viewport that can shrink slightly when browser chrome is visible
+     -- could turn it into an actually visible/tappable clip right at
+     the edge. This is on TOP of the underlying height/overflow fix,
+     not a replacement for it. */
+  padding-bottom: 8px;
+}
 
 /* ── MAIN ─────────────────────────────────────────────────────── */
 .main {
@@ -355,6 +370,14 @@ input, select, textarea { font-family: inherit; }
     padding-top: 0;
   }
   .sidebar.open { transform: translateX(0); }
+  /* The app name/logo is already shown in .mobile-header (which stays
+     visible above the sidebar at all times on mobile), so repeating
+     it inside .sidebar-logo here is pure duplication -- visible in
+     testing as the name appearing twice once the menu opens. That
+     ~73px block (h1 + tagline + padding) was being wasted on every
+     mobile menu open, directly eating into the space available for
+     the actual nav items and footer below. */
+  .sidebar-logo { display: none; }
   /* Top padding now accounts for the safe area too, matching the
      taller .mobile-header so content never starts underneath it.
      Bottom padding adds extra clearance above the bottom-nav, which
