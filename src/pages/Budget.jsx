@@ -11,6 +11,16 @@ export default function Budget() {
   const [showCatModal, setShowCatModal] = useState(false)
   const [editingCat, setEditingCat] = useState(null)
   const [reassignFrom, setReassignFrom] = useState(null)
+  // Local draft values for the euro-amount inputs, keyed by category id.
+  // These exist separately from c.user_pct (the server-derived value)
+  // specifically so the input reflects what the user is actively
+  // typing instead of being recalculated from c.user_pct on every
+  // render -- without this, each keystroke triggers handleEurChange ->
+  // updateCategoryPct -> refresh(), and since refresh() is async, React
+  // re-renders with the OLD c.user_pct before the new one round-trips
+  // back from Supabase, visually resetting whatever was just typed and
+  // making the field feel broken/unresponsive after the first digit.
+  const [eurDrafts, setEurDrafts] = useState({})
 
   const salary = profile?.salary || 0
   const cycle = getCurrentCycle(cycles)
@@ -39,12 +49,25 @@ export default function Budget() {
     refresh()
   }
 
-  const handleEurChange = async (catId, euros) => {
+  const handleEurDraftChange = (catId, value) => {
+    // Just track what's being typed locally -- no server call yet.
+    setEurDrafts(prev => ({ ...prev, [catId]: value }))
+  }
+
+  const handleEurConfirm = async (catId, value) => {
     if (!salary) return
-    const pct = Math.round((parseFloat(euros) || 0) / salary * 10000) / 100
+    const pct = Math.round((parseFloat(value) || 0) / salary * 10000) / 100
     const clamped = Math.min(50, Math.max(0, pct))
     await updateCategoryPct(catId, clamped)
-    refresh()
+    await refresh()
+    // Clear the draft now that the server has the new value -- the
+    // input falls back to deriving its displayed value from the
+    // (now up-to-date) c.user_pct again.
+    setEurDrafts(prev => {
+      const next = { ...prev }
+      delete next[catId]
+      return next
+    })
   }
 
   const handleDeleteCat = async (cat) => {
@@ -137,9 +160,15 @@ export default function Budget() {
             <span style={{ fontSize: 11, color: 'var(--muted)' }}>%</span>
             <input
               type="number" min="0" step="0.01"
-              value={salary > 0 ? Math.round(salary * c.user_pct / 100 * 100) / 100 : ''}
+              value={
+                eurDrafts[c.id] !== undefined
+                  ? eurDrafts[c.id]
+                  : (salary > 0 ? Math.round(salary * c.user_pct / 100 * 100) / 100 : '')
+              }
               disabled={!salary}
-              onChange={e => handleEurChange(c.id, e.target.value)}
+              onChange={e => handleEurDraftChange(c.id, e.target.value)}
+              onBlur={e => handleEurConfirm(c.id, e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
               placeholder="€"
               style={{ width: 80, padding: '3px 6px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 12.5, fontWeight: 600, background: 'var(--inp)', color: 'var(--text)', textAlign: 'right' }}
             />
