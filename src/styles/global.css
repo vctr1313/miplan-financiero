@@ -86,7 +86,11 @@ input, select, textarea { font-family: inherit; }
   flex-direction: column;
   position: fixed;
   top: 0; left: 0;
-  z-index: 100;
+  /* Must outrank .mobile-header and .bottom-nav (both z-index 200) --
+     otherwise the bottom-nav bar stays fixed on top of the open
+     drawer on mobile and visually covers its lower section (salary,
+     sync status, sign-out button) even while the sidebar is open. */
+  z-index: 250;
   transition: background .2s, transform .3s;
 }
 .sidebar-logo {

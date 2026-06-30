@@ -1,4 +1,4 @@
-const CACHE_NAME = 'miplan-v1'
+const CACHE_NAME = 'miplan-v2'
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
@@ -21,12 +21,32 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Network-first for API calls (Supabase), cache-first for static assets
+// Network-first for API calls (Supabase) and HTML navigation, cache-first
+// for fingerprinted static assets (CRA's /static/ bundle files include a
+// content hash in their filename, so caching them long-term is safe).
+// HTML must always be checked against the network first: caching it
+// cache-first meant a stale index.html (pointing at an old, since-deleted
+// hashed bundle) could be served indefinitely after a new deploy, hiding
+// any new feature shipped after the first cache was primed.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
   // Never cache Supabase API calls — always go to network
   if (url.hostname.includes('supabase.co') || url.hostname.includes('anthropic.com')) {
+    return
+  }
+
+  const isNavigation = event.request.mode === 'navigate' ||
+    url.pathname === '/' || url.pathname === '/index.html'
+
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        const responseClone = response.clone()
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone))
+        return response
+      }).catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
+    )
     return
   }
 
