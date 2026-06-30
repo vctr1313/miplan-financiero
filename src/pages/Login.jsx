@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { signIn, signUp, signInWithGoogle, joinHousehold } from '../lib/supabase'
+import { signIn, signUp, signInWithGoogle, linkPartner } from '../lib/supabase'
 import { useApp } from '../App'
 import '../styles/global.css'
 
@@ -56,7 +56,7 @@ export default function Login() {
       } else if (mode === 'join') {
         const { error } = await signIn(email, password)
         if (error) throw error
-        await joinHousehold(inviteCode)
+        await linkPartner(inviteCode)
         navigate('/')
       }
     } catch (err) {
@@ -110,14 +110,14 @@ export default function Login() {
             Crear cuenta
           </button>
           <button className={`tab ${mode === 'join' ? 'active' : ''}`} onClick={() => setMode('join')}>
-            Unirme a hogar
+            Vincular pareja
           </button>
         </div>
 
         {mode === 'join' && (
           <div className="alert alert-info">
             <i className="fa fa-circle-info" />
-            <div>Inicia sesión con tu cuenta y pega el código de invitación que te dio tu pareja (lo encuentra en Ajustes → Hogar compartido).</div>
+            <div>Inicia sesión con tu cuenta y pega el código de invitación que te dio tu pareja (lo encuentra en Ajustes → Pareja vinculada). Solo veréis un resumen del otro, vuestros datos siguen siendo privados.</div>
           </div>
         )}
 
@@ -146,7 +146,7 @@ export default function Login() {
           {error && <div className="alert alert-danger">{error}</div>}
 
           <button type="submit" className="btn btn-primary w-full" disabled={loading} style={{ justifyContent: 'center', padding: '10px 0' }}>
-            {loading ? 'Cargando…' : mode === 'signin' ? 'Entrar' : mode === 'signup' ? 'Crear cuenta' : 'Unirme'}
+            {loading ? 'Cargando…' : mode === 'signin' ? 'Entrar' : mode === 'signup' ? 'Crear cuenta' : 'Vincular'}
           </button>
         </form>
 
@@ -161,7 +161,7 @@ export default function Login() {
         </button>
 
         <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 18 }}>
-          Tus datos se sincronizan de forma segura y privada.<br />Solo tú y los miembros de tu hogar pueden verlos.
+          Tus datos se sincronizan de forma segura y privada.<br />Solo tú puedes verlos — si vinculas a tu pareja, solo verá un resumen.
         </p>
       </div>
     </div>

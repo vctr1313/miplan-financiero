@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
 import { deleteTransaction } from '../lib/supabase'
-import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct } from '../lib/finance'
+import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution } from '../lib/finance'
 import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
 
 export default function Dashboard() {
-  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, refresh } = useApp()
+  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, partnerSummary, refresh } = useApp()
   const navigate = useNavigate()
   const [showAddModal, setShowAddModal] = useState(false)
 
@@ -17,18 +17,15 @@ export default function Dashboard() {
   const stats = calcCycleStats({ transactions, cycle, categories, salary, fixedExpenses })
 
   const mySavingPerCycle = salary * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
-  // Mirror House.jsx's calculation exactly: when pair_mode is active,
-  // the partner's monthly contribution (already saved on houseGoal
-  // from when the household configured it) must be included too, or
-  // this view silently undercounts total monthly savings and shows a
-  // longer time-to-goal than the household's actual combined rate --
-  // which is exactly the inconsistency between Dashboard and House.jsx
-  // that was reported (Dashboard solo-mode math vs House.jsx's correct
-  // pair-mode math, same underlying goal, two different answers).
-  const partnerSavingPerCycle = houseGoal?.pair_mode === 'pair'
-    ? (houseGoal?.p_salary || 0) * (houseGoal?.p_pct || 0) / 100
-    : 0
-  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle, partnerSavingPerCycle })
+  // Mirror House.jsx's calculation exactly (via the shared
+  // getPartnerContribution helper): when pair_mode is active, the
+  // partner's monthly contribution must be included too, or this view
+  // silently undercounts total monthly savings and shows a longer
+  // time-to-goal than the actual combined rate -- the same
+  // inconsistency this helper was introduced to prevent.
+  const { savingPerCycle: partnerSavingPerCycle, saved: partnerSaved, isLive } =
+    getPartnerContribution({ houseGoal, partnerSummary })
+  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle, partnerSavingPerCycle, partnerSaved: isLive ? partnerSaved : null })
 
   // Previous cycle comparison
   const prevCycle = cycles.length >= 2 ? cycles[cycles.length - 2] : null

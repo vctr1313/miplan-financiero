@@ -22,6 +22,10 @@ create table households (
 create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   household_id uuid references households(id) on delete set null,
+  -- Mutual link to a partner's profile, for a read-only summary (see
+  -- get_partner_summary() below) -- deliberately separate from
+  -- household_id, which stays each person's own private data scope.
+  partner_id uuid references profiles(id) on delete set null,
   name text,
   birth_year int,
   salary numeric(10,2) default 0,
@@ -144,6 +148,112 @@ create or replace function find_household_by_invite_code(p_invite_code text)
 returns uuid language sql stable security definer
 set search_path = public as $$
   select id from households where invite_code = lower(trim(p_invite_code)) limit 1;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- PARTNER LINKING (read-only summary, no shared household)
+-- See supabase_patch_partner_linking.sql for the full rationale.
+-- ────────────────────────────────────────────────────────────
+
+create or replace function link_partner_by_invite_code(p_invite_code text)
+returns uuid language plpgsql security definer
+set search_path = public as $$
+declare
+  v_target_household_id uuid;
+  v_target_profile_id uuid;
+begin
+  select id into v_target_household_id
+    from households
+    where invite_code = lower(trim(p_invite_code))
+    limit 1;
+
+  if v_target_household_id is null then
+    return null;
+  end if;
+
+  select id into v_target_profile_id
+    from profiles
+    where household_id = v_target_household_id
+    limit 1;
+
+  if v_target_profile_id is null or v_target_profile_id = auth.uid() then
+    return null;
+  end if;
+
+  update profiles set partner_id = v_target_profile_id where id = auth.uid();
+  update profiles set partner_id = auth.uid() where id = v_target_profile_id;
+
+  return v_target_profile_id;
+end;
+$$;
+
+create or replace function unlink_partner()
+returns void language plpgsql security definer
+set search_path = public as $$
+declare
+  v_partner_id uuid;
+begin
+  select partner_id into v_partner_id from profiles where id = auth.uid();
+  if v_partner_id is not null then
+    update profiles set partner_id = null where id = v_partner_id;
+  end if;
+  update profiles set partner_id = null where id = auth.uid();
+end;
+$$;
+
+create or replace function get_partner_summary()
+returns table (
+  partner_id uuid,
+  partner_name text,
+  partner_salary numeric,
+  cycle_start date,
+  cycle_expenses numeric,
+  budget_total numeric,
+  saving_pct numeric,
+  house_saved numeric,
+  saving_goals_total numeric
+) language plpgsql stable security definer
+set search_path = public as $$
+declare
+  v_partner_id uuid;
+  v_household_id uuid;
+  v_cycle_start date;
+begin
+  select p.partner_id into v_partner_id from profiles p where p.id = auth.uid();
+  if v_partner_id is null then
+    return;
+  end if;
+
+  select p.household_id into v_household_id from profiles p where p.id = v_partner_id;
+
+  select max(t.date) into v_cycle_start
+    from transactions t
+    where t.household_id = v_household_id and t.type = 'income' and t.is_salary = true;
+
+  return query
+  select
+    p.id,
+    p.name,
+    p.salary,
+    v_cycle_start,
+    coalesce((
+      select sum(t.amount) from transactions t
+      where t.household_id = v_household_id and t.type = 'expense'
+        and (v_cycle_start is null or t.date >= v_cycle_start)
+    ), 0),
+    coalesce(p.salary, 0) * coalesce((
+      select sum(c.user_pct) from categories c
+      where c.household_id = v_household_id and c.type != 'saving'
+    ), 0) / 100,
+    coalesce((
+      select sum(c.user_pct) from categories c
+      where c.household_id = v_household_id and c.type = 'saving'
+    ), 0),
+    coalesce((select hg.my_saved from house_goals hg where hg.household_id = v_household_id), 0),
+    coalesce((select sum(sg.saved) from saving_goals sg where sg.household_id = v_household_id), 0)
+  from profiles p
+  where p.id = v_partner_id;
+end;
 $$;
 
 -- Helper function: get current user's household_id

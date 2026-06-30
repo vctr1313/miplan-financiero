@@ -56,62 +56,28 @@ export const updateProfile = async (userId, updates) => {
   return data
 }
 
-// ── HOUSEHOLD ─────────────────────────────────────────────────
-export const joinHousehold = async (inviteCode) => {
-  const { data: { user } } = await supabase.auth.getUser()
-  const oldProfile = await getProfile(user.id)
-  const oldHouseholdId = oldProfile.household_id
-
-  // Find target household by invite code. This must go through an RPC
-  // (security definer), not a plain select -- the households_member RLS
-  // policy only lets a user see a household they're already a member
-  // of, so a direct select on someone else's household would always
-  // come back empty regardless of whether the code was right.
-  const { data: householdId, error } = await supabase
-    .rpc('find_household_by_invite_code', { p_invite_code: inviteCode })
-  if (error || !householdId) throw new Error('Código de invitación no válido')
-  const household = { id: householdId }
-
-  if (household.id === oldHouseholdId) {
-    throw new Error('Ya perteneces a este hogar.')
-  }
-
-  // Move any transactions the user already created over to the new household
-  // (RLS transactions_update only allows the owner to update their own rows,
-  // which is exactly what's needed here since this runs as the same user).
-  if (oldHouseholdId) {
-    await supabase
-      .from('transactions')
-      .update({ household_id: household.id })
-      .eq('user_id', user.id)
-      .eq('household_id', oldHouseholdId)
-  }
-
-  // Re-point the user's profile to the new household
-  await updateProfile(user.id, { household_id: household.id })
-
-  // Clean up the old household if it's now empty (best-effort, ignore failures).
-  // supabase-js's query builder is thenable (works with await/.then) but does
-  // NOT implement .catch() like a real Promise -- chaining .catch() directly
-  // on it throws "catch is not a function" instead of swallowing the RPC
-  // error, which is what was actually breaking "Unirme" after a valid code
-  // was found. try/catch works because `await` unwraps the thenable first.
-  if (oldHouseholdId) {
-    try {
-      await supabase.rpc('cleanup_empty_household', { target_household_id: oldHouseholdId })
-    } catch (e) { /* best-effort cleanup, ignore failures */ }
-  }
-
-  return household
+// ── PARTNER LINKING ───────────────────────────────────────────
+// Each person keeps their own private household (categories,
+// transactions, budget, etc. never merge). Linking a partner only
+// grants a read-only aggregate summary via get_partner_summary(),
+// served through a security definer RPC that never exposes individual
+// transaction/category rows -- see supabase_patch_partner_linking.sql.
+export const linkPartner = async (inviteCode) => {
+  const { data: partnerId, error } = await supabase
+    .rpc('link_partner_by_invite_code', { p_invite_code: inviteCode })
+  if (error || !partnerId) throw new Error('Código de invitación no válido')
+  return partnerId
 }
 
-export const getHouseholdMembers = async (householdId) => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, name, salary')
-    .eq('household_id', householdId)
+export const unlinkPartner = async () => {
+  const { error } = await supabase.rpc('unlink_partner')
   if (error) throw error
-  return data
+}
+
+export const getPartnerSummary = async () => {
+  const { data, error } = await supabase.rpc('get_partner_summary')
+  if (error) throw error
+  return data?.[0] || null
 }
 
 // ── CATEGORIES ────────────────────────────────────────────────

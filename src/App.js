@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, subscribeToHousehold } from './lib/supabase'
+import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, getPartnerSummary, subscribeToHousehold } from './lib/supabase'
 import { buildCycles } from './lib/finance'
 
 // Pages
@@ -29,6 +29,7 @@ function AppProvider({ children }) {
   const [fixedExpenses, setFixedExpenses] = useState([])
   const [houseGoal, setHouseGoal] = useState(null)
   const [savingGoals, setSavingGoals] = useState([])
+  const [partnerSummary, setPartnerSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
 
@@ -51,6 +52,10 @@ function AppProvider({ children }) {
       setFixedExpenses(fixed || [])
       setHouseGoal(hGoal)
       setSavingGoals(sGoals || [])
+      // Read-only aggregate summary of a linked partner, if any -- see
+      // getPartnerSummary in lib/supabase.js for why this never pulls
+      // their raw transactions/categories.
+      setPartnerSummary(prof?.partner_id ? await getPartnerSummary().catch(() => null) : null)
     } catch (e) {
       console.error('Load error:', e)
     } finally {
@@ -95,6 +100,7 @@ function AppProvider({ children }) {
     fixedExpenses, setFixedExpenses,
     houseGoal, setHouseGoal,
     savingGoals, setSavingGoals,
+    partnerSummary,
     cycles, loading, syncing, refresh
   }
 

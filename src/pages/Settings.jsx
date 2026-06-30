@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useApp } from '../App'
-import { updateProfile, addFixedExpense, deleteFixedExpense, getHouseholdMembers, joinHousehold } from '../lib/supabase'
+import { updateProfile, addFixedExpense, deleteFixedExpense, linkPartner, unlinkPartner } from '../lib/supabase'
 import { fmt, fixedTotal, fixedPct } from '../lib/finance'
 import { requestNotificationPermission, getNotificationPermission } from '../lib/notifications'
 
 export default function Settings() {
-  const { profile, setProfile, categories, fixedExpenses, refresh } = useApp()
+  const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh } = useApp()
   const [salary, setSalary] = useState(profile?.salary || '')
   const [name, setName] = useState(profile?.name || '')
   const [birthYear, setBirthYear] = useState(profile?.birth_year || '')
   const [saved, setSaved] = useState(false)
-  const [members, setMembers] = useState([])
 
   // Fixed expense form
   const [fxName, setFxName] = useState('')
@@ -30,19 +29,20 @@ export default function Settings() {
     setNotifPermission(result)
   }
 
-  // Join another household
+  // Link partner (read-only summary, no shared data)
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
   const [joinLoading, setJoinLoading] = useState(false)
   const [showJoinForm, setShowJoinForm] = useState(false)
+  const [unlinking, setUnlinking] = useState(false)
 
-  const handleJoinHousehold = async (e) => {
+  const handleLinkPartner = async (e) => {
     e.preventDefault()
     setJoinError('')
     if (!joinCode.trim()) return
     setJoinLoading(true)
     try {
-      await joinHousehold(joinCode)
+      await linkPartner(joinCode)
       await refresh()
       setJoinCode('')
       setShowJoinForm(false)
@@ -53,11 +53,16 @@ export default function Settings() {
     }
   }
 
-  useEffect(() => {
-    if (profile?.household_id) {
-      getHouseholdMembers(profile.household_id).then(setMembers).catch(() => {})
+  const handleUnlinkPartner = async () => {
+    if (!window.confirm('¿Desvincular a tu pareja? Dejaréis de ver el resumen del otro.')) return
+    setUnlinking(true)
+    try {
+      await unlinkPartner()
+      await refresh()
+    } finally {
+      setUnlinking(false)
     }
-  }, [profile?.household_id])
+  }
 
   const handleSaveProfile = async () => {
     const updated = await updateProfile(profile.id, {
@@ -100,7 +105,7 @@ export default function Settings() {
 
   return (
     <div>
-      <div className="page-header"><h2>Ajustes</h2><p>Tu información, hogar compartido y configuración</p></div>
+      <div className="page-header"><h2>Ajustes</h2><p>Tu información, pareja vinculada y configuración</p></div>
 
       <div className="grid-2 mb-4">
         <div className="card">
@@ -108,7 +113,7 @@ export default function Settings() {
           <div className="form-group">
             <label>Sueldo neto mensual (€)</label>
             <input className="form-control" type="number" value={salary} onChange={e => setSalary(e.target.value)} placeholder="1800" />
-            <div className="form-hint">Visible solo para ti y los miembros de tu hogar.</div>
+            <div className="form-hint">Privado — solo tu pareja vinculada puede ver tu sueldo, dentro de su resumen.</div>
           </div>
           <div className="form-group">
             <label>Nombre</label>
@@ -124,61 +129,83 @@ export default function Settings() {
         </div>
 
         <div className="card">
-          <div className="section-header"><h3>👫 Hogar compartido</h3></div>
+          <div className="section-header"><h3>👫 Pareja vinculada</h3></div>
           <p className="text-xs text-muted mb-3">
-            Comparte este código con tu pareja para que se una a tu hogar y veáis los datos juntos.
+            Vincula tu cuenta con la de tu pareja para ver un resumen de su estado (sueldo, % de presupuesto gastado, total ahorrado). Cada uno sigue gestionando sus propios movimientos y categorías por separado.
           </p>
-          <div className="form-group">
-            <label>Código de invitación</label>
-            <div className="flex gap-2">
-              <input
-                className="form-control" readOnly value={profile?.households?.invite_code || ''}
-                style={{ fontFamily: 'monospace', fontWeight: 600 }}
-              />
-              <button
-                className="btn btn-ghost btn-icon"
-                onClick={() => navigator.clipboard?.writeText(profile?.households?.invite_code || '')}
-              >
-                <i className="fa fa-copy" />
-              </button>
-            </div>
-          </div>
-          <div className="form-hint mb-2">Tu pareja debe ir a "Unirme a hogar" en el login y pegar este código.</div>
-          {members.length > 0 && (
+
+          {profile?.partner_id ? (
             <>
-              <hr className="divider" />
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g700)', marginBottom: 8 }}>Miembros del hogar ({members.length})</div>
-              {members.map(m => (
-                <div key={m.id} className="flex items-center justify-between" style={{ padding: '6px 0', fontSize: 13 }}>
-                  <span>{m.name || 'Sin nombre'} {m.id === profile.id && <span className="badge badge-indigo">Tú</span>}</span>
-                  <span className="text-muted">{m.salary ? fmt(m.salary) : '—'}</span>
+              <div className="flex items-center justify-between mb-2" style={{ padding: '8px 0' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13.5 }}>{partnerSummary?.partner_name || 'Tu pareja'}</div>
+                  <div className="text-xs text-muted">Vinculada · resumen de solo lectura</div>
                 </div>
-              ))}
+                <span className="text-muted">{partnerSummary?.partner_salary ? fmt(partnerSummary.partner_salary) : '—'}</span>
+              </div>
+              {partnerSummary && (
+                <div className="grid-2 mb-3" style={{ gap: 8 }}>
+                  <div className="stat-card" style={{ padding: '9px 12px' }}>
+                    <div className="label">% presupuesto gastado</div>
+                    <div className="value" style={{ fontSize: 16 }}>
+                      {partnerSummary.budget_total > 0 ? Math.round(partnerSummary.cycle_expenses / partnerSummary.budget_total * 100) + '%' : '—'}
+                    </div>
+                  </div>
+                  <div className="stat-card" style={{ padding: '9px 12px' }}>
+                    <div className="label">Total ahorrado</div>
+                    <div className="value" style={{ fontSize: 16 }}>
+                      {fmt((partnerSummary.house_saved || 0) + (partnerSummary.saving_goals_total || 0))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={handleUnlinkPartner} disabled={unlinking}>
+                <i className="fa fa-link-slash" /> {unlinking ? 'Desvinculando…' : 'Desvincular'}
+              </button>
             </>
-          )}
-          <hr className="divider" />
-          {!showJoinForm ? (
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowJoinForm(true)}>
-              <i className="fa fa-user-group" /> Unirme a otro hogar
-            </button>
           ) : (
-            <form onSubmit={handleJoinHousehold}>
-              <div className="alert alert-warning">
-                <i className="fa fa-triangle-exclamation" />
-                <div>Esto mueve tus movimientos a ese hogar y dejas el actual. No afecta a los datos de tus compañeros de hogar actuales.</div>
-              </div>
+            <>
               <div className="form-group">
-                <label>Código de invitación</label>
-                <input className="form-control" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="ej: a1b2c3d4" style={{ fontFamily: 'monospace' }} />
+                <label>Tu código de invitación</label>
+                <div className="flex gap-2">
+                  <input
+                    className="form-control" readOnly value={profile?.households?.invite_code || ''}
+                    style={{ fontFamily: 'monospace', fontWeight: 600 }}
+                  />
+                  <button
+                    className="btn btn-ghost btn-icon"
+                    onClick={() => navigator.clipboard?.writeText(profile?.households?.invite_code || '')}
+                  >
+                    <i className="fa fa-copy" />
+                  </button>
+                </div>
               </div>
-              {joinError && <div className="alert alert-danger">{joinError}</div>}
-              <div className="flex gap-2">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowJoinForm(false); setJoinError('') }}>Cancelar</button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={joinLoading}>
-                  <i className="fa fa-check" /> {joinLoading ? 'Uniéndome…' : 'Unirme'}
+              <div className="form-hint mb-2">Comparte este código con tu pareja para que lo pegue desde su cuenta.</div>
+              <hr className="divider" />
+              {!showJoinForm ? (
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowJoinForm(true)}>
+                  <i className="fa fa-user-group" /> Vincular pareja
                 </button>
-              </div>
-            </form>
+              ) : (
+                <form onSubmit={handleLinkPartner}>
+                  <div className="alert alert-info">
+                    <i className="fa fa-circle-info" />
+                    <div>Esto vincula tu cuenta con la de tu pareja. Cada uno sigue gestionando sus propios datos; solo podréis ver un resumen del otro.</div>
+                  </div>
+                  <div className="form-group">
+                    <label>Código de invitación</label>
+                    <input className="form-control" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="ej: a1b2c3d4" style={{ fontFamily: 'monospace' }} />
+                  </div>
+                  {joinError && <div className="alert alert-danger">{joinError}</div>}
+                  <div className="flex gap-2">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowJoinForm(false); setJoinError('') }}>Cancelar</button>
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={joinLoading}>
+                      <i className="fa fa-check" /> {joinLoading ? 'Vinculando…' : 'Vincular'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </>
           )}
         </div>
       </div>

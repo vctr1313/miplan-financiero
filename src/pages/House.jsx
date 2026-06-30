@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../App'
 import { updateHouseGoal } from '../lib/supabase'
-import { fmt, fmtShort, calcHouseProgress, simulateMortgage } from '../lib/finance'
+import { fmt, fmtShort, calcHouseProgress, simulateMortgage, getPartnerContribution } from '../lib/finance'
 import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 export default function House() {
-  const { profile, categories, houseGoal, refresh } = useApp()
+  const { profile, categories, houseGoal, partnerSummary, refresh } = useApp()
+  const isLinked = !!profile?.partner_id
   const salary = profile?.salary || 0
   const [pairMode, setPairMode] = useState(houseGoal?.pair_mode || 'solo')
   const [target, setTarget] = useState(houseGoal?.target || 200000)
@@ -40,10 +41,19 @@ export default function House() {
   }, [houseGoal])
 
   const mySavingPerCycle = salary * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
-  const partnerSavingPerCycle = pairMode === 'pair' ? pSalary * pPct / 100 : 0
+  // When a partner is linked, real numbers from their account (via
+  // getPartnerSummary) drive the calculation instead of the manually
+  // typed pSalary/pPct/pSaved -- see getPartnerContribution in
+  // lib/finance.js for the fallback logic when not linked.
+  const partnerContribution = getPartnerContribution({
+    houseGoal: { pair_mode: pairMode, p_salary: pSalary, p_pct: pPct, p_saved: pSaved },
+    partnerSummary: isLinked ? partnerSummary : null,
+  })
   const houseCalc = calcHouseProgress({
     goal: { target, dp_pct: dpPct, my_saved: mySaved, pair_mode: pairMode, p_saved: pSaved },
-    mySavingPerCycle, partnerSavingPerCycle
+    mySavingPerCycle,
+    partnerSavingPerCycle: partnerContribution.savingPerCycle,
+    partnerSaved: partnerContribution.isLive ? partnerContribution.saved : null,
   })
 
   const handleSaveGoal = async () => {
@@ -54,10 +64,15 @@ export default function House() {
       dp_pct: parseFloat(dpPct) || 30,
       my_saved: parseFloat(mySaved) || 0,
       pair_mode: pairMode,
-      p_salary: pairMode === 'pair' ? parseFloat(pSalary) || 0 : 0,
-      p_pct: pairMode === 'pair' ? parseFloat(pPct) || 20 : 20,
-      p_saved: pairMode === 'pair' ? parseFloat(pSaved) || 0 : 0,
       mort_pair_mode: mortPairMode,
+      // When linked, the partner's real numbers drive everything (see
+      // getPartnerContribution) -- these manual fields are left as-is
+      // in the DB rather than overwritten with stale/unused form state.
+      ...(pairMode === 'pair' && !isLinked
+        ? { p_salary: parseFloat(pSalary) || 0, p_pct: parseFloat(pPct) || 20, p_saved: parseFloat(pSaved) || 0 }
+        : pairMode === 'solo'
+        ? { p_salary: 0, p_pct: 20, p_saved: 0 }
+        : {}),
     })
     await refresh()
     setSaved(true)
@@ -144,7 +159,7 @@ export default function House() {
         </div>
         <div className="house-meta">
           <div><span>Ahorro tú/mes</span><strong>{fmt(mySavingPerCycle)}</strong></div>
-          {pairMode === 'pair' && <div><span>Pareja/mes</span><strong>{fmt(partnerSavingPerCycle)}</strong></div>}
+          {pairMode === 'pair' && <div><span>Pareja/mes</span><strong>{fmt(partnerContribution.savingPerCycle)}</strong></div>}
           <div><span>Total mensual</span><strong>{fmt(houseCalc.totalMonthly || 0)}</strong></div>
           <div><span>Años restantes</span><strong>{houseCalc.yearsLeft != null ? `${houseCalc.yearsLeft}a ${houseCalc.mos}m` : '—'}</strong></div>
         </div>
@@ -167,9 +182,29 @@ export default function House() {
             <input className="form-control" type="number" min="0" value={mySaved} onChange={e => setMySaved(e.target.value)} placeholder="0" />
           </div>
 
-          {pairMode === 'pair' && (
+          {pairMode === 'pair' && isLinked && (
             <>
               <hr className="divider" />
+              <div className="alert alert-success" style={{ marginBottom: 0 }}>
+                <i className="fa fa-link" />
+                <div>
+                  Sincronizado con la cuenta de tu pareja{partnerSummary?.partner_name ? ` (${partnerSummary.partner_name})` : ''}.
+                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span>Sueldo: <strong>{fmt(partnerSummary?.partner_salary || 0)}</strong></span>
+                    <span>Ahorro casa/mes: <strong>{fmt(partnerContribution.savingPerCycle)}</strong></span>
+                    <span>Ahorro acumulado: <strong>{fmt(partnerContribution.saved)}</strong></span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {pairMode === 'pair' && !isLinked && (
+            <>
+              <hr className="divider" />
+              <div className="form-hint" style={{ marginBottom: 8 }}>
+                Vincula la cuenta de tu pareja en Ajustes para usar sus datos reales en vez de escribirlos a mano.
+              </div>
               <div className="form-group">
                 <label>Sueldo neto pareja (€/mes)</label>
                 <input className="form-control" type="number" min="0" value={pSalary} onChange={e => setPSalary(e.target.value)} placeholder="1800" />

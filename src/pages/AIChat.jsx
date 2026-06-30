@@ -10,7 +10,7 @@ const SUGGESTIONS = [
 ]
 
 export default function AIChat() {
-  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles } = useApp()
+  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, partnerSummary } = useApp()
   const [messages, setMessages] = useState([{
     role: 'assistant',
     text: `👋 **Hola**, soy tu consejero financiero personal. Conozco todos tus datos: tu sueldo, categorías, historial de movimientos, botes de ahorro y tu meta de la casa.
@@ -41,7 +41,7 @@ Puedes preguntarme cosas como:
     const hasPaidKey = apiKey && apiKey.startsWith('sk-ant')
 
     if (!hasPaidKey) {
-      const context = buildAIContext({ profile, categories, transactions, fixedExpenses, houseGoal, cycles })
+      const context = buildAIContext({ profile, categories, transactions, fixedExpenses, houseGoal, cycles, partnerSummary })
       const prompt = `Actúa como mi consejero financiero personal. Tienes acceso a todos mis datos financieros. Analiza el histórico, haz predicciones concretas con números y fechas, y da consejos accionables.\n\n${context}\n\nMi pregunta: ${msg}`
       copyToClipboard(prompt)
       setMessages(m => [...m, {
@@ -53,7 +53,7 @@ Puedes preguntarme cosas como:
     }
 
     try {
-      const context = buildAIContext({ profile, categories, transactions, fixedExpenses, houseGoal, cycles })
+      const context = buildAIContext({ profile, categories, transactions, fixedExpenses, houseGoal, cycles, partnerSummary })
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {

@@ -130,11 +130,36 @@ export const calcCycleStats = ({ transactions, cycle, categories, salary, fixedE
 }
 
 // ── HOUSE GOAL ────────────────────────────────────────────────
-export const calcHouseProgress = ({ goal, mySavingPerCycle, partnerSavingPerCycle = 0 }) => {
+// getPartnerContribution centralizes the "real linked-partner data vs
+// manual entry" branch that House.jsx, Dashboard.jsx and
+// buildAIContext all need: when a partner is linked, use their actual
+// salary/saving-rate/saved amount from get_partner_summary(); when
+// not, fall back to the manual p_salary/p_pct/p_saved fields the
+// "pair mode" feature has always used (e.g. for a partner who doesn't
+// use the app). Keeping this in one place avoids the three call sites
+// drifting out of sync the way they did before (see the pair-mode
+// consistency fix referenced elsewhere in this file).
+export const getPartnerContribution = ({ houseGoal, partnerSummary }) => {
+  if (houseGoal?.pair_mode !== 'pair') return { savingPerCycle: 0, saved: 0, isLive: false }
+  if (partnerSummary) {
+    return {
+      savingPerCycle: (partnerSummary.partner_salary || 0) * (partnerSummary.saving_pct || 0) / 100,
+      saved: partnerSummary.house_saved || 0,
+      isLive: true,
+    }
+  }
+  return {
+    savingPerCycle: (houseGoal.p_salary || 0) * (houseGoal.p_pct || 0) / 100,
+    saved: houseGoal.p_saved || 0,
+    isLive: false,
+  }
+}
+
+export const calcHouseProgress = ({ goal, mySavingPerCycle, partnerSavingPerCycle = 0, partnerSaved = null }) => {
   if (!goal) return {}
 
   const entryTarget = (goal.target || 0) * (goal.dp_pct || 30) / 100
-  const totalSaved = (goal.my_saved || 0) + (goal.pair_mode === 'pair' ? goal.p_saved || 0 : 0)
+  const totalSaved = (goal.my_saved || 0) + (goal.pair_mode === 'pair' ? (partnerSaved != null ? partnerSaved : (goal.p_saved || 0)) : 0)
   const totalMonthly = mySavingPerCycle + (goal.pair_mode === 'pair' ? partnerSavingPerCycle : 0)
   const remaining = entryTarget - totalSaved
   const pct = entryTarget > 0 ? Math.min(100, totalSaved / entryTarget * 100) : 0
@@ -188,7 +213,7 @@ export const getPendingFixedExpenses = ({ fixedExpenses, cycle }) => {
 }
 
 // ── AI CONTEXT BUILDER ────────────────────────────────────────
-export const buildAIContext = ({ profile, categories, transactions, fixedExpenses, houseGoal, cycles }) => {
+export const buildAIContext = ({ profile, categories, transactions, fixedExpenses, houseGoal, cycles, partnerSummary }) => {
   const cycle = getCurrentCycle(cycles)
   const stats = calcCycleStats({ transactions, cycle, categories, salary: profile.salary || 0, fixedExpenses })
   const mySavingPerCycle = (profile.salary || 0) * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
@@ -196,10 +221,8 @@ export const buildAIContext = ({ profile, categories, transactions, fixedExpense
   // partner's contribution, the AI advisor would tell the user their
   // time-to-goal is much longer than it actually is whenever pair
   // mode is active, contradicting what House.jsx correctly shows.
-  const partnerSavingPerCycle = houseGoal?.pair_mode === 'pair'
-    ? (houseGoal?.p_salary || 0) * (houseGoal?.p_pct || 0) / 100
-    : 0
-  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle, partnerSavingPerCycle })
+  const { savingPerCycle: partnerSavingPerCycle, saved: partnerSaved } = getPartnerContribution({ houseGoal, partnerSummary })
+  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle, partnerSavingPerCycle, partnerSaved })
 
   const topCats = categories
     .map(c => ({ name: c.name, spent: stats.spendByCat[c.id] || 0, budget: catBudget(c, profile.salary || 0) }))
