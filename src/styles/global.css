@@ -368,9 +368,21 @@ input, select, textarea { font-family: inherit; }
        behind opaque header pixels, on top of the earlier height/
        overflow issue -- both needed fixing for the bottom content to
        actually become reachable. */
+    /* `bottom: 0` (instead of a computed `height`) anchors both edges
+       of the box to the viewport directly, so its actual height is
+       whatever space remains below `top` -- no calc needed and no way
+       for the two to drift out of sync. The previous height calc only
+       subtracted --header-height and never subtracted the safe-area-
+       inset-top that `top` itself already adds, so on any device with
+       a top safe area (notch/status bar) the box's bottom edge landed
+       exactly that many pixels past the visible viewport, with the
+       overflow being a position:fixed element off-screen rather than
+       internally scrollable -- clipping the sign-out button at the
+       bottom with no way to reach it. */
     top: calc(var(--header-height) + env(safe-area-inset-top));
-    height: calc(100vh - var(--header-height));
-    max-height: calc(100vh - var(--header-height));
+    bottom: 0;
+    height: auto;
+    max-height: none;
     padding-top: 0;
   }
   .sidebar.open { transform: translateX(0); }
