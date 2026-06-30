@@ -132,6 +132,20 @@ create policy "profiles_own" on profiles for all using (auth.uid() = id);
 create policy "households_member" on households for all
   using (id in (select household_id from profiles where id = auth.uid()));
 
+-- Lookup a household by invite code, for joining one you aren't a member
+-- of yet. Plain SELECT can't do this -- households_member only allows
+-- seeing a household you already belong to, so a user pasting a valid
+-- invite code for a household they're about to join would always get
+-- zero rows back from RLS, indistinguishable from a wrong code. This
+-- function runs as security definer to bypass that, but only ever
+-- returns the id (never invite_code or other rows), so it can't be used
+-- to enumerate households.
+create or replace function find_household_by_invite_code(p_invite_code text)
+returns uuid language sql stable security definer
+set search_path = public as $$
+  select id from households where invite_code = lower(trim(p_invite_code)) limit 1;
+$$;
+
 -- Helper function: get current user's household_id
 create or replace function get_my_household()
 returns uuid language sql stable security definer as $$

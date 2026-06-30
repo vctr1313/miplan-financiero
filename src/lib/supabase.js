@@ -62,13 +62,15 @@ export const joinHousehold = async (inviteCode) => {
   const oldProfile = await getProfile(user.id)
   const oldHouseholdId = oldProfile.household_id
 
-  // Find target household by invite code
-  const { data: household, error } = await supabase
-    .from('households')
-    .select('id')
-    .eq('invite_code', inviteCode.trim().toLowerCase())
-    .single()
-  if (error) throw new Error('Código de invitación no válido')
+  // Find target household by invite code. This must go through an RPC
+  // (security definer), not a plain select -- the households_member RLS
+  // policy only lets a user see a household they're already a member
+  // of, so a direct select on someone else's household would always
+  // come back empty regardless of whether the code was right.
+  const { data: householdId, error } = await supabase
+    .rpc('find_household_by_invite_code', { p_invite_code: inviteCode })
+  if (error || !householdId) throw new Error('Código de invitación no válido')
+  const household = { id: householdId }
 
   if (household.id === oldHouseholdId) {
     throw new Error('Ya perteneces a este hogar.')
