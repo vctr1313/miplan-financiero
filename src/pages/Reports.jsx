@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useApp } from '../App'
 import { fmt, fmtShort, catBudget, calcSavingsRate } from '../lib/finance'
 import { Chart as ChartJS, BarElement, LineElement, PointElement, ArcElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
@@ -17,10 +17,10 @@ export default function Reports() {
   const tickColor = isDark ? '#8884a8' : '#9ca3af'
 
   // ── FIX: get transactions for a SPECIFIC calendar month, not accumulated ──
-  const getMonthTx = (m, y) => transactions.filter(t => {
+  const getMonthTx = useCallback((m, y) => transactions.filter(t => {
     const d = new Date(t.date)
     return d.getMonth() === m && d.getFullYear() === y
-  })
+  }), [transactions])
 
   // ── FIX: only count salary income that ACTUALLY happened in that month ──
   // (previously this was bugged to always add the current salary regardless of month)
@@ -40,7 +40,7 @@ export default function Reports() {
     const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
     const expenses = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
     return { income, expenses, balance: income - expenses }
-  }), [last6Months, transactions])
+  }), [last6Months, getMonthTx])
 
   const totalIncome6m = monthlyData.reduce((s, d) => s + d.income, 0)
   const totalExpenses6m = monthlyData.reduce((s, d) => s + d.expenses, 0)
@@ -95,7 +95,7 @@ export default function Reports() {
       </div>
 
       {tab === 'monthly' && <MonthlyTab last6Months={last6Months} monthlyData={monthlyData} gridColor={gridColor} tickColor={tickColor} />}
-      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} curM={curM} curY={curY} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
+      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} curM={curM} curY={curY} setCurM={setCurM} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
       {tab === 'savings' && <SavingsTab monthlyData={monthlyData} last6Months={last6Months} categories={categories} salary={salary} gridColor={gridColor} tickColor={tickColor} />}
       {tab === 'annual' && <AnnualTab transactions={transactions} curY={curY} setCurY={setCurY} categories={categories} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
     </div>
@@ -158,7 +158,7 @@ function MonthlyTab({ last6Months, monthlyData, gridColor, tickColor }) {
   )
 }
 
-function CategoriesTab({ categories, transactions, salary, curM, curY, gridColor, tickColor, isDark }) {
+function CategoriesTab({ categories, transactions, salary, curM, curY, setCurM, gridColor, tickColor, isDark }) {
   const txs = transactions.filter(t => {
     const d = new Date(t.date)
     return d.getMonth() === curM && d.getFullYear() === curY && t.type === 'expense'
@@ -174,8 +174,17 @@ function CategoriesTab({ categories, transactions, salary, curM, curY, gridColor
     datasets: [{ data: catData.filter(c => c.spent > 0).map(c => c.spent), backgroundColor: catData.filter(c => c.spent > 0).map(c => c.color), borderWidth: 2, borderColor: isDark ? '#181727' : '#fff' }]
   }
 
+  const monthLabel = new Date(curY, curM, 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' })
+  const goToPrevMonth = () => setCurM(m => m === 0 ? 11 : m - 1)
+  const goToNextMonth = () => setCurM(m => m === 11 ? 0 : m + 1)
+
   return (
     <>
+      <div className="flex items-center gap-2 mb-3">
+        <button className="btn btn-ghost btn-icon" onClick={goToPrevMonth}><i className="fa fa-chevron-left" /></button>
+        <h3 style={{ fontSize: 15, fontWeight: 600, textTransform: 'capitalize', minWidth: 160, textAlign: 'center' }}>{monthLabel}</h3>
+        <button className="btn btn-ghost btn-icon" onClick={goToNextMonth}><i className="fa fa-chevron-right" /></button>
+      </div>
       <div className="grid-2 mb-4">
         <div className="card"><div className="section-header"><h3>Distribución de gastos</h3></div>
           <div style={{ position: 'relative', height: 290 }}>

@@ -24,7 +24,7 @@ Puedes preguntarme cosas como:
   }])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('fp_apikey') || '')
+  const [apiKey] = useState(() => localStorage.getItem('fp_apikey') || '')
   const messagesEndRef = useRef(null)
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useApp } from '../App'
-import { fmt, fmtShort, calcCycleStats, calcSavingsRate } from '../lib/finance'
+import { fmt, calcCycleStats, calcSavingsRate } from '../lib/finance'
 
 export default function CycleHistory() {
   const { profile, categories, transactions, fixedExpenses, cycles } = useApp()

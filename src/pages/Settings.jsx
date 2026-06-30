@@ -208,7 +208,7 @@ export default function Settings() {
           <i className="fa fa-circle-info" />
           <div>
             Consigue tu clave en{' '}
-            <a href="#" onClick={(e) => { e.preventDefault(); window.open('https://console.anthropic.com/settings/keys', '_blank', 'noopener') }} style={{ color: 'var(--i6)', fontWeight: 500 }}>
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--i6)', fontWeight: 500 }}>
               console.anthropic.com/settings/keys
             </a>
           </div>

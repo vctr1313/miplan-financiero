@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { useApp } from '../App'
 import { upsertCategory, deleteCategory, updateCategoryPct, supabase } from '../lib/supabase'
 import { fmt, catBudget, calcPotBalance, getCurrentCycle } from '../lib/finance'
