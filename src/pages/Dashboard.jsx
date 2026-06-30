@@ -17,7 +17,18 @@ export default function Dashboard() {
   const stats = calcCycleStats({ transactions, cycle, categories, salary, fixedExpenses })
 
   const mySavingPerCycle = salary * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
-  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle })
+  // Mirror House.jsx's calculation exactly: when pair_mode is active,
+  // the partner's monthly contribution (already saved on houseGoal
+  // from when the household configured it) must be included too, or
+  // this view silently undercounts total monthly savings and shows a
+  // longer time-to-goal than the household's actual combined rate --
+  // which is exactly the inconsistency between Dashboard and House.jsx
+  // that was reported (Dashboard solo-mode math vs House.jsx's correct
+  // pair-mode math, same underlying goal, two different answers).
+  const partnerSavingPerCycle = houseGoal?.pair_mode === 'pair'
+    ? (houseGoal?.p_salary || 0) * (houseGoal?.p_pct || 0) / 100
+    : 0
+  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle, partnerSavingPerCycle })
 
   // Previous cycle comparison
   const prevCycle = cycles.length >= 2 ? cycles[cycles.length - 2] : null

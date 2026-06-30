@@ -186,7 +186,14 @@ export const buildAIContext = ({ profile, categories, transactions, fixedExpense
   const cycle = getCurrentCycle(cycles)
   const stats = calcCycleStats({ transactions, cycle, categories, salary: profile.salary || 0, fixedExpenses })
   const mySavingPerCycle = (profile.salary || 0) * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
-  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle })
+  // Same pair-mode fix as Dashboard.jsx: without including the
+  // partner's contribution, the AI advisor would tell the user their
+  // time-to-goal is much longer than it actually is whenever pair
+  // mode is active, contradicting what House.jsx correctly shows.
+  const partnerSavingPerCycle = houseGoal?.pair_mode === 'pair'
+    ? (houseGoal?.p_salary || 0) * (houseGoal?.p_pct || 0) / 100
+    : 0
+  const houseCalc = calcHouseProgress({ goal: houseGoal, mySavingPerCycle, partnerSavingPerCycle })
 
   const topCats = categories
     .map(c => ({ name: c.name, spent: stats.spendByCat[c.id] || 0, budget: catBudget(c, profile.salary || 0) }))
