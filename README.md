@@ -1,6 +1,8 @@
 # Mi Plan Financiero — Guía de instalación
 
-App de control de gastos y plan de ahorro, sincronizada en la nube entre tú y tu pareja, instalable como app en el móvil.
+🇬🇧 [Read this in English](README.en.md)
+
+App de control de gastos y plan de ahorro, sincronizada en la nube, instalable como app en el móvil. Cada persona tiene sus propios datos privados; si vinculas a tu pareja, cada uno ve un resumen de solo lectura del estado del otro (sin compartir movimientos ni categorías).
 
 ## Tu configuración
 
@@ -10,13 +12,14 @@ App de control de gastos y plan de ahorro, sincronizada en la nube entre tú y t
 ## Funcionalidades
 
 - **Sincronización en tiempo real** entre dispositivos vía Supabase (móvil, ordenador, portátil)
-- **Hogar compartido**: tú y tu pareja veis los mismos datos con un código de invitación
+- **Pareja vinculada**: vincula tu cuenta con la de tu pareja con un código de invitación para ver un resumen de su estado (sueldo, % de presupuesto gastado, total ahorrado) — vuestros movimientos y categorías siguen siendo privados
 - **PWA instalable** en el móvil (icono propio, pantalla completa, funciona offline para datos ya cargados)
 - **Ciclos por nómina**: el "mes" empieza cuando cobras, no el día 1 natural
 - **Botes de ahorro** que acumulan dinero ciclo a ciclo si no los gastas
 - **Categorías editables**: añade, edita o elimina, con reasignación de saldo si tienen bote
 - **Gastos fijos automáticos**: banner que propone confirmarlos al inicio de cada ciclo
 - **Múltiples metas de ahorro** (viajes, coche, emergencia…) además de la meta de la casa
+- **Meta de la casa en pareja**: si tienes pareja vinculada, usa sus datos reales (sueldo, ahorro) en vez de tener que escribirlos a mano
 - **Historial de ciclos** con comparativa lado a lado entre dos periodos
 - **Simulador de hipoteca** solo o en pareja, con análisis de esfuerzo financiero
 - **Reportes** con gráficos, exportables a PDF y Excel
@@ -32,7 +35,9 @@ App de control de gastos y plan de ahorro, sincronizada en la nube entre tú y t
 2. Menú lateral → **SQL Editor** → **New query**
 3. Abre `supabase_schema.sql` (incluido en este paquete), copia TODO el contenido, pégalo en el editor
 4. Pulsa **Run** (o Ctrl+Enter)
-5. Deberías ver "Success. No rows returned" — eso confirma que las 7 tablas, políticas RLS y triggers se crearon bien
+5. Deberías ver "Success. No rows returned" — eso confirma que las tablas, políticas RLS, triggers y funciones se crearon bien
+
+> Si ya tenías el proyecto desplegado antes de alguno de los cambios listados en [Migraciones](#migraciones), `supabase_schema.sql` ya los incluye todos — no hace falta volver a correr los patches sueltos en una instalación nueva.
 
 ### 2. Subir el código a tu GitHub
 
@@ -56,7 +61,7 @@ npm install
 npm start
 ```
 
-Se abre en `http://localhost:3000`. Crea tu cuenta con tu email, confirma el correo, y ya puedes usar la app. Para que tu pareja se una, comparte el código de invitación que aparece en **Ajustes → Hogar compartido**.
+Se abre en `http://localhost:3000`. Crea tu cuenta con tu email, confirma el correo, y ya puedes usar la app. Para vincular a tu pareja, comparte el código de invitación que aparece en **Ajustes → Pareja vinculada**.
 
 ### 4. Desplegar en Vercel (gratis, ~3 min)
 
@@ -103,15 +108,25 @@ Sin estos archivos la app funciona igual, pero el icono al instalar será genér
 src/
   lib/
     supabase.js   → todas las llamadas a la base de datos
-    finance.js    → cálculos financieros (ciclos, botes, hipoteca...)
+    finance.js    → cálculos financieros (ciclos, botes, hipoteca, pareja...)
   pages/          → una página por ruta
   components/     → Layout, modales reutilizables
   styles/         → CSS global con variables de tema
-supabase_schema.sql → ejecutar una vez en Supabase SQL Editor
+supabase_schema.sql → ejecutar una vez en Supabase SQL Editor (incluye todas las migraciones)
 ```
+
+## Migraciones
+
+Si tu proyecto de Supabase es anterior a alguno de estos cambios, ejecuta el patch correspondiente una vez en el SQL Editor (son idempotentes, seguros de re-ejecutar). Las instalaciones nuevas no los necesitan: ya están incluidos en `supabase_schema.sql`.
+
+| Archivo | Qué arregla |
+|---|---|
+| `supabase_patch_search_path.sql` | Funciones `security definer` sin `search_path` fijado, que rompían el alta de usuarios nuevos (Google/email se quedaba colgado en el login) |
+| `supabase_patch_partner_linking.sql` | Sustituye "unirse a un hogar" (que fusionaba todos los datos) por la vinculación de pareja actual: cada cuenta sigue siendo privada, solo se comparte un resumen agregado |
 
 ## Notas importantes
 
-- **Row Level Security** está activado: cada usuario solo ve los datos de su hogar
-- **Tiempo real**: si tu pareja añade un gasto, lo ves al instante sin recargar
+- **Row Level Security** está activado: cada usuario solo ve sus propios datos (categorías, movimientos, presupuesto, botes). Nada se comparte por defecto.
+- **Pareja vinculada**: si vinculas tu cuenta con la de tu pareja, ella (y solo ella) puede ver un resumen agregado de tu estado financiero — sueldo, % de presupuesto gastado y total ahorrado — nunca tus movimientos o categorías individuales, ni siquiera con una llamada directa a la API.
+- **Tiempo real**: tus propios cambios se sincronizan al instante entre tus dispositivos sin recargar.
 - **API key de IA**: se guarda en `localStorage` del navegador, no en la base de datos (cada dispositivo necesita la suya, o usar el modo gratuito de copiar/pegar)
