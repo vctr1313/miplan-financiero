@@ -67,19 +67,19 @@ input, select, textarea { font-family: inherit; }
 /* ── SIDEBAR ─────────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-width);
-  /* Height grows by both safe-area insets instead of assuming 100vh
-     covers the whole physical screen -- on a notched/gesture-bar
-     phone it doesn't, so without this the bottom of the sidebar
-     (sign-out button, salary field) could render partially hidden
-     under the home indicator, same root cause as the header/bottom-nav
-     fix. */
-  min-height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+  /* `height` (not min-height) pinned to the safe-area-aware viewport
+     size is what actually makes the browser apply overflow clipping
+     and a scrollbar. The previous min-height-only version let the
+     flex column grow taller than the screen with nothing capping it,
+     so overflow-y:auto never had a boundary to kick in against -- the
+     content was simply cut off at the bottom of the physical screen
+     with no way to reach it, which is exactly what showed up in
+     testing (salary field clipped, sign-out button never reachable). */
+  height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+  max-height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   box-sizing: border-box;
-  /* Belt-and-suspenders: if content ever exceeds the viewport on a
-     very small/short phone screen even with the above accounted for,
-     scroll instead of silently clipping. */
   overflow-y: auto;
   background: var(--sidebar);
   display: flex;
