@@ -27,6 +27,21 @@ export const getProfile = async (userId) => {
     .eq('id', userId)
     .single()
   if (error) throw error
+
+  // Supabase's PostgREST can return a to-one relation embed as either a
+  // single object or a single-element array depending on how it infers
+  // the foreign key cardinality. profiles.household_id -> households.id
+  // is a clean many-to-one (many profiles per household), which should
+  // embed as an object, but in practice this has been observed coming
+  // back as [{...}] instead -- silently breaking any `profile.households.x`
+  // access without throwing, since `.x` on an array just returns
+  // undefined rather than erroring. Normalize defensively here so every
+  // caller can safely assume `profile.households` is always either the
+  // object or null, never an array.
+  if (Array.isArray(data.households)) {
+    data.households = data.households[0] || null
+  }
+
   return data
 }
 
