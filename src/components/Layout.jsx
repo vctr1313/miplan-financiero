@@ -44,7 +44,7 @@ export default function Layout() {
         <p>CONTROL · AHORRO · INVERSIÓN</p>
       </div>
 
-      <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
+      <nav style={{ flex: '1 0 auto', padding: '8px 0' }}>
         {NAV.map((item, i) => (
           <React.Fragment key={item.path}>
             {item.section && (

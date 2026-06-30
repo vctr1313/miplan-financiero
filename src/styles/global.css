@@ -337,7 +337,23 @@ input, select, textarea { font-family: inherit; }
 
 @media (max-width: 768px) {
   :root { --sidebar-width: 0px; }
-  .sidebar { transform: translateX(-100%); width: 244px; }
+  .sidebar {
+    transform: translateX(-100%);
+    width: 244px;
+    /* On mobile, .mobile-header is also position:fixed at top:0 with
+       the same z-index stacking context, so without an explicit
+       offset here the sidebar's top:0 (set in the base .sidebar rule
+       for desktop, where there's no header to clash with) overlaps
+       directly underneath the header instead of starting below it.
+       That silently ate ~60-80px of the sidebar's vertical space
+       behind opaque header pixels, on top of the earlier height/
+       overflow issue -- both needed fixing for the bottom content to
+       actually become reachable. */
+    top: calc(var(--header-height) + env(safe-area-inset-top));
+    height: calc(100vh - var(--header-height));
+    max-height: calc(100vh - var(--header-height));
+    padding-top: 0;
+  }
   .sidebar.open { transform: translateX(0); }
   /* Top padding now accounts for the safe area too, matching the
      taller .mobile-header so content never starts underneath it.
