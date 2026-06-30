@@ -74,11 +74,17 @@ export const calcPotBalance = ({ category, salary, cycles, transactions, asOfDat
   const monthlyAlloc = salary * (category.user_pct / 100)
   let balance = completedCycles * monthlyAlloc
 
-  // Subtract all expenses and withdrawals from this pot
   transactions.forEach(t => {
-    if (t.category_id === category.id &&
-      (t.type === 'expense' || t.type === 'pot-withdrawal')) {
+    if (t.category_id !== category.id) return
+    // Regular spending and manual withdrawals reduce the pot.
+    if (t.type === 'expense' || t.type === 'pot-withdrawal') {
       balance -= t.amount
+    }
+    // pot-deposit is the extra-payment-distribution case: money added
+    // to a pot OUTSIDE the normal cycle-based automatic accumulation
+    // above (e.g. splitting a paga extra into Viajes/Regalos/etc).
+    if (t.type === 'pot-deposit') {
+      balance += t.amount
     }
   })
 

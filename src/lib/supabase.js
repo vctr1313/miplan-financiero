@@ -236,6 +236,23 @@ export const updateHouseGoal = async (goal) => {
   return data
 }
 
+// Atomically increment my_saved and/or invest_saved by a delta amount,
+// using Postgres's own column = column + delta arithmetic via an RPC
+// instead of fetch-then-write from JS. A plain JS read-modify-write
+// here would be vulnerable to a real race condition in this app
+// specifically: two household members (e.g. partners) could each
+// distribute part of the same paga extra around the same time from
+// different devices, and whichever write lands second would silently
+// clobber the first instead of both amounts actually accumulating.
+export const incrementHouseGoalSavings = async ({ mySavedDelta = 0, investSavedDelta = 0 }) => {
+  const { data, error } = await supabase.rpc('increment_house_goal_savings', {
+    my_saved_delta: mySavedDelta,
+    invest_saved_delta: investSavedDelta,
+  })
+  if (error) throw error
+  return data
+}
+
 // ── SAVING GOALS ──────────────────────────────────────────────
 export const getSavingGoals = async () => {
   const { data, error } = await supabase

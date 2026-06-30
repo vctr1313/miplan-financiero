@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useApp } from '../App'
 import { addTransaction } from '../lib/supabase'
+import ExtraPaymentModal from './ExtraPaymentModal'
 
 const INCOME_TYPES = [
   { id: 'salary', label: '💼 Sueldo mensual', isSalary: true },
+  { id: 'extra-payment', label: '🎉 Paga extra (repartir en botes/ahorro)', isSalary: false, isExtraPayment: true },
   { id: 'extra-family', label: '🎁 Dinero familiar', isSalary: false },
   { id: 'extra-reimb', label: '↩️ Devolución / regalo', isSalary: false },
   { id: 'extra-other', label: '💬 Otro ingreso', isSalary: false },
@@ -22,6 +24,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
   const [error, setError] = useState('')
   const [aiSuggestion, setAiSuggestion] = useState(null)
   const debounceRef = useRef(null)
+  const [showExtraPaymentModal, setShowExtraPaymentModal] = useState(false)
 
   const expenseCats = categories.filter(c => c.type !== 'saving')
   const savingCats = categories.filter(c => c.type === 'saving')
@@ -91,6 +94,16 @@ export default function AddTransactionModal({ onClose, onSaved }) {
       setError('Rellena cantidad, fecha y descripción')
       return
     }
+
+    // Extra payments don't save as a single transaction here -- they
+    // open the distribution modal instead, which handles creating the
+    // income transaction itself once the user confirms how to split
+    // it across pots/saving categories.
+    if (type === 'income' && incomeType === 'extra-payment') {
+      setShowExtraPaymentModal(true)
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
@@ -188,6 +201,12 @@ export default function AddTransactionModal({ onClose, onSaved }) {
               <select className="form-control" value={incomeType} onChange={e => setIncomeType(e.target.value)}>
                 {INCOME_TYPES.map(it => <option key={it.id} value={it.id}>{it.label}</option>)}
               </select>
+              {incomeType === 'extra-payment' && (
+                <div className="alert alert-info" style={{ marginTop: 8 }}>
+                  <i className="fa fa-circle-info" />
+                  <div>Al continuar, podrás repartir este importe entre tus botes y categorías de ahorro/inversión. No cambia tu ciclo ni tu sueldo base.</div>
+                </div>
+              )}
             </div>
           )}
 
@@ -210,11 +229,28 @@ export default function AddTransactionModal({ onClose, onSaved }) {
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              <i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar'}
+              {type === 'income' && incomeType === 'extra-payment'
+                ? <><i className="fa fa-arrow-right" /> Continuar al reparto</>
+                : <><i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar'}</>}
             </button>
           </div>
         </form>
       </div>
+
+      {showExtraPaymentModal && (
+        <ExtraPaymentModal
+          amount={parseFloat(amount) || 0}
+          date={date}
+          description={description.trim()}
+          notes={notes.trim()}
+          onClose={() => setShowExtraPaymentModal(false)}
+          onSaved={() => {
+            setShowExtraPaymentModal(false)
+            onSaved?.()
+            onClose()
+          }}
+        />
+      )}
     </div>
   )
 }
