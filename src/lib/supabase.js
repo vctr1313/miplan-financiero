@@ -90,9 +90,16 @@ export const joinHousehold = async (inviteCode) => {
   // Re-point the user's profile to the new household
   await updateProfile(user.id, { household_id: household.id })
 
-  // Clean up the old household if it's now empty (best-effort, ignore failures)
+  // Clean up the old household if it's now empty (best-effort, ignore failures).
+  // supabase-js's query builder is thenable (works with await/.then) but does
+  // NOT implement .catch() like a real Promise -- chaining .catch() directly
+  // on it throws "catch is not a function" instead of swallowing the RPC
+  // error, which is what was actually breaking "Unirme" after a valid code
+  // was found. try/catch works because `await` unwraps the thenable first.
   if (oldHouseholdId) {
-    await supabase.rpc('cleanup_empty_household', { target_household_id: oldHouseholdId }).catch(() => {})
+    try {
+      await supabase.rpc('cleanup_empty_household', { target_household_id: oldHouseholdId })
+    } catch (e) { /* best-effort cleanup, ignore failures */ }
   }
 
   return household
