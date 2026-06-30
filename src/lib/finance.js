@@ -88,7 +88,11 @@ export const calcPotBalance = ({ category, salary, cycles, transactions, asOfDat
     }
   })
 
-  return Math.max(0, balance)
+  // Negative balances are kept (not floored at 0) so an overspend
+  // shows as debt on the pot. Because this is recomputed from the
+  // full running total each time, the next cycle's allocation or
+  // paga-extra pot-deposit automatically pays the debt down first.
+  return balance
 }
 
 // ── BUDGET ────────────────────────────────────────────────────

@@ -122,7 +122,9 @@ export default function Budget() {
                     <div className="progress-bar"><div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} /></div>
                   )}
                   {c.type === 'pot' && (
-                    <div className="text-xs text-muted mt-1">🪣 Acumulado: <strong>{fmt(potBal)}</strong></div>
+                    <div className="text-xs mt-1" style={potBal < 0 ? { color: 'var(--r5)' } : { color: 'var(--muted)' }}>
+                      🪣 Acumulado: <strong>{fmt(potBal)}</strong>{potBal < 0 ? ' (se recupera con próximas aportaciones)' : ''}
+                    </div>
                   )}
                 </div>
                 <div className="text-right" style={{ flexShrink: 0 }}>

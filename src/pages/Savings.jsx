@@ -65,16 +65,19 @@ export default function Savings() {
         {[...pots, ...savingCats].map(c => {
           const isPot = c.type === 'pot'
           const bal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions }) : null
+          const isNegative = isPot && bal < 0
           const monthly = salary * c.user_pct / 100
           return (
-            <div key={c.id} className="card" style={{ borderTop: `3px solid ${c.color}` }}>
+            <div key={c.id} className="card" style={{ borderTop: `3px solid ${isNegative ? 'var(--r5)' : c.color}` }}>
               <div style={{ fontSize: 24, marginBottom: 6 }}>{c.icon}</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g700)' }}>{c.name}</div>
-              <div style={{ fontSize: 19, fontWeight: 700, marginTop: 3, color: c.color }}>
+              <div style={{ fontSize: 19, fontWeight: 700, marginTop: 3, color: isNegative ? 'var(--r5)' : c.color }}>
                 {isPot ? fmt(bal) : fmt(monthly) + '/mes'}
               </div>
-              <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>
-                {isPot ? `+${fmt(monthly)} cada ciclo` : c.name.toLowerCase().includes('casa') ? '🏠 Para la casa' : '📈 Inversión'}
+              <div style={{ fontSize: 10.5, color: isNegative ? 'var(--r5)' : 'var(--muted)' }}>
+                {isPot
+                  ? (isNegative ? `En negativo, se recupera con +${fmt(monthly)} cada ciclo` : `+${fmt(monthly)} cada ciclo`)
+                  : c.name.toLowerCase().includes('casa') ? '🏠 Para la casa' : '📈 Inversión'}
               </div>
             </div>
           )
