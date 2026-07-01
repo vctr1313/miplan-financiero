@@ -130,6 +130,19 @@ export const calcCycleStats = ({ transactions, cycle, categories, salary, fixedE
       spendByCat[t.category_id] += t.amount
   })
 
+  // Subtract linked reimbursements from the original expense's category.
+  // Look up the expense in ALL transactions (not just the current cycle)
+  // since the original expense may be from a previous cycle.
+  const expenseCatById = {}
+  transactions.forEach(t => {
+    if (t.type === 'expense' && t.category_id) expenseCatById[t.id] = t.category_id
+  })
+  txs.filter(t => t.type === 'transfer' && t.linked_expense_id).forEach(t => {
+    const catId = expenseCatById[t.linked_expense_id]
+    if (catId && spendByCat[catId] !== undefined)
+      spendByCat[catId] = Math.max(0, spendByCat[catId] - t.amount)
+  })
+
   return { income, expenses, reimbursements, balance, available, savingAmt, fxTotal, spendByCat, txs }
 }
 
