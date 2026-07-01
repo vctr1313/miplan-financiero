@@ -29,6 +29,18 @@ export default function Transactions() {
     return Array.from(map.entries())
   }, [transactions])
 
+  const { reimburseMap, txById } = useMemo(() => {
+    const reimburseMap = {}
+    const txById = {}
+    transactions.forEach(t => {
+      txById[t.id] = t
+      if (t.type === 'transfer' && t.linked_expense_id) {
+        reimburseMap[t.linked_expense_id] = (reimburseMap[t.linked_expense_id] || 0) + t.amount
+      }
+    })
+    return { reimburseMap, txById }
+  }, [transactions])
+
   const handleDelete = async (id) => {
     if (!window.confirm('¿Eliminar?')) return
     await deleteTransaction(id)
@@ -75,7 +87,7 @@ export default function Transactions() {
         {filtered.length === 0 ? (
           <div className="text-sm text-muted text-center" style={{ padding: 22 }}>No hay movimientos con estos filtros.</div>
         ) : filtered.map(t => (
-          <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser={uniqueUsers.length > 1} />
+          <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser={uniqueUsers.length > 1} reimburseMap={reimburseMap} txById={txById} />
         ))}
       </div>
 

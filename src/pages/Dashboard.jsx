@@ -37,6 +37,15 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 6)
 
+  const reimburseMap = {}
+  const txById = {}
+  transactions.forEach(t => {
+    txById[t.id] = t
+    if (t.type === 'transfer' && t.linked_expense_id) {
+      reimburseMap[t.linked_expense_id] = (reimburseMap[t.linked_expense_id] || 0) + t.amount
+    }
+  })
+
   useEffect(() => {
     if (!cycle || !salary) return
     checkBudgetAlerts({
@@ -185,7 +194,7 @@ export default function Dashboard() {
           </div>
           {recentTx.length === 0 ? (
             <div className="text-sm text-muted text-center" style={{ padding: 18 }}>Sin movimientos aún.</div>
-          ) : recentTx.map(t => <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser />)}
+          ) : recentTx.map(t => <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser reimburseMap={reimburseMap} txById={txById} />)}
         </div>
       </div>
 
@@ -214,7 +223,7 @@ export default function Dashboard() {
   )
 }
 
-function TxRow({ tx, onDelete, showUser }) {
+function TxRow({ tx, onDelete, showUser, reimburseMap, txById }) {
   const cat = tx.categories
   const isNeg = tx.type === 'expense' || tx.type === 'pot-withdrawal'
   const cls = tx.type
@@ -222,6 +231,9 @@ function TxRow({ tx, onDelete, showUser }) {
   const color = tx.type === 'income' ? '#10b981' : tx.type === 'transfer' ? '#6366f1' : cat?.color || '#888'
   const dateStr = new Date(tx.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
   const userName = tx.profiles?.name
+
+  const reimbursed = tx.type === 'expense' ? (reimburseMap?.[tx.id] || 0) : 0
+  const linkedExpense = tx.type === 'transfer' && tx.linked_expense_id ? txById?.[tx.linked_expense_id] : null
 
   return (
     <div className="tx-row">
@@ -231,6 +243,10 @@ function TxRow({ tx, onDelete, showUser }) {
         <div className="tx-meta">
           {dateStr} · {cat?.name || (tx.type === 'income' ? 'Ingreso' : tx.type === 'transfer' ? 'Reembolso' : 'Movimiento')}
           {showUser && userName && <span> · {userName}</span>}
+          {linkedExpense && <span style={{ color: '#6366f1' }}> · para: {linkedExpense.description}</span>}
+          {reimbursed > 0 && (
+            <span style={{ color: '#10b981' }}> · ↩️ devuelto {fmt(reimbursed)} · neto {fmt(tx.amount - reimbursed)}</span>
+          )}
         </div>
       </div>
       <div className={`tx-amount ${cls}`}>{isNeg ? '-' : '+'}{fmt(tx.amount)}</div>

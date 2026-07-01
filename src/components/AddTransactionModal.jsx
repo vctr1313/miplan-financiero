@@ -12,7 +12,7 @@ const INCOME_TYPES = [
 ]
 
 export default function AddTransactionModal({ onClose, onSaved }) {
-  const { categories, refresh } = useApp()
+  const { categories, transactions, refresh } = useApp()
   const [type, setType] = useState('expense')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
@@ -25,9 +25,27 @@ export default function AddTransactionModal({ onClose, onSaved }) {
   const [aiSuggestion, setAiSuggestion] = useState(null)
   const debounceRef = useRef(null)
   const [showExtraPaymentModal, setShowExtraPaymentModal] = useState(false)
+  const [linkedExpenseId, setLinkedExpenseId] = useState(null)
+  const [expenseSearch, setExpenseSearch] = useState('')
 
   const expenseCats = categories.filter(c => c.type !== 'saving')
   const savingCats = categories.filter(c => c.type === 'saving')
+  const recentExpenses = transactions
+    .filter(t => t.type === 'expense')
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 150)
+  const filteredExpenses = expenseSearch.trim()
+    ? recentExpenses.filter(t => t.description.toLowerCase().includes(expenseSearch.toLowerCase()))
+    : recentExpenses
+
+  const linkedExpense = linkedExpenseId ? recentExpenses.find(t => t.id === linkedExpenseId) : null
+
+  useEffect(() => {
+    if (type !== 'transfer') {
+      setLinkedExpenseId(null)
+      setExpenseSearch('')
+    }
+  }, [type])
 
   useEffect(() => {
     if (type === 'expense' && !categoryId && expenseCats.length) {
@@ -114,6 +132,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
         notes: notes.trim() || null,
         category_id: type === 'expense' ? categoryId : null,
         is_salary: type === 'income' ? incomeType === 'salary' : false,
+        linked_expense_id: type === 'transfer' ? (linkedExpenseId || null) : null,
       }
       await addTransaction(payload)
       await refresh()
@@ -212,17 +231,60 @@ export default function AddTransactionModal({ onClose, onSaved }) {
 
           {type === 'transfer' && (
             <div className="form-group">
-              <label>Vinculado al gasto (opcional)</label>
-              <input className="form-control" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Ej: Cena del sábado" />
+              <label>Gasto que compensa (opcional)</label>
+              {linkedExpense ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--e50)', border: '1px solid var(--e100)' }}>
+                  <div style={{ flex: 1, fontSize: 13 }}>
+                    <span style={{ fontWeight: 600 }}>{linkedExpense.description}</span>
+                    <span style={{ color: 'var(--muted)', marginLeft: 6 }}>
+                      {new Date(linkedExpense.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} · {linkedExpense.amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => { setLinkedExpenseId(null); setExpenseSearch('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14 }}>
+                    <i className="fa fa-xmark" />
+                  </button>
+                </div>
+              ) : (
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="form-control"
+                    value={expenseSearch}
+                    onChange={e => setExpenseSearch(e.target.value)}
+                    placeholder="Buscar gasto…"
+                  />
+                  {(expenseSearch || filteredExpenses.length > 0) && (
+                    <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, maxHeight: 220, overflowY: 'auto', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', marginTop: 2 }}>
+                      {filteredExpenses.length === 0 ? (
+                        <div style={{ padding: '10px 12px', fontSize: 13, color: 'var(--muted)' }}>Sin resultados</div>
+                      ) : filteredExpenses.slice(0, 12).map(t => (
+                        <div
+                          key={t.id}
+                          onClick={() => { setLinkedExpenseId(t.id); setExpenseSearch('') }}
+                          style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--g100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--g50)'}
+                          onMouseLeave={e => e.currentTarget.style.background = ''}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                              {new Date(t.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              {t.categories?.name ? ` · ${t.categories.name}` : ''}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--r5)', flexShrink: 0 }}>-{t.amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {type !== 'transfer' && (
-            <div className="form-group">
-              <label>Notas (opcional)</label>
-              <input className="form-control" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Cualquier anotación…" />
-            </div>
-          )}
+          <div className="form-group">
+            <label>Notas (opcional)</label>
+            <input className="form-control" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Cualquier anotación…" />
+          </div>
 
           {error && <div className="alert alert-danger">{error}</div>}
 
