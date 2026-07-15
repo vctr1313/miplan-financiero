@@ -74,16 +74,24 @@ export const calcPotBalance = ({ category, salary, cycles, transactions, asOfDat
   const monthlyAlloc = salary * (category.user_pct / 100)
   let balance = completedCycles * monthlyAlloc
 
+  // Build a lookup so linked reimbursements (transfers) can be matched
+  // to the category of their original expense.
+  const expenseCatById = {}
   transactions.forEach(t => {
-    if (t.category_id !== category.id) return
-    // Regular spending and manual withdrawals reduce the pot.
-    if (t.type === 'expense' || t.type === 'pot-withdrawal') {
-      balance -= t.amount
-    }
-    // pot-deposit is the extra-payment-distribution case: money added
-    // to a pot OUTSIDE the normal cycle-based automatic accumulation
-    // above (e.g. splitting a paga extra into Viajes/Regalos/etc).
-    if (t.type === 'pot-deposit') {
+    if (t.type === 'expense' && t.category_id) expenseCatById[t.id] = t.category_id
+  })
+
+  transactions.forEach(t => {
+    if (t.category_id === category.id) {
+      if (t.type === 'expense' || t.type === 'pot-withdrawal') balance -= t.amount
+      if (t.type === 'pot-deposit') balance += t.amount
+    } else if (
+      t.type === 'transfer' &&
+      t.linked_expense_id &&
+      expenseCatById[t.linked_expense_id] === category.id
+    ) {
+      // A Bizum / reimbursement linked to an expense in this pot
+      // reduces the debt just like a pot-deposit would.
       balance += t.amount
     }
   })
