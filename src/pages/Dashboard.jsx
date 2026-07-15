@@ -169,7 +169,7 @@ export default function Dashboard() {
             <h3>Presupuesto del ciclo</h3>
             <button className="btn btn-sm btn-outline" onClick={() => navigate('/budget')}>Ver detalle</button>
           </div>
-          {categories.filter(c => c.type !== 'saving').slice(0, 8).map(c => {
+          {categories.filter(c => c.type !== 'saving').map(c => {
             const budget = catBudget(c, salary)
             const spent = stats.spendByCat[c.id] || 0
             const pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0

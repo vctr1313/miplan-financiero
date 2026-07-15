@@ -28,6 +28,16 @@ export default function Budget() {
     ? transactions.filter(t => new Date(t.date) >= cycle.start && new Date(t.date) <= cycle.end)
     : []
 
+  // Per-category net reimbursements: transfers in this cycle with a
+  // linked_expense_id reduce the net spend of that expense's category.
+  const reimbByCat = {}
+  const allExpenseById = {}
+  transactions.forEach(t => { if (t.type === 'expense') allExpenseById[t.id] = t })
+  cycleTx.filter(t => t.type === 'transfer' && t.linked_expense_id).forEach(t => {
+    const exp = allExpenseById[t.linked_expense_id]
+    if (exp?.category_id) reimbByCat[exp.category_id] = (reimbByCat[exp.category_id] || 0) + t.amount
+  })
+
   const totalPct = categories.reduce((s, c) => s + parseFloat(c.user_pct || 0), 0)
   const roundedTotal = Math.round(totalPct * 100) / 100
 
@@ -107,7 +117,7 @@ export default function Budget() {
           <div className="section-header"><h3>Estado por categoría</h3></div>
           {categories.map(c => {
             const budget = catBudget(c, salary)
-            const spent = cycleTx.filter(t => t.category_id === c.id && t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+            const spent = Math.max(0, cycleTx.filter(t => t.category_id === c.id && t.type === 'expense').reduce((s, t) => s + t.amount, 0) - (reimbByCat[c.id] || 0))
             const pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0
             const over = spent > budget && budget > 0
             const potBal = c.type === 'pot' ? calcPotBalance({ category: c, salary, cycles, transactions }) : null
