@@ -182,18 +182,14 @@ export default function Dashboard() {
                 <div style={{ width: 33, height: 33, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: c.color + '22', color: c.color, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>{c.name}</div>
-                  {isPot ? (
-                    <div style={{ fontSize: 11, marginTop: 2, color: potNeg ? 'var(--r5)' : c.color, fontWeight: 600 }}>
+                  <div className="progress-bar"><div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} /></div>
+                  <div style={{ fontSize: 11, color: over ? 'var(--r5)' : 'var(--muted)' }}>{over ? '⚠️ ' : ''}{fmt(spent)} / {fmt(budget)}</div>
+                  {isPot && (
+                    <div style={{ fontSize: 10.5, marginTop: 1, color: potNeg ? 'var(--r5)' : 'var(--muted)' }}>
                       🪣 {fmt(potBal)}{potNeg ? ' — recuperando' : ' acumulado'}
                     </div>
-                  ) : (
-                    <>
-                      <div className="progress-bar"><div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} /></div>
-                      <div style={{ fontSize: 11, color: over ? 'var(--r5)' : 'var(--muted)' }}>{over ? '⚠️ ' : ''}{fmt(spent)} / {fmt(budget)}</div>
-                    </>
                   )}
                 </div>
-                {isPot && <div style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>+{fmt(budget)}/mes</div>}
               </div>
             )
           })}
