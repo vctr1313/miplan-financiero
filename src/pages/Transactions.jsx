@@ -2,11 +2,13 @@ import React, { useState, useMemo } from 'react'
 import { useApp } from '../App'
 import { deleteTransaction } from '../lib/supabase'
 import AddTransactionModal from '../components/AddTransactionModal'
+import EditTransactionModal from '../components/EditTransactionModal'
 import { TxRow } from './Dashboard'
 
 export default function Transactions() {
   const { transactions, categories, profile, refresh } = useApp()
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingTx, setEditingTx] = useState(null)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -87,11 +89,19 @@ export default function Transactions() {
         {filtered.length === 0 ? (
           <div className="text-sm text-muted text-center" style={{ padding: 22 }}>No hay movimientos con estos filtros.</div>
         ) : filtered.map(t => (
-          <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser={uniqueUsers.length > 1} reimburseMap={reimburseMap} txById={txById} />
+          <TxRow
+            key={t.id} tx={t}
+            onDelete={() => handleDelete(t.id)}
+            onEdit={() => setEditingTx(t)}
+            showUser={uniqueUsers.length > 1}
+            reimburseMap={reimburseMap}
+            txById={txById}
+          />
         ))}
       </div>
 
       {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} />}
+      {editingTx && <EditTransactionModal tx={editingTx} onClose={() => setEditingTx(null)} />}
     </div>
   )
 }

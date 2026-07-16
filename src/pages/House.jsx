@@ -14,6 +14,7 @@ export default function House() {
   const [target, setTarget] = useState(houseGoal?.target || 200000)
   const [dpPct, setDpPct] = useState(houseGoal?.dp_pct || 30)
   const [mySaved, setMySaved] = useState(houseGoal?.my_saved || 0)
+  const [investSaved, setInvestSaved] = useState(houseGoal?.invest_saved || 0)
   const [pSalary, setPSalary] = useState(houseGoal?.p_salary || 0)
   const [pPct, setPPct] = useState(houseGoal?.p_pct || 20)
   const [pSaved, setPSaved] = useState(houseGoal?.p_saved || 0)
@@ -33,6 +34,7 @@ export default function House() {
       setTarget(houseGoal.target || 200000)
       setDpPct(houseGoal.dp_pct || 30)
       setMySaved(houseGoal.my_saved || 0)
+      setInvestSaved(houseGoal.invest_saved || 0)
       setPSalary(houseGoal.p_salary || 0)
       setPPct(houseGoal.p_pct || 20)
       setPSaved(houseGoal.p_saved || 0)
@@ -63,6 +65,7 @@ export default function House() {
       target: parseFloat(target) || 0,
       dp_pct: parseFloat(dpPct) || 30,
       my_saved: parseFloat(mySaved) || 0,
+      invest_saved: parseFloat(investSaved) || 0,
       pair_mode: pairMode,
       mort_pair_mode: mortPairMode,
       // When linked, the partner's real numbers drive everything (see
@@ -180,6 +183,12 @@ export default function House() {
           <div className="form-group">
             <label>Ahorro acumulado — tú (€)</label>
             <input className="form-control" type="number" min="0" value={mySaved} onChange={e => setMySaved(e.target.value)} placeholder="0" />
+            <div className="form-hint">Total ahorrado para la casa (paga extra → Ahorro casa)</div>
+          </div>
+          <div className="form-group">
+            <label>Total invertido (€)</label>
+            <input className="form-control" type="number" min="0" value={investSaved} onChange={e => setInvestSaved(e.target.value)} placeholder="0" />
+            <div className="form-hint">Total en inversión (paga extra → Inversión). Edita aquí si necesitas corregirlo.</div>
           </div>
 
           {pairMode === 'pair' && isLinked && (

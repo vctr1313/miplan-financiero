@@ -186,6 +186,17 @@ export const deleteTransaction = async (id) => {
   if (error) throw error
 }
 
+export const updateTransaction = async (id, patch) => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(patch)
+    .eq('id', id)
+    .select('*, categories(name,icon,color,type)')
+    .single()
+  if (error) throw error
+  return data
+}
+
 // ── SALARY CYCLES ─────────────────────────────────────────────
 // Cycle building logic lives in lib/finance.js (buildCycles).
 // It consumes the `transactions` array already loaded by AppProvider,

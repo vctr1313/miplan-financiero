@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
 import { deleteTransaction } from '../lib/supabase'
-import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution } from '../lib/finance'
+import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution, calcPotBalance } from '../lib/finance'
 import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
@@ -171,7 +171,10 @@ export default function Dashboard() {
           </div>
           {categories.filter(c => c.type !== 'saving').map(c => {
             const budget = catBudget(c, salary)
+            const isPot = c.type === 'pot'
             const spent = stats.spendByCat[c.id] || 0
+            const potBal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions }) : null
+            const potNeg = isPot && potBal < 0
             const pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0
             const over = spent > budget && budget > 0
             return (
@@ -179,9 +182,18 @@ export default function Dashboard() {
                 <div style={{ width: 33, height: 33, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: c.color + '22', color: c.color, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>{c.name}</div>
-                  <div className="progress-bar"><div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} /></div>
-                  <div style={{ fontSize: 11, color: over ? 'var(--r5)' : 'var(--muted)' }}>{over ? '⚠️ ' : ''}{fmt(spent)} / {fmt(budget)}</div>
+                  {isPot ? (
+                    <div style={{ fontSize: 11, marginTop: 2, color: potNeg ? 'var(--r5)' : c.color, fontWeight: 600 }}>
+                      🪣 {fmt(potBal)}{potNeg ? ' — recuperando' : ' acumulado'}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="progress-bar"><div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} /></div>
+                      <div style={{ fontSize: 11, color: over ? 'var(--r5)' : 'var(--muted)' }}>{over ? '⚠️ ' : ''}{fmt(spent)} / {fmt(budget)}</div>
+                    </>
+                  )}
                 </div>
+                {isPot && <div style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>+{fmt(budget)}/mes</div>}
               </div>
             )
           })}
@@ -223,7 +235,7 @@ export default function Dashboard() {
   )
 }
 
-function TxRow({ tx, onDelete, showUser, reimburseMap, txById }) {
+function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, txById }) {
   const cat = tx.categories
   const isNeg = tx.type === 'expense' || tx.type === 'pot-withdrawal'
   const cls = tx.type
@@ -250,6 +262,11 @@ function TxRow({ tx, onDelete, showUser, reimburseMap, txById }) {
         </div>
       </div>
       <div className={`tx-amount ${cls}`}>{isNeg ? '-' : '+'}{fmt(tx.amount)}</div>
+      {onEdit && (
+        <button onClick={onEdit} style={{ background: 'none', border: 'none', color: 'var(--g300)', cursor: 'pointer', padding: '3px 5px' }}>
+          <i className="fa fa-pencil" />
+        </button>
+      )}
       <button onClick={onDelete} style={{ background: 'none', border: 'none', color: 'var(--g300)', cursor: 'pointer', padding: '3px 5px' }}>
         <i className="fa fa-xmark" />
       </button>
