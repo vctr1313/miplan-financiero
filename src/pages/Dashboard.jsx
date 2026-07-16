@@ -175,19 +175,24 @@ export default function Dashboard() {
             const spent = stats.spendByCat[c.id] || 0
             const potBal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions }) : null
             const potNeg = isPot && potBal < 0
-            const pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0
-            const over = spent > budget && budget > 0
+            // For pots: bar total = potBal + spent = capacity at start of this cycle
+            // (potBal already deducted spent, so adding it back gives the pre-cycle total).
+            // This makes paga-extra deposits raise the bar ceiling, keeping it green.
+            const barTotal = isPot && potBal !== null ? Math.max(0, potBal + spent) : budget
+            const pct = barTotal > 0 ? Math.min(100, spent / barTotal * 100) : (potNeg ? 100 : 0)
+            const over = isPot ? potNeg : (spent > budget && budget > 0)
             return (
               <div key={c.id} className="flex items-center gap-2" style={{ padding: '9px 0', borderBottom: '1px solid var(--g100)' }}>
                 <div style={{ width: 33, height: 33, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: c.color + '22', color: c.color, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>{c.name}</div>
                   <div className="progress-bar"><div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} /></div>
-                  <div style={{ fontSize: 11, color: over ? 'var(--r5)' : 'var(--muted)' }}>{over ? '⚠️ ' : ''}{fmt(spent)} / {fmt(budget)}</div>
-                  {isPot && (
-                    <div style={{ fontSize: 10.5, marginTop: 1, color: potNeg ? 'var(--r5)' : 'var(--muted)' }}>
-                      🪣 {fmt(potBal)}{potNeg ? ' — recuperando' : ' acumulado'}
+                  {isPot ? (
+                    <div style={{ fontSize: 11, color: potNeg ? 'var(--r5)' : 'var(--muted)' }}>
+                      {potNeg ? '⚠️ ' : '🪣 '}{fmt(spent)} gastado · {potNeg ? fmt(Math.abs(potBal)) + ' deuda' : fmt(potBal) + ' disponible'}
                     </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: over ? 'var(--r5)' : 'var(--muted)' }}>{over ? '⚠️ ' : ''}{fmt(spent)} / {fmt(budget)}</div>
                   )}
                 </div>
               </div>
