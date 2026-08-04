@@ -3,6 +3,95 @@ import { useApp } from '../App'
 import { addTransaction } from '../lib/supabase'
 import { fmt, calcPotBalance } from '../lib/finance'
 
+function MovePotModal({ pots, salary, cycles, transactions, refresh, onClose }) {
+  const [fromId, setFromId] = useState('')
+  const [toId, setToId] = useState('')
+  const [amount, setAmount] = useState('')
+  const [desc, setDesc] = useState('')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const fromBal = fromId ? calcPotBalance({ category: pots.find(p => p.id === fromId), salary, cycles, transactions }) : null
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    const amt = parseFloat(amount)
+    if (!fromId || !toId || !amt || amt <= 0) { setError('Rellena todos los campos'); return }
+    if (fromId === toId) { setError('El bote origen y destino deben ser distintos'); return }
+    if (fromBal !== null && amt > fromBal) {
+      setError(`Saldo insuficiente en origen. Disponible: ${fmt(fromBal)}`)
+      return
+    }
+    setSaving(true)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const fromCat = pots.find(p => p.id === fromId)
+      const toCat = pots.find(p => p.id === toId)
+      const label = desc.trim() || `Traspaso ${fromCat.name} → ${toCat.name}`
+      await addTransaction({ type: 'pot-withdrawal', category_id: fromId, amount: amt, date: today, description: label })
+      await addTransaction({ type: 'pot-deposit', category_id: toId, amount: amt, date: today, description: label })
+      await refresh()
+      onClose()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 440 }}>
+        <h3 className="modal-title">Mover dinero entre botes</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Desde</label>
+              <select className="form-control" value={fromId} onChange={e => setFromId(e.target.value)}>
+                <option value="">Selecciona bote…</option>
+                {pots.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.icon} {p.name} ({fmt(calcPotBalance({ category: p, salary, cycles, transactions }))})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Hacia</label>
+              <select className="form-control" value={toId} onChange={e => setToId(e.target.value)}>
+                <option value="">Selecciona bote…</option>
+                {pots.filter(p => p.id !== fromId).map(p => (
+                  <option key={p.id} value={p.id}>{p.icon} {p.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Cantidad (€) *</label>
+              <input className="form-control" type="number" min="0.01" step="0.01" value={amount}
+                onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+              {fromBal !== null && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Disponible: {fmt(fromBal)}</div>}
+            </div>
+            <div className="form-group">
+              <label>Descripción (opcional)</label>
+              <input className="form-control" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ej: Refuerzo viajes" />
+            </div>
+          </div>
+          {error && <div className="alert alert-danger">{error}</div>}
+          <div className="modal-footer">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              <i className="fa fa-arrow-right-arrow-left" /> {saving ? 'Moviendo…' : 'Mover dinero'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function Savings() {
   const { profile, categories, transactions, cycles, refresh } = useApp()
   const salary = profile?.salary || 0
@@ -11,6 +100,7 @@ export default function Savings() {
   const [desc, setDesc] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showMove, setShowMove] = useState(false)
 
   const pots = categories.filter(c => c.type === 'pot')
   const savingCats = categories.filter(c => c.type === 'saving')
@@ -49,8 +139,17 @@ export default function Savings() {
   return (
     <div>
       <div className="page-header">
-        <h2>Botes de ahorro</h2>
-        <p>Se acumulan mes a mes desde tu primera nómina registrada</p>
+        <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <h2>Botes de ahorro</h2>
+            <p>Se acumulan mes a mes desde tu primera nómina registrada</p>
+          </div>
+          {pots.length >= 2 && (
+            <button className="btn btn-outline" onClick={() => setShowMove(true)}>
+              <i className="fa fa-arrow-right-arrow-left" /> Mover dinero
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="alert alert-success mb-4">
@@ -116,6 +215,17 @@ export default function Savings() {
           {error && <div className="alert alert-danger">{error}</div>}
         </form>
       </div>
+
+      {showMove && (
+        <MovePotModal
+          pots={pots}
+          salary={salary}
+          cycles={cycles}
+          transactions={transactions}
+          refresh={refresh}
+          onClose={() => setShowMove(false)}
+        />
+      )}
     </div>
   )
 }

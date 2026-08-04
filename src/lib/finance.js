@@ -151,7 +151,7 @@ export const calcCycleStats = ({ transactions, cycle, categories, salary, fixedE
       spendByCat[catId] = Math.max(0, spendByCat[catId] - t.amount)
   })
 
-  return { income, expenses, reimbursements, balance, available, savingAmt, fxTotal, spendByCat, txs }
+  return { income, expenses, netExpenses: expenses - reimbursements, reimbursements, balance, available, savingAmt, fxTotal, spendByCat, txs }
 }
 
 // ── HOUSE GOAL ────────────────────────────────────────────────

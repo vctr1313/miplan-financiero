@@ -30,8 +30,8 @@ export default function Dashboard() {
   // Previous cycle comparison
   const prevCycle = cycles.length >= 2 ? cycles[cycles.length - 2] : null
   const prevStats = prevCycle ? calcCycleStats({ transactions, cycle: prevCycle, categories, salary, fixedExpenses }) : null
-  const expenseDelta = prevStats ? stats.expenses - prevStats.expenses : null
-  const expenseDeltaPct = prevStats && prevStats.expenses > 0 ? (expenseDelta / prevStats.expenses * 100) : null
+  const expenseDelta = prevStats ? stats.netExpenses - prevStats.netExpenses : null
+  const expenseDeltaPct = prevStats && prevStats.netExpenses > 0 ? (expenseDelta / prevStats.netExpenses * 100) : null
 
   const recentTx = [...transactions]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -141,9 +141,9 @@ export default function Dashboard() {
         </div>
         <div className="stat-card red">
           <div className="label"><i className="fa fa-arrow-up" style={{ color: 'var(--r5)' }} /> Gastos</div>
-          <div className="value text-red">{fmt(stats.expenses)}</div>
+          <div className="value text-red">{fmt(stats.netExpenses)}</div>
           <div className="sub">
-            Este ciclo
+            Este ciclo{stats.reimbursements > 0 && <span style={{ marginLeft: 4, color: 'var(--e5)' }}>(-{fmt(stats.reimbursements)} devuelto)</span>}
             {expenseDeltaPct !== null && (
               <span style={{ marginLeft: 6, color: expenseDelta > 0 ? 'var(--r5)' : 'var(--e5)', fontWeight: 600 }}>
                 {expenseDelta > 0 ? '↑' : '↓'} {Math.abs(expenseDeltaPct).toFixed(0)}% vs ciclo anterior
