@@ -12,7 +12,17 @@ function getEligibleCategories(categories) {
   return categories.filter(c => c.type === 'pot' || c.type === 'saving')
 }
 
-export default function ExtraPaymentModal({ amount, date, description, notes, onClose, onSaved }) {
+// kind distinguishes two income flows that share this exact
+// distribute-across-pots mechanic: 'extra-payment' (a bonus/paga
+// extra) and 'from-savings' (money pulled from the user's own
+// savings, outside anything the app tracks, being formally allocated
+// into pots/saving categories). Both register the total as income and
+// only ever add to pot/saving balances -- neither ever subtracts from
+// another bucket, since in both cases the money's origin is outside
+// what this app's balances track.
+export default function ExtraPaymentModal({ amount, date, description, notes, onClose, onSaved, kind = 'extra-payment' }) {
+  const isWithdrawal = kind === 'from-savings'
+  const defaultDesc = isWithdrawal ? 'Retirada de ahorro' : 'Paga extra'
   const { categories, refresh } = useApp()
   const eligible = useMemo(() => getEligibleCategories(categories), [categories])
 
@@ -118,7 +128,7 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
         type: 'income',
         amount,
         date,
-        description: description || 'Paga extra',
+        description: description || defaultDesc,
         notes: notes || null,
         is_salary: false,
       })
@@ -140,7 +150,7 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
             category_id: catId,
             amount: value,
             date,
-            description: `Reparto de paga extra: ${description || 'Paga extra'}`,
+            description: `${isWithdrawal ? 'Retirada de ahorro' : 'Reparto de paga extra'}: ${description || defaultDesc}`,
             notes: null,
             is_salary: false,
           })
@@ -178,11 +188,15 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: 520 }}>
-        <h3 className="modal-title">🎉 Repartir paga extra</h3>
+        <h3 className="modal-title">{isWithdrawal ? '📤 Repartir retirada de ahorro' : '🎉 Repartir paga extra'}</h3>
 
         <div className="alert alert-info">
           <i className="fa fa-circle-info" />
-          <div>Reparte <strong>{fmt(amount)}</strong> entre tus botes y categorías de ahorro. La suma debe coincidir exactamente con el total.</div>
+          <div>
+            {isWithdrawal
+              ? <>Este dinero viene de tus ahorros (fuera de la app). Repártelo entre tus botes y categorías de ahorro/inversión — la suma debe coincidir exactamente con <strong>{fmt(amount)}</strong>.</>
+              : <>Reparte <strong>{fmt(amount)}</strong> entre tus botes y categorías de ahorro. La suma debe coincidir exactamente con el total.</>}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -262,7 +276,7 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={saving || !matchesExactly || missingSavingTargets || eligible.length === 0}>
-              <i className="fa fa-check" /> {saving ? 'Guardando…' : 'Confirmar reparto'}
+              <i className="fa fa-check" /> {saving ? 'Guardando…' : isWithdrawal ? 'Confirmar retirada' : 'Confirmar reparto'}
             </button>
           </div>
         </form>

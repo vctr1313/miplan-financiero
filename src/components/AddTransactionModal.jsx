@@ -6,10 +6,17 @@ import ExtraPaymentModal from './ExtraPaymentModal'
 const INCOME_TYPES = [
   { id: 'salary', label: '💼 Sueldo mensual', isSalary: true },
   { id: 'extra-payment', label: '🎉 Paga extra (repartir en botes/ahorro)', isSalary: false, isExtraPayment: true },
+  { id: 'from-savings', label: '📤 Retirada de ahorros (repartir en botes/ahorro)', isSalary: false, isSavingsWithdrawal: true },
   { id: 'extra-family', label: '🎁 Dinero familiar', isSalary: false },
   { id: 'extra-reimb', label: '↩️ Devolución / regalo', isSalary: false },
   { id: 'extra-other', label: '💬 Otro ingreso', isSalary: false },
 ]
+
+// Income sub-types that don't save directly -- they open the
+// distribution modal instead (see ExtraPaymentModal's `kind` prop),
+// which handles creating the income transaction itself once the user
+// confirms how to split it across pots/saving categories.
+const DISTRIBUTED_INCOME_TYPES = ['extra-payment', 'from-savings']
 
 export default function AddTransactionModal({ onClose, onSaved }) {
   const { categories, transactions, refresh } = useApp()
@@ -113,11 +120,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
       return
     }
 
-    // Extra payments don't save as a single transaction here -- they
-    // open the distribution modal instead, which handles creating the
-    // income transaction itself once the user confirms how to split
-    // it across pots/saving categories.
-    if (type === 'income' && incomeType === 'extra-payment') {
+    if (type === 'income' && DISTRIBUTED_INCOME_TYPES.includes(incomeType)) {
       setShowExtraPaymentModal(true)
       return
     }
@@ -226,6 +229,12 @@ export default function AddTransactionModal({ onClose, onSaved }) {
                   <div>Al continuar, podrás repartir este importe entre tus botes y categorías de ahorro/inversión. No cambia tu ciclo ni tu sueldo base.</div>
                 </div>
               )}
+              {incomeType === 'from-savings' && (
+                <div className="alert alert-info" style={{ marginTop: 8 }}>
+                  <i className="fa fa-circle-info" />
+                  <div>Al continuar, podrás repartir este importe (dinero de tus ahorros) entre tus botes y categorías de ahorro/inversión, compensándolos.</div>
+                </div>
+              )}
             </div>
           )}
 
@@ -291,7 +300,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {type === 'income' && incomeType === 'extra-payment'
+              {type === 'income' && DISTRIBUTED_INCOME_TYPES.includes(incomeType)
                 ? <><i className="fa fa-arrow-right" /> Continuar al reparto</>
                 : <><i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar'}</>}
             </button>
@@ -301,6 +310,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
 
       {showExtraPaymentModal && (
         <ExtraPaymentModal
+          kind={incomeType}
           amount={parseFloat(amount) || 0}
           date={date}
           description={description.trim()}
