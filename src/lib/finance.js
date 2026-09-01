@@ -112,7 +112,6 @@ export const potTxDelta = (t) =>
 export const calcPotBalance = ({ category, salary, cycles, transactions, pctHistory = [], asOfDate = new Date() }) => {
   if (category.type !== 'pot') return 0
 
-  const openingDate = category.opening_balance_date ? startOfDay(parseISO(category.opening_balance_date)) : null
   let balance = category.opening_balance || 0
 
   getIncludedCycles(category, cycles, asOfDate).forEach(cy => {
@@ -127,11 +126,21 @@ export const calcPotBalance = ({ category, salary, cycles, transactions, pctHist
     if (t.type === 'expense' && t.category_id) expenseCatById[t.id] = t.category_id
   })
 
+  // A reconciled opening balance means "this is everything I have, as
+  // of this date" -- so a transaction that already EXISTED at the
+  // moment of reconciliation is superseded (it's baked into the
+  // stated figure), regardless of what date it's tagged with. But a
+  // transaction added AFTER reconciliation is new information the
+  // reconciliation couldn't have known about, even if the user
+  // backdates it to before that date (e.g. logging a forgotten
+  // expense from last month) -- that one must still count, or
+  // backdated entries would silently stop affecting the pot the
+  // moment a category gets reconciled. So the cutoff here is
+  // opening_balance_set_at (when the reconciliation itself happened),
+  // compared against each transaction's created_at -- never t.date.
+  const openingSetAt = category.opening_balance_set_at ? new Date(category.opening_balance_set_at) : null
   transactions.forEach(t => {
-    // A reconciled opening balance is a factual "this is everything I
-    // have, as of this date" snapshot -- anything before it is
-    // superseded, not added on top of.
-    if (openingDate && isBefore(parseISO(t.date), openingDate)) return
+    if (openingSetAt && isBefore(parseISO(t.created_at), openingSetAt)) return
     if (isPotAffectingTx(t, category, expenseCatById)) balance += potTxDelta(t)
   })
 

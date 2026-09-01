@@ -146,10 +146,21 @@ export const getCategoryPctHistory = async () => {
 // Sets a pot's manual reconciliation point: from openingBalanceDate
 // onward, calcPotBalance counts forward from openingBalance instead
 // of its full calculated history -- see BalanceReviewModal.jsx.
+// opening_balance_set_at records the actual moment of reconciliation
+// (separately from openingBalanceDate, the calendar date the user
+// says the figure is accurate as of) -- calcPotBalance uses it to
+// tell "a transaction that already existed when I reconciled" (stays
+// excluded, it's baked into the stated figure) apart from "a
+// transaction added afterward, even if backdated" (must still count,
+// since the reconciliation couldn't have known about it).
 export const setCategoryOpeningBalance = async (id, openingBalance, openingBalanceDate) => {
   const { error } = await supabase
     .from('categories')
-    .update({ opening_balance: openingBalance, opening_balance_date: openingBalanceDate })
+    .update({
+      opening_balance: openingBalance,
+      opening_balance_date: openingBalanceDate,
+      opening_balance_set_at: new Date().toISOString(),
+    })
     .eq('id', id)
   if (error) throw error
 }

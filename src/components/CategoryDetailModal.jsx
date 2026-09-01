@@ -43,6 +43,13 @@ function buildNormalLedger({ category, salary, cycle, transactions, pctHistory }
 function buildPotLedger({ category, salary, cycles, transactions, pctHistory }) {
   const openingDate = category.opening_balance_date ? new Date(category.opening_balance_date) : null
   const openingBalance = category.opening_balance || 0
+  // Mirrors calcPotBalance exactly: a transaction that already existed
+  // when the pot was reconciled stays excluded (it's baked into
+  // openingBalance), but one added afterward still counts even if
+  // it's dated before openingDate -- see the comment in
+  // lib/finance.js's calcPotBalance for why this must be created_at,
+  // not the transaction's own date.
+  const openingSetAt = category.opening_balance_set_at ? new Date(category.opening_balance_set_at) : null
 
   const allocRows = getIncludedCycles(category, cycles).map(cy => {
     const pct = getPctAtDate(pctHistory, category.id, cy.end, category.user_pct)
@@ -56,7 +63,7 @@ function buildPotLedger({ category, salary, cycles, transactions, pctHistory }) 
   const expenseCatById = {}
   transactions.forEach(t => { if (t.type === 'expense' && t.category_id) expenseCatById[t.id] = t.category_id })
   const txRows = transactions
-    .filter(t => !(openingDate && new Date(t.date) < openingDate))
+    .filter(t => !(openingSetAt && new Date(t.created_at) < openingSetAt))
     .filter(t => isPotAffectingTx(t, category, expenseCatById))
     .map(t => ({ id: t.id, date: new Date(t.date), synthetic: false, label: t.description, delta: potTxDelta(t) }))
 

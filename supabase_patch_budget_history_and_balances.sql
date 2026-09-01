@@ -102,6 +102,22 @@ where not exists (select 1 from category_pct_history h where h.category_id = c.i
 alter table categories add column if not exists opening_balance numeric(10,2) not null default 0;
 alter table categories add column if not exists opening_balance_date date;
 
+-- Separate from opening_balance_date (a calendar date, "your balance
+-- was X as of this day"): this is the actual timestamp the
+-- reconciliation happened, used to tell a transaction that already
+-- existed at reconciliation time (excluded -- it's baked into the
+-- stated balance) apart from one added afterward but backdated to
+-- before opening_balance_date (must still count, since the
+-- reconciliation couldn't have known about it -- see calcPotBalance
+-- in src/lib/finance.js). Backfilled to midnight of
+-- opening_balance_date for any category reconciled before this
+-- column existed -- accurate for every case so far, since this ships
+-- moments after the reconciliation feature itself did.
+alter table categories add column if not exists opening_balance_set_at timestamptz;
+update categories
+set opening_balance_set_at = opening_balance_date::timestamptz
+where opening_balance_date is not null and opening_balance_set_at is null;
+
 -- ────────────────────────────────────────────────────────────
 -- Requirement #7: gates the one-time "¿tus botes ya tienen dinero
 -- acumulado?" prompt so it's shown at most once per user.
