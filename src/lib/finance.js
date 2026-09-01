@@ -60,19 +60,65 @@ export const getFirstSalaryDate = (transactions) => {
   return salaryTxs.length ? parseISO(salaryTxs[0].date) : null
 }
 
+// ── % HISTORY ─────────────────────────────────────────────────
+// Resolves what a category's user_pct actually was on a given date,
+// from the append-only category_pct_history log (one row per change).
+// Falls back to the category's current live value for categories
+// that predate the history table (nothing earlier was ever recorded,
+// so this is the best reconstruction possible -- see the backfill in
+// supabase_patch_budget_history_and_balances.sql).
+export const getPctAtDate = (pctHistory, categoryId, atDate, fallbackPct) => {
+  const rows = pctHistory.filter(h => h.category_id === categoryId && !isAfter(parseISO(h.effective_from), atDate))
+  if (!rows.length) return fallbackPct
+  return rows.reduce((latest, h) => isAfter(parseISO(h.effective_from), parseISO(latest.effective_from)) ? h : latest).user_pct
+}
+
 // ── POT BALANCE ───────────────────────────────────────────────
-// Pots start accumulating from the first salary tx.
-// Each completed cycle adds one month's allocation.
-export const calcPotBalance = ({ category, salary, cycles, transactions, asOfDate = new Date() }) => {
+// Pots start accumulating from the first salary tx (or from
+// opening_balance_date, if the user has reconciled this pot's
+// balance -- see below). Each included cycle adds one month's
+// allocation, using whatever % was actually active when THAT cycle
+// closed rather than today's live %, so a later % change never
+// rewrites a cycle that's already over.
+//
+// cy.end is the key: buildCycles gives a closed cycle a fixed end
+// date (the day before the next salary) and gives the still-open
+// current cycle end = "now" (recomputed every call). Resolving each
+// cycle's % at cy.end therefore locks closed cycles permanently to
+// whatever was active when they closed, while the open cycle keeps
+// tracking the latest % until it, too, closes.
+export const getIncludedCycles = (category, cycles, asOfDate = new Date()) => {
+  const openingDate = category.opening_balance_date ? startOfDay(parseISO(category.opening_balance_date)) : null
+  return cycles.filter(cy =>
+    !isAfter(cy.start, asOfDate) && (!openingDate || !isBefore(cy.start, openingDate))
+  )
+}
+
+// Whether a transaction affects a pot's balance at all: either it's
+// tagged directly to this category (expense/pot-withdrawal reduce it,
+// pot-deposit adds to it), or it's a Bizum/reimbursement transfer
+// linked to an expense that WAS tagged to this category (paying that
+// expense's debt down, same as a pot-deposit would).
+export const isPotAffectingTx = (t, category, expenseCatById) => {
+  if (t.category_id === category.id) {
+    return t.type === 'expense' || t.type === 'pot-withdrawal' || t.type === 'pot-deposit'
+  }
+  return t.type === 'transfer' && !!t.linked_expense_id && expenseCatById[t.linked_expense_id] === category.id
+}
+
+export const potTxDelta = (t) =>
+  (t.type === 'expense' || t.type === 'pot-withdrawal') ? -t.amount : t.amount
+
+export const calcPotBalance = ({ category, salary, cycles, transactions, pctHistory = [], asOfDate = new Date() }) => {
   if (category.type !== 'pot') return 0
 
-  const firstSalary = cycles.length ? cycles[0].start : null
-  if (!firstSalary) return 0
+  const openingDate = category.opening_balance_date ? startOfDay(parseISO(category.opening_balance_date)) : null
+  let balance = category.opening_balance || 0
 
-  // Count cycles that have started on or before asOfDate
-  const completedCycles = cycles.filter(cy => !isAfter(cy.start, asOfDate)).length
-  const monthlyAlloc = salary * (category.user_pct / 100)
-  let balance = completedCycles * monthlyAlloc
+  getIncludedCycles(category, cycles, asOfDate).forEach(cy => {
+    const pct = getPctAtDate(pctHistory, category.id, cy.end, category.user_pct)
+    balance += salary * pct / 100
+  })
 
   // Build a lookup so linked reimbursements (transfers) can be matched
   // to the category of their original expense.
@@ -82,18 +128,11 @@ export const calcPotBalance = ({ category, salary, cycles, transactions, asOfDat
   })
 
   transactions.forEach(t => {
-    if (t.category_id === category.id) {
-      if (t.type === 'expense' || t.type === 'pot-withdrawal') balance -= t.amount
-      if (t.type === 'pot-deposit') balance += t.amount
-    } else if (
-      t.type === 'transfer' &&
-      t.linked_expense_id &&
-      expenseCatById[t.linked_expense_id] === category.id
-    ) {
-      // A Bizum / reimbursement linked to an expense in this pot
-      // reduces the debt just like a pot-deposit would.
-      balance += t.amount
-    }
+    // A reconciled opening balance is a factual "this is everything I
+    // have, as of this date" snapshot -- anything before it is
+    // superseded, not added on top of.
+    if (openingDate && isBefore(parseISO(t.date), openingDate)) return
+    if (isPotAffectingTx(t, category, expenseCatById)) balance += potTxDelta(t)
   })
 
   // Negative balances are kept (not floored at 0) so an overspend
@@ -104,8 +143,16 @@ export const calcPotBalance = ({ category, salary, cycles, transactions, asOfDat
 }
 
 // ── BUDGET ────────────────────────────────────────────────────
-export const catBudget = (category, salary) =>
-  salary * (category.user_pct / 100)
+// 2-arg calls resolve today's live %, unchanged. Passing pctHistory +
+// atDate resolves whatever % was actually active on that date instead
+// -- for judging a past cycle/month against the budget it actually
+// had, not today's.
+export const catBudget = (category, salary, pctHistory = null, atDate = null) => {
+  const pct = (pctHistory && atDate)
+    ? getPctAtDate(pctHistory, category.id, atDate, category.user_pct)
+    : category.user_pct
+  return salary * (pct / 100)
+}
 
 export const fixedTotal = (fixedExpenses) =>
   fixedExpenses.reduce((s, f) => s + f.amount, 0)

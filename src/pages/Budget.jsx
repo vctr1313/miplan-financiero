@@ -4,13 +4,17 @@ import { upsertCategory, deleteCategory, updateCategoryPct, supabase } from '../
 import { fmt, catBudget, calcPotBalance, getCurrentCycle } from '../lib/finance'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
+import CategoryDetailModal from '../components/CategoryDetailModal'
+import AdjustPotBalanceModal from '../components/AdjustPotBalanceModal'
 ChartJS.register(ArcElement, Tooltip, Legend)
 
 export default function Budget() {
-  const { profile, categories, transactions, cycles, refresh } = useApp()
+  const { profile, categories, transactions, cycles, pctHistory, refresh } = useApp()
   const [showCatModal, setShowCatModal] = useState(false)
   const [editingCat, setEditingCat] = useState(null)
   const [reassignFrom, setReassignFrom] = useState(null)
+  const [detailCat, setDetailCat] = useState(null)
+  const [adjustingCat, setAdjustingCat] = useState(null)
   // Local draft values for the euro-amount inputs, keyed by category id.
   // These exist separately from c.user_pct (the server-derived value)
   // specifically so the input reflects what the user is actively
@@ -82,7 +86,7 @@ export default function Budget() {
 
   const handleDeleteCat = async (cat) => {
     if (cat.type === 'pot') {
-      const balance = calcPotBalance({ category: cat, salary, cycles, transactions })
+      const balance = calcPotBalance({ category: cat, salary, cycles, transactions, pctHistory })
       if (balance > 0) {
         setReassignFrom({ cat, balance })
         return
@@ -120,9 +124,14 @@ export default function Budget() {
             const spent = Math.max(0, cycleTx.filter(t => t.category_id === c.id && t.type === 'expense').reduce((s, t) => s + t.amount, 0) - (reimbByCat[c.id] || 0))
             const pct = budget > 0 ? Math.min(100, spent / budget * 100) : 0
             const over = spent > budget && budget > 0
-            const potBal = c.type === 'pot' ? calcPotBalance({ category: c, salary, cycles, transactions }) : null
+            const potBal = c.type === 'pot' ? calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }) : null
             return (
-              <div key={c.id} className="flex items-center gap-2" style={{ padding: '9px 0', borderBottom: '1px solid var(--g100)' }}>
+              <div
+                key={c.id} className="flex items-center gap-2"
+                style={{ padding: '9px 0', borderBottom: '1px solid var(--g100)', cursor: 'pointer' }}
+                onClick={() => setDetailCat(c)}
+                title="Ver movimientos de esta categoría"
+              >
                 <div style={{ width: 33, height: 33, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: c.color + '22', color: c.color, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>
@@ -141,6 +150,14 @@ export default function Budget() {
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{fmt(budget)}/mes</div>
                   <div className="text-xs text-muted">{c.type === 'saving' ? 'Reservado' : `${fmt(spent)} gastado`}</div>
                 </div>
+                {c.type === 'pot' && (
+                  <button
+                    className="btn btn-icon btn-ghost" title="Ajustar saldo real del bote"
+                    onClick={e => { e.stopPropagation(); setAdjustingCat(c) }}
+                  >
+                    <i className="fa fa-scale-balanced" />
+                  </button>
+                )}
               </div>
             )
           })}
@@ -214,6 +231,14 @@ export default function Budget() {
           onClose={() => setReassignFrom(null)}
         />
       )}
+
+      {detailCat && (
+        <CategoryDetailModal category={detailCat} onClose={() => setDetailCat(null)} />
+      )}
+
+      {adjustingCat && (
+        <AdjustPotBalanceModal category={adjustingCat} onClose={() => setAdjustingCat(null)} />
+      )}
     </div>
   )
 }
@@ -226,6 +251,22 @@ function CategoryModal({ category, onClose, salary }) {
   const [color, setColor] = useState(category?.color || '#6366f1')
   const [pct, setPct] = useState(category?.user_pct ?? 5)
   const [saving, setSaving] = useState(false)
+
+  // Local draft for the € input, same reasoning as Budget()'s
+  // eurDrafts: shows exactly what's being typed instead of a value
+  // recomputed from `pct`, which would otherwise fight typing of
+  // decimals (e.g. "95." briefly parsing to the same pct as "95").
+  const [eurDraft, setEurDraft] = useState(undefined)
+  const eurValue = eurDraft !== undefined
+    ? eurDraft
+    : (salary > 0 ? Math.round(salary * pct / 100 * 100) / 100 : '')
+
+  const handleEurChange = (value) => {
+    setEurDraft(value)
+    if (!salary) return
+    const p = Math.round((parseFloat(value) || 0) / salary * 10000) / 100
+    setPct(Math.min(50, Math.max(0, p)))
+  }
 
   const handleSave = async () => {
     if (!name.trim()) { alert('El nombre es obligatorio'); return }
@@ -272,8 +313,16 @@ function CategoryModal({ category, onClose, salary }) {
         <div className="form-group">
           <label>% del sueldo</label>
           <div className="flex items-center gap-2">
-            <input className="form-control" type="number" min="0" max="50" value={pct} onChange={e => setPct(e.target.value)} style={{ maxWidth: 100 }} />
-            <span className="text-xs text-muted">{salary > 0 ? fmt(salary * pct / 100) : ''}</span>
+            <input className="form-control" type="number" min="0" max="50" step="0.01" value={pct} onChange={e => { setPct(e.target.value); setEurDraft(undefined) }} style={{ maxWidth: 100 }} />
+            <span className="text-xs text-muted">%</span>
+            <input
+              className="form-control" type="number" min="0" step="0.01"
+              value={eurValue} disabled={!salary}
+              onChange={e => handleEurChange(e.target.value)}
+              onBlur={() => setEurDraft(undefined)}
+              placeholder="€" style={{ maxWidth: 100 }}
+            />
+            <span className="text-xs text-muted">€{!salary ? ' (configura tu sueldo)' : ''}</span>
           </div>
         </div>
         <div className="modal-footer">

@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../App'
 import { signOut } from '../lib/supabase'
 import { fmt } from '../lib/finance'
+import BalanceReviewModal from './BalanceReviewModal'
 import '../styles/global.css'
 
 const NAV = [
@@ -20,11 +21,18 @@ const NAV = [
 const BOTTOM_NAV = ['/', '/transactions', '/budget', '/savings', '/house']
 
 export default function Layout() {
-  const { profile, syncing } = useApp()
+  const { profile, categories, transactions, loading, syncing } = useApp()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
+
+  // One-time prompt (see BalanceReviewModal) for existing users whose
+  // pots already have real transaction history -- a brand-new pot
+  // with nothing in it yet has nothing to reconcile, so it's excluded
+  // rather than prompting pointlessly on day one.
+  const potsWithHistory = categories.filter(c => c.type === 'pot' && transactions.some(t => t.category_id === c.id))
+  const showBalanceReview = !loading && profile && !profile.balances_reviewed_at && potsWithHistory.length > 0
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
@@ -173,6 +181,8 @@ export default function Layout() {
           )
         })}
       </nav>
+
+      {showBalanceReview && <BalanceReviewModal pots={potsWithHistory} onClose={() => {}} />}
     </div>
   )
 }

@@ -12,19 +12,37 @@ function getEligibleCategories(categories) {
   return categories.filter(c => c.type === 'pot' || c.type === 'saving')
 }
 
-// kind distinguishes two income flows that share this exact
-// distribute-across-pots mechanic: 'extra-payment' (a bonus/paga
-// extra) and 'from-savings' (money pulled from the user's own
-// savings, outside anything the app tracks, being formally allocated
-// into pots/saving categories). Both register the total as income and
-// only ever add to pot/saving balances -- neither ever subtracts from
-// another bucket, since in both cases the money's origin is outside
-// what this app's balances track.
+// kind distinguishes two flows that share this exact
+// distribute-across-pots mechanic but differ in where the money comes
+// from: 'extra-payment' is genuine new income (a bonus/paga extra)
+// and IS recorded as an income transaction, exactly like before.
+// 'from-savings' moves money that's already inside the app -- out of
+// one of the user's own saving-type categories (chosen via `sourceId`
+// below) -- into pots/other saving categories. That's an internal
+// transfer, not new income, so it must never touch the income total:
+// no income transaction is written for it, and the source category's
+// house_goals bucket (my_saved/invest_saved -- the only place a
+// saving-type category's total lives today) is debited by the same
+// amount the destinations are credited.
 export default function ExtraPaymentModal({ amount, date, description, notes, onClose, onSaved, kind = 'extra-payment' }) {
   const isWithdrawal = kind === 'from-savings'
   const defaultDesc = isWithdrawal ? 'Retirada de ahorro' : 'Paga extra'
-  const { categories, refresh } = useApp()
-  const eligible = useMemo(() => getEligibleCategories(categories), [categories])
+  const { categories, houseGoal, refresh } = useApp()
+  const [sourceId, setSourceId] = useState('')
+  const savingCats = useMemo(() => categories.filter(c => c.type === 'saving'), [categories])
+  // Same house/invest name-matching heuristic suggestedSavingTargets
+  // uses below -- it's the only mapping that exists today from a
+  // saving-type category to its house_goals field.
+  const bucketOf = (cat) => cat.name.toLowerCase().includes('casa') ? 'house' : 'invest'
+  const bucketBalance = (cat) => bucketOf(cat) === 'house' ? (houseGoal?.my_saved || 0) : (houseGoal?.invest_saved || 0)
+  const sourceCat = isWithdrawal ? savingCats.find(c => c.id === sourceId) : null
+  const sourceBucket = sourceCat ? bucketOf(sourceCat) : null
+  const sourceBalance = sourceCat ? bucketBalance(sourceCat) : null
+
+  const eligible = useMemo(
+    () => getEligibleCategories(categories).filter(c => !isWithdrawal || c.id !== sourceId),
+    [categories, isWithdrawal, sourceId]
+  )
 
   // Best-effort starting suggestion for which house_goals field each
   // saving category maps to, based on its name -- purely a default to
@@ -99,6 +117,15 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
     e.preventDefault()
     setError('')
 
+    if (isWithdrawal && !sourceId) {
+      setError('Elige de qué categoría de ahorro sale el dinero.')
+      return
+    }
+    if (isWithdrawal && sourceBalance !== null && amount > sourceBalance) {
+      setError(`Saldo insuficiente en origen. Disponible: ${fmt(sourceBalance)}`)
+      return
+    }
+
     if (!matchesExactly) {
       setError(
         remaining > 0
@@ -119,19 +146,24 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
 
     setSaving(true)
     try {
-      // 1. Save the total as a regular income transaction first, so
-      //    the cycle's balance/reports reflect the full extra payment
-      //    exactly like any other income -- this is what keeps
-      //    monthly totals correct without it counting as a new cycle
-      //    (is_salary stays false) or touching the base salary.
-      await addTransaction({
-        type: 'income',
-        amount,
-        date,
-        description: description || defaultDesc,
-        notes: notes || null,
-        is_salary: false,
-      })
+      // 1. Genuine new income (paga extra) is saved as a regular
+      //    income transaction, so the cycle's balance/reports reflect
+      //    it exactly like any other income (is_salary stays false,
+      //    doesn't start a new cycle). A savings withdrawal is money
+      //    that already existed inside the app moving between its own
+      //    buckets -- recording it as income too would double-count
+      //    it, so this step is skipped entirely for that flow; the
+      //    source bucket is debited below instead.
+      if (!isWithdrawal) {
+        await addTransaction({
+          type: 'income',
+          amount,
+          date,
+          description: description || defaultDesc,
+          notes: notes || null,
+          is_salary: false,
+        })
+      }
 
       // 2. For each chosen category, either deposit into the pot
       //    (transactions table, pot-deposit type) or increment the
@@ -169,7 +201,13 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
         }
       }
 
-      if (mySavedDelta > 0 || investSavedDelta > 0) {
+      // A withdrawal debits its source bucket by the full amount, in
+      // the same call that credits the destinations -- one atomic
+      // net-delta RPC instead of two separate writes.
+      if (isWithdrawal && sourceBucket === 'house') mySavedDelta -= amount
+      if (isWithdrawal && sourceBucket === 'invest') investSavedDelta -= amount
+
+      if (mySavedDelta !== 0 || investSavedDelta !== 0) {
         await incrementHouseGoalSavings({
           mySavedDelta,
           investSavedDelta,
@@ -194,16 +232,34 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
           <i className="fa fa-circle-info" />
           <div>
             {isWithdrawal
-              ? <>Este dinero viene de tus ahorros (fuera de la app). Repártelo entre tus botes y categorías de ahorro/inversión — la suma debe coincidir exactamente con <strong>{fmt(amount)}</strong>.</>
+              ? <>Este dinero sale de una de tus categorías de ahorro — elige cuál abajo. Repártelo entre tus botes u otras categorías de ahorro/inversión — la suma debe coincidir exactamente con <strong>{fmt(amount)}</strong>. No cuenta como ingreso nuevo.</>
               : <>Reparte <strong>{fmt(amount)}</strong> entre tus botes y categorías de ahorro. La suma debe coincidir exactamente con el total.</>}
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
+          {isWithdrawal && (
+            <div className="form-group">
+              <label>¿De qué categoría de ahorro sale el dinero? *</label>
+              <select className="form-control" value={sourceId} onChange={e => setSourceId(e.target.value)}>
+                <option value="">Selecciona categoría…</option>
+                {savingCats.map(c => (
+                  <option key={c.id} value={c.id}>{c.icon} {c.name} ({fmt(bucketBalance(c))})</option>
+                ))}
+              </select>
+              {sourceBalance !== null && (
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Disponible: {fmt(sourceBalance)}</div>
+              )}
+            </div>
+          )}
           {eligible.length === 0 ? (
             <div className="alert alert-warning">
               <i className="fa fa-triangle-exclamation" />
-              <div>No tienes botes ni categorías de ahorro configuradas. Crea alguna en Presupuesto primero.</div>
+              <div>
+                {isWithdrawal && sourceId
+                  ? 'No tienes otro bote o categoría de ahorro donde repartir este dinero. Crea uno en Presupuesto primero.'
+                  : 'No tienes botes ni categorías de ahorro configuradas. Crea alguna en Presupuesto primero.'}
+              </div>
             </div>
           ) : (
             <div style={{ marginBottom: 16 }}>
@@ -275,7 +331,13 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
 
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary" disabled={saving || !matchesExactly || missingSavingTargets || eligible.length === 0}>
+            <button
+              type="submit" className="btn btn-primary"
+              disabled={
+                saving || !matchesExactly || missingSavingTargets || eligible.length === 0 ||
+                (isWithdrawal && (!sourceId || (sourceBalance !== null && amount > sourceBalance)))
+              }
+            >
               <i className="fa fa-check" /> {saving ? 'Guardando…' : isWithdrawal ? 'Confirmar retirada' : 'Confirmar reparto'}
             </button>
           </div>

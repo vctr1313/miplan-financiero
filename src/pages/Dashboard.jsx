@@ -8,7 +8,7 @@ import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
 
 export default function Dashboard() {
-  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, partnerSummary, refresh } = useApp()
+  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh } = useApp()
   const navigate = useNavigate()
   const [showAddModal, setShowAddModal] = useState(false)
 
@@ -173,7 +173,7 @@ export default function Dashboard() {
             const budget = catBudget(c, salary)
             const isPot = c.type === 'pot'
             const spent = stats.spendByCat[c.id] || 0
-            const potBal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions }) : null
+            const potBal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }) : null
             const potNeg = isPot && potBal < 0
             // For pots: bar total = potBal + spent = capacity at start of this cycle
             // (potBal already deducted spent, so adding it back gives the pre-cycle total).

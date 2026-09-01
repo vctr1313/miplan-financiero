@@ -97,6 +97,12 @@ export const upsertCategory = async (cat) => {
     .select()
     .single()
   if (error) throw error
+  // Record this as a %-history event too (covers both brand-new
+  // categories and edits made through the CategoryModal dialog, which
+  // saves through this function rather than updateCategoryPct below)
+  // -- see getPctAtDate in lib/finance.js for why every change needs
+  // its own timestamped row instead of overwriting a single value.
+  await addCategoryPctHistory(data.household_id, data.id, data.user_pct)
   return data
 }
 
@@ -106,9 +112,44 @@ export const deleteCategory = async (id) => {
 }
 
 export const updateCategoryPct = async (id, userPct) => {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('categories')
     .update({ user_pct: userPct })
+    .eq('id', id)
+    .select('household_id')
+    .single()
+  if (error) throw error
+  await addCategoryPctHistory(data.household_id, id, userPct)
+}
+
+// ── CATEGORY % HISTORY ────────────────────────────────────────
+// One row per %-of-salary change, so past cycles/months can be
+// judged against what a category's budget actually was at the time
+// instead of whatever it's been changed to since (see getPctAtDate /
+// calcPotBalance / catBudget in lib/finance.js).
+const addCategoryPctHistory = async (householdId, categoryId, userPct) => {
+  const { error } = await supabase
+    .from('category_pct_history')
+    .insert({ household_id: householdId, category_id: categoryId, user_pct: userPct })
+  if (error) throw error
+}
+
+export const getCategoryPctHistory = async () => {
+  const { data, error } = await supabase
+    .from('category_pct_history')
+    .select('*')
+    .order('effective_from')
+  if (error) throw error
+  return data || []
+}
+
+// Sets a pot's manual reconciliation point: from openingBalanceDate
+// onward, calcPotBalance counts forward from openingBalance instead
+// of its full calculated history -- see BalanceReviewModal.jsx.
+export const setCategoryOpeningBalance = async (id, openingBalance, openingBalanceDate) => {
+  const { error } = await supabase
+    .from('categories')
+    .update({ opening_balance: openingBalance, opening_balance_date: openingBalanceDate })
     .eq('id', id)
   if (error) throw error
 }
@@ -298,6 +339,12 @@ export const subscribeToHousehold = (householdId, onEvent) => {
       event: '*',
       schema: 'public',
       table: 'saving_goals',
+      filter: `household_id=eq.${householdId}`
+    }, onEvent)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'category_pct_history',
       filter: `household_id=eq.${householdId}`
     }, onEvent)
     .subscribe()

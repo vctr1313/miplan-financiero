@@ -6,7 +6,7 @@ import { Bar, Doughnut, Line } from 'react-chartjs-2'
 ChartJS.register(BarElement, LineElement, PointElement, ArcElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 export default function Reports() {
-  const { profile, categories, transactions } = useApp()
+  const { profile, categories, transactions, pctHistory } = useApp()
   const [tab, setTab] = useState('monthly')
   const [curM, setCurM] = useState(new Date().getMonth())
   const [curY, setCurY] = useState(new Date().getFullYear())
@@ -54,10 +54,10 @@ export default function Reports() {
         <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
           <div><h2>Reportes</h2><p>Análisis profesional de tus finanzas (datos reales por mes, sin proyecciones automáticas)</p></div>
           <div className="flex gap-2">
-            <button className="btn btn-success" onClick={() => exportPDF({ monthlyData, last6Months, categories, salary, curM, curY, transactions })}>
+            <button className="btn btn-success" onClick={() => exportPDF({ monthlyData, last6Months, categories, salary, curM, curY, transactions, pctHistory })}>
               <i className="fa fa-file-pdf" /> PDF
             </button>
-            <button className="btn btn-ghost" onClick={() => exportXLSX({ monthlyData, last6Months, categories, salary, curM, curY, transactions })}>
+            <button className="btn btn-ghost" onClick={() => exportXLSX({ monthlyData, last6Months, categories, salary, curM, curY, transactions, pctHistory })}>
               <i className="fa fa-file-excel" /> Excel
             </button>
           </div>
@@ -95,7 +95,7 @@ export default function Reports() {
       </div>
 
       {tab === 'monthly' && <MonthlyTab last6Months={last6Months} monthlyData={monthlyData} gridColor={gridColor} tickColor={tickColor} />}
-      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} curM={curM} curY={curY} setCurM={setCurM} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
+      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} pctHistory={pctHistory} curM={curM} curY={curY} setCurM={setCurM} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
       {tab === 'savings' && <SavingsTab monthlyData={monthlyData} last6Months={last6Months} categories={categories} salary={salary} gridColor={gridColor} tickColor={tickColor} />}
       {tab === 'annual' && <AnnualTab transactions={transactions} curY={curY} setCurY={setCurY} categories={categories} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
     </div>
@@ -158,7 +158,13 @@ function MonthlyTab({ last6Months, monthlyData, gridColor, tickColor }) {
   )
 }
 
-function CategoriesTab({ categories, transactions, salary, curM, curY, setCurM, gridColor, tickColor, isDark }) {
+function CategoriesTab({ categories, transactions, salary, pctHistory, curM, curY, setCurM, gridColor, tickColor, isDark }) {
+  // Judge the selected month against the % that was actually active
+  // when it ended, not today's live %, so lowering a budget later
+  // doesn't retroactively paint an already-fine month as over budget.
+  // For the current, still-ongoing month this resolves to today's
+  // live value anyway (see getPctAtDate in lib/finance.js).
+  const atDate = new Date(curY, curM + 1, 0, 23, 59, 59, 999)
   const txs = transactions.filter(t => {
     const d = new Date(t.date)
     return d.getMonth() === curM && d.getFullYear() === curY && t.type === 'expense'
@@ -166,7 +172,7 @@ function CategoriesTab({ categories, transactions, salary, curM, curY, setCurM, 
   const catData = categories.map(c => ({
     ...c,
     spent: txs.filter(t => t.category_id === c.id).reduce((s, t) => s + t.amount, 0),
-    budget: catBudget(c, salary)
+    budget: catBudget(c, salary, pctHistory, atDate)
   })).filter(c => c.spent > 0 || c.budget > 0).sort((a, b) => b.spent - a.spent)
 
   const pieData = {
@@ -214,7 +220,7 @@ function CategoriesTab({ categories, transactions, salary, curM, curY, setCurM, 
         <div className="section-header"><h3>Semáforo de categorías</h3><span className="text-xs text-muted">🟢 Bajo presupuesto · 🟡 +80% · 🔴 Superado</span></div>
         {categories.filter(c => c.type !== 'saving').map(c => {
           const spent = txs.filter(t => t.category_id === c.id).reduce((s, t) => s + t.amount, 0)
-          const budget = catBudget(c, salary)
+          const budget = catBudget(c, salary, pctHistory, atDate)
           const pct = budget > 0 ? spent / budget * 100 : 0
           const color = pct >= 100 ? 'var(--r5)' : pct >= 80 ? 'var(--a5)' : 'var(--e5)'
           const emoji = pct >= 100 ? '🔴' : pct >= 80 ? '🟡' : '🟢'
@@ -360,14 +366,15 @@ function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickCol
 }
 
 // ── EXPORT FUNCTIONS ──────────────────────────────────────────
-function exportPDF({ monthlyData, last6Months, categories, salary, curM, curY, transactions }) {
+function exportPDF({ monthlyData, last6Months, categories, salary, curM, curY, transactions, pctHistory }) {
+  const atDate = new Date(curY, curM + 1, 0, 23, 59, 59, 999)
   const txs = transactions.filter(t => {
     const d = new Date(t.date)
     return d.getMonth() === curM && d.getFullYear() === curY && t.type === 'expense'
   })
   const catRows = categories.map(c => {
     const spent = txs.filter(t => t.category_id === c.id).reduce((s, t) => s + t.amount, 0)
-    const budget = catBudget(c, salary)
+    const budget = catBudget(c, salary, pctHistory, atDate)
     if (spent === 0 && budget === 0) return null
     return `<tr><td>${c.icon} ${c.name}</td><td style="text-align:right">${fmt(spent)}</td><td style="text-align:right">${fmt(budget)}</td><td style="text-align:right;color:${spent > budget ? '#ef4444' : '#10b981'}">${fmt(spent - budget)}</td></tr>`
   }).filter(Boolean).join('')
@@ -410,7 +417,8 @@ function exportPDF({ monthlyData, last6Months, categories, salary, curM, curY, t
   win.document.close()
 }
 
-function exportXLSX({ monthlyData, last6Months, categories, salary, curM, curY, transactions }) {
+function exportXLSX({ monthlyData, last6Months, categories, salary, curM, curY, transactions, pctHistory }) {
+  const atDate = new Date(curY, curM + 1, 0, 23, 59, 59, 999)
   let csv = '\uFEFF'
   const monthLabel = new Date(curY, curM, 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' })
   csv += `REPORTE FINANCIERO — ${monthLabel.toUpperCase()}\n\n`
@@ -426,7 +434,7 @@ function exportXLSX({ monthlyData, last6Months, categories, salary, curM, curY, 
   })
   categories.forEach(c => {
     const spent = txs.filter(t => t.category_id === c.id).reduce((s, t) => s + t.amount, 0)
-    const budget = catBudget(c, salary)
+    const budget = catBudget(c, salary, pctHistory, atDate)
     if (spent > 0 || budget > 0) csv += `${c.name},${spent.toFixed(2)},${budget.toFixed(2)},${(spent - budget).toFixed(2)}\n`
   })
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })

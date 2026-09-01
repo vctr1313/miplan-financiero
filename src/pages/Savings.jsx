@@ -3,7 +3,7 @@ import { useApp } from '../App'
 import { addTransaction } from '../lib/supabase'
 import { fmt, calcPotBalance } from '../lib/finance'
 
-function MovePotModal({ pots, salary, cycles, transactions, refresh, onClose }) {
+function MovePotModal({ pots, salary, cycles, transactions, pctHistory, refresh, onClose }) {
   const [fromId, setFromId] = useState('')
   const [toId, setToId] = useState('')
   const [amount, setAmount] = useState('')
@@ -11,7 +11,7 @@ function MovePotModal({ pots, salary, cycles, transactions, refresh, onClose }) 
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const fromBal = fromId ? calcPotBalance({ category: pots.find(p => p.id === fromId), salary, cycles, transactions }) : null
+  const fromBal = fromId ? calcPotBalance({ category: pots.find(p => p.id === fromId), salary, cycles, transactions, pctHistory }) : null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -52,7 +52,7 @@ function MovePotModal({ pots, salary, cycles, transactions, refresh, onClose }) 
                 <option value="">Selecciona bote…</option>
                 {pots.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.icon} {p.name} ({fmt(calcPotBalance({ category: p, salary, cycles, transactions }))})
+                    {p.icon} {p.name} ({fmt(calcPotBalance({ category: p, salary, cycles, transactions, pctHistory }))})
                   </option>
                 ))}
               </select>
@@ -93,7 +93,7 @@ function MovePotModal({ pots, salary, cycles, transactions, refresh, onClose }) 
 }
 
 export default function Savings() {
-  const { profile, categories, transactions, cycles, refresh } = useApp()
+  const { profile, categories, transactions, cycles, pctHistory, refresh } = useApp()
   const salary = profile?.salary || 0
   const [potId, setPotId] = useState('')
   const [amount, setAmount] = useState('')
@@ -113,7 +113,7 @@ export default function Savings() {
       return
     }
     const cat = categories.find(c => c.id === potId)
-    const balance = calcPotBalance({ category: cat, salary, cycles, transactions })
+    const balance = calcPotBalance({ category: cat, salary, cycles, transactions, pctHistory })
     if (parseFloat(amount) > balance) {
       setError(`No tienes suficiente. Disponible: ${fmt(balance)}`)
       return
@@ -163,7 +163,7 @@ export default function Savings() {
       <div className="grid-auto mb-4">
         {[...pots, ...savingCats].map(c => {
           const isPot = c.type === 'pot'
-          const bal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions }) : null
+          const bal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }) : null
           const isNegative = isPot && bal < 0
           const monthly = salary * c.user_pct / 100
           return (
@@ -193,7 +193,7 @@ export default function Savings() {
                 <option value="">Selecciona bote…</option>
                 {pots.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.icon} {c.name} ({fmt(calcPotBalance({ category: c, salary, cycles, transactions }))})
+                    {c.icon} {c.name} ({fmt(calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }))})
                   </option>
                 ))}
               </select>
@@ -222,6 +222,7 @@ export default function Savings() {
           salary={salary}
           cycles={cycles}
           transactions={transactions}
+          pctHistory={pctHistory}
           refresh={refresh}
           onClose={() => setShowMove(false)}
         />

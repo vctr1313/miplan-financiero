@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, getPartnerSummary, subscribeToHousehold } from './lib/supabase'
+import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, getPartnerSummary, getCategoryPctHistory, subscribeToHousehold } from './lib/supabase'
 import { buildCycles } from './lib/finance'
 
 // Pages
@@ -29,6 +29,7 @@ function AppProvider({ children }) {
   const [fixedExpenses, setFixedExpenses] = useState([])
   const [houseGoal, setHouseGoal] = useState(null)
   const [savingGoals, setSavingGoals] = useState([])
+  const [pctHistory, setPctHistory] = useState([])
   const [partnerSummary, setPartnerSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
@@ -38,13 +39,14 @@ function AppProvider({ children }) {
   const loadAll = useCallback(async (userId) => {
     setSyncing(true)
     try {
-      const [prof, cats, txs, fixed, hGoal, sGoals] = await Promise.all([
+      const [prof, cats, txs, fixed, hGoal, sGoals, pctHist] = await Promise.all([
         getProfile(userId),
         getCategories(),
         getTransactions(),
         getFixedExpenses(),
         getHouseGoal(),
         getSavingGoals(),
+        getCategoryPctHistory(),
       ])
       setProfile(prof)
       setCategories(cats || [])
@@ -52,6 +54,7 @@ function AppProvider({ children }) {
       setFixedExpenses(fixed || [])
       setHouseGoal(hGoal)
       setSavingGoals(sGoals || [])
+      setPctHistory(pctHist || [])
       // Read-only aggregate summary of a linked partner, if any -- see
       // getPartnerSummary in lib/supabase.js for why this never pulls
       // their raw transactions/categories.
@@ -100,6 +103,7 @@ function AppProvider({ children }) {
     fixedExpenses, setFixedExpenses,
     houseGoal, setHouseGoal,
     savingGoals, setSavingGoals,
+    pctHistory,
     partnerSummary,
     cycles, loading, syncing, refresh
   }
