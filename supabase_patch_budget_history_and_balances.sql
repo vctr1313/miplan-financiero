@@ -137,3 +137,19 @@ begin
     alter publication supabase_realtime add table category_pct_history;
   end if;
 end $$;
+
+-- ────────────────────────────────────────────────────────────
+-- Requirement #4: typing an exact € amount for a category must round
+-- -trip back to that exact amount, with no forced cent drift.
+-- numeric(5,2) only kept 2 decimal digits of PERCENTAGE precision,
+-- which isn't enough to reconstruct an arbitrary 2-decimal euro
+-- amount once converted back (e.g. 95€ on a 1800€ salary is
+-- 5.27777...%, which rounded to 5.28% converts back to 95.04€ -- a
+-- drift the user shouldn't have to accept just to "fix" the %).
+-- Widening to 8 decimal places of % keeps that round-trip error under
+-- a hundredth of a cent for any realistic salary. Safe to widen in
+-- place -- every existing value (e.g. 5.00) fits the new type as-is.
+-- ────────────────────────────────────────────────────────────
+alter table categories alter column user_pct type numeric(11,8);
+alter table categories alter column def_pct type numeric(11,8);
+alter table category_pct_history alter column user_pct type numeric(11,8);

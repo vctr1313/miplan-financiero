@@ -70,7 +70,14 @@ export default function Budget() {
 
   const handleEurConfirm = async (catId, value) => {
     if (!salary) return
-    const pct = Math.round((parseFloat(value) || 0) / salary * 10000) / 100
+    // 8 decimal places of % (matching the category_pct_history/
+    // categories.user_pct column precision) so converting back to €
+    // reproduces the exact amount typed, to the cent, instead of
+    // forcing a few cents of drift -- 2 decimals of % alone isn't
+    // enough precision for that round trip (e.g. 95€ on 1800€ salary
+    // is 5.2777...%, which rounded to 5.28% becomes 95.04€ back).
+    const rawPct = (parseFloat(value) || 0) / salary * 100
+    const pct = Math.round(rawPct * 1e8) / 1e8
     const clamped = Math.min(50, Math.max(0, pct))
     await updateCategoryPct(catId, clamped)
     await refresh()
@@ -171,18 +178,26 @@ export default function Budget() {
             Total: {roundedTotal}%
           </span>
         </div>
-        {categories.map(c => (
+        {categories.map(c => {
+          // The stored % can carry up to 8 decimal places now (see
+          // handleEurConfirm below), so it can exactly reproduce
+          // whatever € amount was typed -- but nobody wants to read
+          // "5.27777778" in the % box, so round it for display only;
+          // the full-precision value is untouched unless this field
+          // itself is edited directly.
+          const displayPct = Math.round((parseFloat(c.user_pct) || 0) * 100) / 100
+          return (
           <div key={c.id} className="flex items-center gap-2" style={{ marginBottom: 9, flexWrap: 'wrap' }}>
             <div style={{ minWidth: 140, fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 5 }}>
               <span style={{ fontSize: 15 }}>{c.icon}</span> {c.name}
             </div>
             <input
-              type="range" min="0" max="50" step="0.1" value={c.user_pct}
+              type="range" min="0" max="50" step="0.1" value={displayPct}
               onChange={e => handlePctChange(c.id, e.target.value)}
               style={{ flex: 1, minWidth: 80 }}
             />
             <input
-              type="number" min="0" max="50" step="0.1" value={c.user_pct}
+              type="number" min="0" max="50" step="0.1" value={displayPct}
               onChange={e => handlePctChange(c.id, e.target.value)}
               style={{ width: 60, padding: '3px 6px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 12.5, fontWeight: 600, background: 'var(--inp)', color: 'var(--text)' }}
             />
@@ -209,7 +224,8 @@ export default function Budget() {
               <i className="fa fa-trash" />
             </button>
           </div>
-        ))}
+          )
+        })}
         <button className="btn btn-outline w-full mt-2" onClick={() => { setEditingCat(null); setShowCatModal(true) }}>
           <i className="fa fa-plus" /> Nueva categoría
         </button>
@@ -264,9 +280,18 @@ function CategoryModal({ category, onClose, salary }) {
   const handleEurChange = (value) => {
     setEurDraft(value)
     if (!salary) return
-    const p = Math.round((parseFloat(value) || 0) / salary * 10000) / 100
+    // 8 decimals of % so this € figure round-trips exactly -- see the
+    // matching comment on Budget()'s handleEurConfirm.
+    const rawPct = (parseFloat(value) || 0) / salary * 100
+    const p = Math.round(rawPct * 1e8) / 1e8
     setPct(Math.min(50, Math.max(0, p)))
   }
+
+  // `pct` itself can carry up to 8 decimal places (set via the € field
+  // above), which round-trips € exactly but reads as noise in a % box
+  // -- round only what's displayed here; saving still uses the
+  // full-precision `pct` state untouched.
+  const displayPct = Math.round((parseFloat(pct) || 0) * 100) / 100
 
   const handleSave = async () => {
     if (!name.trim()) { alert('El nombre es obligatorio'); return }
@@ -313,7 +338,7 @@ function CategoryModal({ category, onClose, salary }) {
         <div className="form-group">
           <label>% del sueldo</label>
           <div className="flex items-center gap-2">
-            <input className="form-control" type="number" min="0" max="50" step="0.01" value={pct} onChange={e => { setPct(e.target.value); setEurDraft(undefined) }} style={{ maxWidth: 100 }} />
+            <input className="form-control" type="number" min="0" max="50" step="0.01" value={displayPct} onChange={e => { setPct(e.target.value); setEurDraft(undefined) }} style={{ maxWidth: 100 }} />
             <span className="text-xs text-muted">%</span>
             <input
               className="form-control" type="number" min="0" step="0.01"
