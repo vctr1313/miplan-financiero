@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useApp } from '../App'
 import { addTransaction, markFixedExpenseCharged } from '../lib/supabase'
-import { getPendingFixedExpenses, fmt, getCurrentCycle } from '../lib/finance'
+import { getPendingFixedExpenses, fmt, getCurrentCycle, toLocalISODate } from '../lib/finance'
 
 export default function RecurringExpensesBanner() {
   const { fixedExpenses, cycles, refresh } = useApp()
@@ -55,7 +55,7 @@ export default function RecurringExpensesBanner() {
     if (!toApply.length) return
     setApplying(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = toLocalISODate(new Date())
       for (const f of toApply) {
         await addTransaction({
           type: 'expense',

@@ -5,6 +5,7 @@ import AddTransactionModal from '../components/AddTransactionModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import TxRow from '../components/TxRow'
 import EmptyState from '../components/EmptyState'
+import { toLocalISODate } from '../lib/finance'
 
 const PAGE_SIZE = 15
 
@@ -33,7 +34,7 @@ function exportCSV(transactions) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `movimientos_${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `movimientos_${toLocalISODate(new Date())}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

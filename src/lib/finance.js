@@ -12,6 +12,12 @@ export const fmtShort = (n) =>
 export const fmtPct = (n) =>
   (Math.round((n || 0) * 100) / 100).toLocaleString('es-ES', { maximumFractionDigits: 2 }) + '%'
 
+// YYYY-MM-DD of a Date in LOCAL time. Cycle boundaries are local
+// midnights, and toISOString() converts to UTC first -- east of UTC
+// that lands on the previous day, so never use it to compare dates.
+export const toLocalISODate = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 export const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
 export const monthLabel = (date) =>

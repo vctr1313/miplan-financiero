@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useApp } from '../App'
 import { updateProfile, setCategoryOpeningBalance } from '../lib/supabase'
-import { calcPotBalance } from '../lib/finance'
+import { calcPotBalance, toLocalISODate } from '../lib/finance'
 
 // Shown once, the first time an existing user opens the app after
 // this feature ships (gated on profiles.balances_reviewed_at). Past
@@ -38,7 +38,7 @@ export default function BalanceReviewModal({ pots, onClose }) {
   const handleConfirm = async () => {
     setSaving(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = toLocalISODate(new Date())
       for (const c of pots) {
         const calculated = Math.round(calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }) * 100) / 100
         const typed = parseFloat(values[c.id])

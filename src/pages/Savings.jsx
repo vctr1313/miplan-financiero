@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useApp } from '../App'
 import { addTransaction } from '../lib/supabase'
-import { fmt, calcPotBalance } from '../lib/finance'
+import { fmt, calcPotBalance, toLocalISODate } from '../lib/finance'
 import AnimatedNumber from '../components/AnimatedNumber'
 import CategoryDetailModal from '../components/CategoryDetailModal'
 
@@ -27,7 +27,7 @@ function MovePotModal({ pots, salary, cycles, transactions, pctHistory, refresh,
     }
     setSaving(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = toLocalISODate(new Date())
       const fromCat = pots.find(p => p.id === fromId)
       const toCat = pots.find(p => p.id === toId)
       const label = desc.trim() || `Traspaso ${fromCat.name} → ${toCat.name}`
@@ -127,7 +127,7 @@ export default function Savings() {
         type: 'pot-withdrawal',
         category_id: potId,
         amount: parseFloat(amount),
-        date: new Date().toISOString().split('T')[0],
+        date: toLocalISODate(new Date()),
         description: desc.trim() || 'Retirada de bote',
       })
       await refresh()

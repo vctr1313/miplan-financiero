@@ -2,7 +2,7 @@ import {
   buildCycles, getCurrentCycle, getTxInCycle,
   getPctAtDate, getIncludedCycles, calcPotBalance,
   catBudget, calcCycleStats, calcSavingsRate, simulateMortgage,
-  getPendingFixedExpenses,
+  getPendingFixedExpenses, toLocalISODate,
 } from './finance'
 
 // Every test here encodes a bug that actually shipped and was
@@ -337,5 +337,17 @@ describe('getPendingFixedExpenses', () => {
 
   it('is empty with no cycle at all', () => {
     expect(getPendingFixedExpenses({ fixedExpenses: [{ id: 'a' }], cycle: null })).toEqual([])
+  })
+})
+
+describe('toLocalISODate', () => {
+  it('uses the local calendar day, not the UTC one', () => {
+    // 00:30 local on the 1st: in any timezone east of UTC,
+    // toISOString() would already say the 31st of the previous month.
+    const justAfterMidnight = new Date(2026, 8, 1, 0, 30)
+    expect(toLocalISODate(justAfterMidnight)).toBe('2026-09-01')
+  })
+  it('zero-pads month and day', () => {
+    expect(toLocalISODate(new Date(2026, 0, 5, 12))).toBe('2026-01-05')
   })
 })

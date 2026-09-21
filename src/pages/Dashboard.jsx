@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
 import { deleteTransaction } from '../lib/supabase'
-import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution, calcPotBalance } from '../lib/finance'
+import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution, calcPotBalance, toLocalISODate } from '../lib/finance'
 import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
 import AnimatedNumber from '../components/AnimatedNumber'
 import CyclePace from '../components/CyclePace'
+import ActivityRings from '../components/ActivityRings'
 import EmptyState from '../components/EmptyState'
 import TxRow from '../components/TxRow'
 
@@ -25,6 +26,21 @@ export default function Dashboard() {
   const spendableBudget = categories
     .filter(c => c.type !== 'saving')
     .reduce((sum, c) => sum + catBudget(c, salary), 0)
+
+  // Three streams of the cycle for the activity rings.
+  const sumBy = (type, fn) => categories.filter(c => c.type === type).reduce((sum, c) => sum + fn(c), 0)
+  const cycleStartISO = cycle ? toLocalISODate(cycle.start) : null
+  const rings = [
+    { label: 'Día a día', color: '#ff2d55',
+      value: sumBy('normal', c => stats.spendByCat[c.id] || 0), max: sumBy('normal', c => catBudget(c, salary)) },
+    { label: 'Botes', color: '#ff9500',
+      value: sumBy('pot', c => stats.spendByCat[c.id] || 0), max: sumBy('pot', c => catBudget(c, salary)) },
+    { label: 'Fijos', color: '#32ade6',
+      value: fixedExpenses
+        .filter(f => cycleStartISO && f.last_charged_date && f.last_charged_date >= cycleStartISO)
+        .reduce((sum, f) => sum + f.amount, 0),
+      max: fixedExpenses.reduce((sum, f) => sum + f.amount, 0) },
+  ]
 
   const mySavingPerCycle = salary * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
   // Mirror House.jsx's calculation exactly (via the shared
@@ -63,7 +79,7 @@ export default function Dashboard() {
       spendByCat: stats.spendByCat,
       catBudgetFn: catBudget,
       salary,
-      cycleStartISO: cycle.start.toISOString().split('T')[0]
+      cycleStartISO: toLocalISODate(cycle.start)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cycle?.start, stats.expenses])
@@ -144,7 +160,10 @@ export default function Dashboard() {
       <RecurringExpensesBanner />
 
       <div className="card mb-4">
-        <CyclePace cycle={cycle} spent={stats.netExpenses} budget={spendableBudget} />
+        <div className="hero-split">
+          <CyclePace cycle={cycle} spent={stats.netExpenses} budget={spendableBudget} />
+          <ActivityRings rings={rings} />
+        </div>
       </div>
 
       <div className="grid-4 mb-4">

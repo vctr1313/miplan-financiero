@@ -3,7 +3,7 @@ import { useApp } from '../App'
 import Donut from '../components/Donut'
 import EmptyState from '../components/EmptyState'
 import SpendingHeatmap from '../components/SpendingHeatmap'
-import { fmt, fmtShort, catBudget, calcSavingsRate, cap } from '../lib/finance'
+import { fmt, fmtShort, catBudget, calcSavingsRate, cap, toLocalISODate } from '../lib/finance'
 import { Chart as ChartJS, BarElement, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { Bar, Line } from 'react-chartjs-2'
 ChartJS.register(BarElement, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
@@ -443,6 +443,6 @@ function exportXLSX({ monthlyData, last6Months, categories, salary, curM, curY, 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `reporte-${new Date().toISOString().split('T')[0]}.csv`
+  a.download = `reporte-${toLocalISODate(new Date())}.csv`
   a.click()
 }

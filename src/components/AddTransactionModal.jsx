@@ -4,6 +4,7 @@ import { addTransaction } from '../lib/supabase'
 import { autoFocusOnPointer } from '../lib/ui'
 import AmountPad, { formatAmountDisplay } from './AmountPad'
 import ExtraPaymentModal from './ExtraPaymentModal'
+import { toLocalISODate } from '../lib/finance'
 
 const INCOME_TYPES = [
   { id: 'salary', label: '💼 Sueldo mensual', isSalary: true },
@@ -27,7 +28,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
   // Touch devices get the in-sheet keypad instead of the system keyboard.
   const [usePad] = useState(() => !autoFocusOnPointer())
   const [padOpen, setPadOpen] = useState(true)
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(toLocalISODate(new Date()))
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [incomeType, setIncomeType] = useState('salary')

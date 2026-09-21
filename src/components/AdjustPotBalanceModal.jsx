@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useApp } from '../App'
 import { setCategoryOpeningBalance } from '../lib/supabase'
-import { fmt, calcPotBalance } from '../lib/finance'
+import { fmt, calcPotBalance, toLocalISODate } from '../lib/finance'
 import { autoFocusOnPointer } from '../lib/ui'
 
 // Lets the user declare "this is what I actually have in this pot
@@ -23,7 +23,7 @@ export default function AdjustPotBalanceModal({ category, onClose }) {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = toLocalISODate(new Date())
       await setCategoryOpeningBalance(category.id, parseFloat(value) || 0, today)
       await refresh()
       onClose()
