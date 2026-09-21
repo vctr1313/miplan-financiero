@@ -1,4 +1,7 @@
-import { Chart } from 'chart.js'
+import {
+  Chart, ArcElement, BarElement, LineElement, PointElement,
+  LinearScale, CategoryScale, Tooltip, Legend, Filler,
+} from 'chart.js'
 
 // One place that makes every Chart.js chart in the app look like it
 // belongs to it: system font, no chart borders, whisper-thin grid,
@@ -6,6 +9,13 @@ import { Chart } from 'chart.js'
 // tooltip. Charts only set their data and the few options that are
 // genuinely specific to them; everything visual inherits from here.
 export function applyChartTheme() {
+  // Register everything this theme touches up front. Chart.defaults.
+  // elements.<type> only exists once that element is registered, and
+  // pages register only what they draw -- so theming an unregistered
+  // element (the arc, once no page used Chart.js doughnuts any more)
+  // threw at startup and left the whole app blank.
+  Chart.register(ArcElement, BarElement, LineElement, PointElement,
+    LinearScale, CategoryScale, Tooltip, Legend, Filler)
   const d = Chart.defaults
   d.font.family = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif"
   d.font.size = 11.5

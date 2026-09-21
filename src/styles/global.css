@@ -417,16 +417,34 @@ select.form-control {
 .house-meta span { font-size: 11.5px; color: rgba(255,255,255,.55); }
 .house-meta strong { display: block; font-size: 14px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
 
-/* ── TRANSACTION ROW ──────────────────────────────────────────── */
-.tx-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 10px; margin: 0 -10px;
-  border-radius: 12px;
+/* ── TRANSACTION ROW ──────────────────────────────────────────
+   .tx-swipe is the clipping frame; .tx-row slides over .tx-actions on
+   touch (see components/TxRow.jsx). The row is opaque on purpose so
+   the actions behind it stay hidden until it moves. */
+.tx-swipe {
+  position: relative; overflow: hidden; margin: 0 -10px; border-radius: 12px;
   border-bottom: .5px solid var(--sep);
-  transition: background .2s;
 }
-.tx-row:last-child { border-bottom: none; }
-.tx-row:hover { background: var(--fill); }
+.tx-swipe:last-child { border-bottom: none; }
+.tx-actions { position: absolute; top: 0; right: 0; bottom: 0; display: flex; }
+/* Hidden until the row actually moves, or its colour bleeds through
+   the anti-aliased rounded corner of a closed row. */
+.tx-swipe:not(.open) .tx-actions { visibility: hidden; }
+.tx-action {
+  flex: 1; border: none; color: #fff; font: inherit; font-size: 11px; font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+}
+.tx-action i { font-size: 16px; }
+.tx-action.edit { background: var(--g500); }
+.tx-action.delete { background: var(--r5); }
+.tx-action:active { filter: brightness(.9); }
+.tx-row {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 11px 10px; background: var(--card);
+  touch-action: pan-y;
+  transition: background .2s, transform .45s var(--spring);
+}
+.tx-row:hover { background: color-mix(in srgb, var(--card) 94%, var(--g500)); }
 .tx-icon {
   width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
   justify-content: center; font-size: 15px; flex-shrink: 0;
@@ -442,14 +460,23 @@ select.form-control {
 .tx-amount.transfer { color: var(--i5); }
 .tx-amount.pot-withdrawal { color: var(--a5); }
 .tx-user-badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; flex-shrink: 0; }
-/* The row's trailing edit/delete buttons: invisible until the row is
-   hovered on a pointer device, always visible on touch (no hover). */
-.tx-row > button { border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; transition: background .2s, color .2s, opacity .2s, transform .35s var(--spring); }
-.tx-row > button:hover { background: var(--fill-hover); color: var(--text) !important; }
-.tx-row > button:active { transform: scale(.88); transition-duration: .08s; }
+.tx-inline-btn {
+  border: none; background: none; color: var(--g300); cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .2s, color .2s, opacity .2s, transform .35s var(--spring);
+}
+.tx-inline-btn:hover { background: var(--fill-hover); color: var(--text); }
+.tx-inline-btn:active { transform: scale(.88); transition-duration: .08s; }
+/* Pointer devices: actions fade in on hover. Touch: they live behind
+   the swipe instead, so the inline ones go away entirely. */
 @media (hover: hover) {
-  .tx-row > button { opacity: 0; }
-  .tx-row:hover > button, .tx-row > button:focus-visible { opacity: 1; }
+  .tx-inline-btn { opacity: 0; }
+  .tx-row:hover .tx-inline-btn, .tx-inline-btn:focus-visible { opacity: 1; }
+  .tx-actions { display: none; }
+}
+@media (hover: none) {
+  .tx-inline-btn { display: none; }
 }
 
 /* ── TABS (iOS segmented control) ─────────────────────────────── */
@@ -849,3 +876,166 @@ body:has(.modal-overlay) { overflow: hidden; }
   animation: popIn .5s var(--spring) both .2s;
 }
 @keyframes popIn { from { transform: scale(.4); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+
+/* ── DONUT ────────────────────────────────────────────────────── */
+.donut { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; justify-content: center; }
+.donut-ring { position: relative; flex-shrink: 0; }
+.donut-ring svg { overflow: visible; display: block; }
+.donut-seg {
+  cursor: pointer;
+  transition: transform .45s var(--spring), stroke-width .35s var(--spring), opacity .25s;
+  animation: segIn .7s var(--ease-out) both;
+}
+@keyframes segIn { from { opacity: 0; stroke-dasharray: 0 999; } to { opacity: 1; stroke-dasharray: 999 0; } }
+.donut-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; pointer-events: none; padding: 0 44px;
+}
+.donut-center-label { font-size: 12px; color: var(--muted); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.donut-center-value { font-size: 22px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.donut-center-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+.donut-legend { flex: 1; min-width: 180px; display: grid; gap: 2px; max-height: 240px; overflow-y: auto; }
+.donut-legend-row {
+  display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 9px;
+  border: none; background: none; font: inherit; color: var(--text); text-align: left;
+  transition: background .2s;
+}
+.donut-legend-row:hover, .donut-legend-row.active { background: var(--fill); }
+.donut-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; transition: transform .35s var(--spring); }
+.donut-legend-row.active .donut-dot { transform: scale(1.35); }
+.donut-legend-name { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.donut-legend-pct { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ── SPENDING HEATMAP ─────────────────────────────────────────── */
+.heat { max-width: 520px; margin: 0 auto; }
+.heat-head, .heat-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.heat-head span { text-align: center; font-size: 11px; color: var(--muted); font-weight: 600; padding-bottom: 4px; }
+.heat-cell {
+  --lvl: 0;
+  aspect-ratio: 1; border: none; border-radius: 9px; font: inherit; font-size: 11.5px; font-weight: 600;
+  display: grid; place-items: center; cursor: pointer;
+  color: var(--g700);
+  background: var(--fill);
+  background: color-mix(in srgb, var(--r5) calc(var(--lvl) * 100%), var(--fill));
+  animation: popIn .45s var(--spring) both;
+  transition: transform .35s var(--spring), box-shadow .2s;
+}
+.heat-cell.strong { color: #fff; }
+.heat-cell:hover { transform: scale(1.12); box-shadow: var(--shadow); z-index: 1; }
+.heat-cell.today { box-shadow: inset 0 0 0 2px var(--i5); }
+/* Not opacity: the popIn entrance animation owns opacity (fill-mode both). */
+.heat-cell.future { background: transparent; box-shadow: inset 0 0 0 1px var(--fill-hover); color: var(--g300); }
+.heat-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.heat-readout { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; }
+.heat-readout span { font-variant-numeric: tabular-nums; color: var(--muted); }
+.heat-scale { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+.heat-scale i {
+  width: 12px; height: 12px; border-radius: 3px; display: inline-block;
+  background: color-mix(in srgb, var(--r5) calc(var(--lvl) * 100%), var(--fill));
+}
+.heat-total { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+
+/* ── VIEW TRANSITIONS ─────────────────────────────────────────
+   Only the page area takes part (chrome stays put): the old page
+   fades and sinks slightly while the new one comes in. The cards'
+   own riseIn entrance then plays inside the new page. */
+.main { view-transition-name: page; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-old(page) { animation: vtOut .2s ease both; }
+::view-transition-new(page) { animation: vtIn .32s var(--ease-out) both; }
+@keyframes vtOut { to { opacity: 0; transform: scale(.985); } }
+@keyframes vtIn { from { opacity: 0; } }
+
+/* ── COMPACT TITLE (mobile header) ───────────────────────────── */
+.mobile-title-stack { position: relative; display: grid; place-items: center; min-width: 0; flex: 1; margin: 0 8px; }
+.mobile-title-stack > .mobile-title {
+  grid-area: 1 / 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  transition: opacity .25s ease, transform .35s var(--ease-out);
+}
+.mobile-title.out { opacity: 0; transform: translateY(-8px); }
+.mobile-title.compact { opacity: 0; transform: translateY(8px); pointer-events: none; }
+.mobile-title.compact.in { opacity: 1; transform: none; }
+
+/* ── PULL TO REFRESH ──────────────────────────────────────────── */
+.ptr {
+  display: none; position: fixed; left: 50%; z-index: 190;
+  top: calc(var(--header-height) + env(safe-area-inset-top) - 44px + var(--pull, 0px));
+  width: 36px; height: 36px; margin-left: -18px; border-radius: 50%;
+  background: var(--card); box-shadow: var(--shadow);
+  align-items: center; justify-content: center; color: var(--i5);
+  opacity: var(--p, 0);
+  transition: top .4s var(--spring), opacity .25s;
+}
+.ptr.pulling { transition: none; }
+.ptr i { transform: rotate(calc(var(--p, 0) * 300deg)); transition: transform .1s linear; }
+.ptr.refreshing { opacity: 1; }
+.ptr.refreshing i { animation: spin .7s linear infinite; }
+@media (pointer: coarse) { .ptr { display: flex; } }
+
+/* ── AMOUNT KEYPAD ────────────────────────────────────────────── */
+.amount-display {
+  width: 100%; border: 1.5px solid transparent; border-radius: 14px; background: var(--inp);
+  padding: 14px 16px; font: inherit; color: var(--text); text-align: right;
+  display: flex; align-items: baseline; justify-content: flex-end; gap: 6px;
+  transition: border-color .2s, box-shadow .25s, background .2s;
+}
+.amount-display span { font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.amount-display span.placeholder { color: var(--g300); }
+.amount-display small { font-size: 18px; font-weight: 600; color: var(--muted); }
+.amount-display.active { border-color: var(--i5); background: var(--card); box-shadow: 0 0 0 4px var(--accent-tint); }
+.amount-display.expense span:not(.placeholder) { color: var(--text); }
+.amount-display.income span:not(.placeholder) { color: var(--e6); }
+.amount-caret { width: 2px; height: 30px; background: var(--i5); align-self: center; animation: caret 1s steps(1) infinite; order: 1; }
+@keyframes caret { 50% { opacity: 0 } }
+.pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;
+  animation: riseIn .3s var(--ease-out) both;
+}
+.pad-key {
+  height: 52px; border: none; border-radius: 14px; background: var(--fill);
+  font: inherit; font-size: 24px; font-weight: 500; color: var(--text);
+  transition: background .15s, transform .3s var(--spring);
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.pad-key.pressed, .pad-key:active { background: var(--fill-hover); transform: scale(.94); transition-duration: .06s; }
+.pad-del { font-size: 20px; color: var(--muted); }
+.pad-done {
+  grid-column: 1 / -1; height: 46px; border: none; border-radius: 14px;
+  background: var(--accent-tint); color: var(--i5); font: inherit; font-size: 15px; font-weight: 600;
+  transition: transform .3s var(--spring);
+}
+.pad-done:active { transform: scale(.97); transition-duration: .06s; }
+
+/* ── FIXED-EXPENSE STAMP ──────────────────────────────────────── */
+.fixed-done { position: relative; overflow: hidden; animation: foldAway .5s var(--ease-out) 1.45s forwards; }
+.stamp {
+  position: absolute; right: 22px; top: 50%;
+  padding: 6px 14px; border: 3px solid var(--e6); border-radius: 10px;
+  color: var(--e6); font-size: 15px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  transform: translateY(-50%) rotate(-12deg);
+  animation: stampIn .5s cubic-bezier(.2, 1.8, .4, 1) both;
+  mix-blend-mode: multiply;
+}
+[data-theme="dark"] .stamp { mix-blend-mode: normal; }
+@keyframes stampIn {
+  from { opacity: 0; transform: translateY(-50%) rotate(-12deg) scale(2.4); }
+  to   { opacity: 1; transform: translateY(-50%) rotate(-12deg) scale(1); }
+}
+@keyframes foldAway { to { opacity: 0; transform: translateY(-6px) scale(.98); } }
+
+/* ── CHECKBOXES (iOS round) ───────────────────────────────────── */
+input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; flex-shrink: 0;
+  width: 22px; height: 22px; border-radius: 50%; margin: 0;
+  border: 1.5px solid var(--g300); background: var(--card); cursor: pointer;
+  display: inline-grid; place-items: center;
+  transition: background .2s, border-color .2s, transform .35s var(--spring);
+}
+input[type="checkbox"]::after {
+  content: ''; width: 10px; height: 6px; margin-top: -2px;
+  border: 2.2px solid #fff; border-top: none; border-right: none;
+  transform: rotate(-45deg) scale(0); transition: transform .3s var(--spring);
+}
+input[type="checkbox"]:checked { background: var(--i5); border-color: var(--i5); }
+input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+input[type="checkbox"]:active { transform: scale(.88); }

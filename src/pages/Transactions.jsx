@@ -3,7 +3,7 @@ import { useApp } from '../App'
 import { deleteTransaction } from '../lib/supabase'
 import AddTransactionModal from '../components/AddTransactionModal'
 import EditTransactionModal from '../components/EditTransactionModal'
-import { TxRow } from './Dashboard'
+import TxRow from '../components/TxRow'
 import EmptyState from '../components/EmptyState'
 
 const PAGE_SIZE = 15

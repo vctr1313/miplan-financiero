@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../App'
 import { signOut } from '../lib/supabase'
@@ -22,7 +23,7 @@ const NAV = [
 const BOTTOM_NAV = ['/', '/transactions', '/budget', '/savings', '/house']
 
 export default function Layout() {
-  const { profile, categories, transactions, loading, syncing } = useApp()
+  const { profile, categories, transactions, loading, syncing, refresh } = useApp()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -42,7 +43,82 @@ export default function Layout() {
 
   const toggleTheme = () => setDark(applyTheme(dark ? 'light' : 'dark'))
 
-  const go = (path) => { navigate(path); setSidebarOpen(false) }
+  // Section changes go through the View Transitions API where it
+  // exists, so the old page cross-fades out instead of vanishing.
+  // flushSync makes React commit the new route inside the transition
+  // callback, which is what the API snapshots as the "after" state.
+  const go = (path) => {
+    setSidebarOpen(false)
+    if (path === pathname) { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+    const commit = () => flushSync(() => navigate(path))
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (document.startViewTransition && !reduced) document.startViewTransition(commit)
+    else commit()
+    window.scrollTo(0, 0)
+  }
+
+  // iOS-style compact title: once the page's big title scrolls under
+  // the mobile header, the header swaps the app name for that title.
+  const [compactTitle, setCompactTitle] = useState(null)
+  useEffect(() => {
+    setCompactTitle(null)
+    const heading = document.querySelector('.main .page-header h2')
+    if (!heading || !('IntersectionObserver' in window)) return
+    const io = new IntersectionObserver(
+      ([entry]) => setCompactTitle(entry.isIntersecting ? null : heading.textContent),
+      { rootMargin: '-72px 0px 0px 0px' }
+    )
+    io.observe(heading)
+    return () => io.disconnect()
+  }, [pathname, loading])
+
+  // Pull to refresh (touch only). Engages only when the page is already
+  // at the very top and nothing is open over it, so it never competes
+  // with normal scrolling or with a sheet's own scroll.
+  const [pull, setPull] = useState(0)
+  const [pulling, setPulling] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const pullRef = useRef(0)
+  const refreshRef = useRef(refresh)
+  refreshRef.current = refresh
+  useEffect(() => {
+    if (!window.matchMedia?.('(pointer: coarse)').matches) return
+    const THRESHOLD = 72
+    let startY = null
+    const set = v => { pullRef.current = v; setPull(v) }
+    const onStart = (e) => {
+      if (window.scrollY > 0 || document.querySelector('.modal-overlay, .sidebar.open')) return
+      startY = e.touches[0].clientY
+    }
+    const onMove = (e) => {
+      if (startY == null) return
+      const d = e.touches[0].clientY - startY
+      if (d <= 0 || window.scrollY > 0) { set(0); setPulling(false); return }
+      setPulling(true)
+      // Resistance grows the further you pull, like the native control.
+      set(Math.min(120, d * 0.55))
+    }
+    const onEnd = async () => {
+      if (startY == null) return
+      startY = null
+      setPulling(false)
+      if (pullRef.current < THRESHOLD) { set(0); return }
+      setRefreshing(true)
+      set(56)
+      navigator.vibrate?.(10)
+      try { await refreshRef.current?.() } finally { setRefreshing(false); set(0) }
+    }
+    window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchend', onEnd)
+    window.addEventListener('touchcancel', onEnd)
+    return () => {
+      window.removeEventListener('touchstart', onStart)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+      window.removeEventListener('touchcancel', onEnd)
+    }
+  }, [])
 
   const handleSignOut = async () => {
     await signOut()
@@ -116,8 +192,13 @@ export default function Layout() {
         <button className="hamburger" onClick={() => setSidebarOpen(true)}>
           <i className="fa fa-bars" />
         </button>
-        <span className="mobile-title">
-          Mi Plan <span>Financiero</span>
+        <span className="mobile-title-stack">
+          <span className={`mobile-title ${compactTitle ? 'out' : ''}`}>
+            Mi Plan <span>Financiero</span>
+          </span>
+          <span className={`mobile-title compact ${compactTitle ? 'in' : ''}`} aria-hidden={!compactTitle}>
+            {compactTitle}
+          </span>
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div className={`sync-dot ${syncing ? 'syncing' : ''}`} />
@@ -134,6 +215,15 @@ export default function Layout() {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <SidebarContent />
       </aside>
+
+      {/* Pull-to-refresh indicator (touch only) */}
+      <div
+        className={`ptr ${refreshing ? 'refreshing' : ''} ${pulling ? 'pulling' : ''}`}
+        style={{ '--pull': `${pull}px`, '--p': Math.min(1, pull / 72) }}
+        aria-hidden={!pull && !refreshing}
+      >
+        <i className="fa fa-arrow-rotate-right" />
+      </div>
 
       {/* Main content */}
       <main className="main">

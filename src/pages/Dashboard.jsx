@@ -9,6 +9,7 @@ import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
 import AnimatedNumber from '../components/AnimatedNumber'
 import CyclePace from '../components/CyclePace'
 import EmptyState from '../components/EmptyState'
+import TxRow from '../components/TxRow'
 
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh } = useApp()
@@ -249,43 +250,3 @@ export default function Dashboard() {
   )
 }
 
-function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, txById }) {
-  const cat = tx.categories
-  const isNeg = tx.type === 'expense' || tx.type === 'pot-withdrawal'
-  const cls = tx.type
-  const icon = tx.type === 'income' ? '💰' : tx.type === 'transfer' ? '↩️' : cat?.icon || '💸'
-  const color = tx.type === 'income' ? '#34c759' : tx.type === 'transfer' ? '#007aff' : cat?.color || '#888'
-  const dateStr = new Date(tx.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
-  const userName = tx.profiles?.name
-
-  const reimbursed = tx.type === 'expense' ? (reimburseMap?.[tx.id] || 0) : 0
-  const linkedExpense = tx.type === 'transfer' && tx.linked_expense_id ? txById?.[tx.linked_expense_id] : null
-
-  return (
-    <div className="tx-row">
-      <div className="tx-icon" style={{ background: color + '22', color }}>{icon}</div>
-      <div className="tx-info">
-        <div className="tx-desc">{tx.description}</div>
-        <div className="tx-meta">
-          {dateStr} · {cat?.name || (tx.type === 'income' ? 'Ingreso' : tx.type === 'transfer' ? 'Reembolso' : 'Movimiento')}
-          {showUser && userName && <span> · {userName}</span>}
-          {linkedExpense && <span style={{ color: '#007aff' }}> · para: {linkedExpense.description}</span>}
-          {reimbursed > 0 && (
-            <span style={{ color: '#34c759' }}> · ↩️ devuelto {fmt(reimbursed)} · neto {fmt(tx.amount - reimbursed)}</span>
-          )}
-        </div>
-      </div>
-      <div className={`tx-amount ${cls}`}>{isNeg ? '-' : '+'}{fmt(tx.amount)}</div>
-      {onEdit && (
-        <button onClick={onEdit} style={{ background: 'none', border: 'none', color: 'var(--g300)', cursor: 'pointer', padding: '3px 5px' }}>
-          <i className="fa fa-pencil" />
-        </button>
-      )}
-      <button onClick={onDelete} style={{ background: 'none', border: 'none', color: 'var(--g300)', cursor: 'pointer', padding: '3px 5px' }}>
-        <i className="fa fa-xmark" />
-      </button>
-    </div>
-  )
-}
-
-export { TxRow }

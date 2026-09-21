@@ -2,13 +2,11 @@ import React, { useState } from 'react'
 import { useApp } from '../App'
 import { upsertCategory, deleteCategory, updateCategoryPct, supabase } from '../lib/supabase'
 import { fmt, catBudget, calcPotBalance, getCurrentCycle } from '../lib/finance'
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
-import { Doughnut } from 'react-chartjs-2'
 import CategoryDetailModal from '../components/CategoryDetailModal'
 import AdjustPotBalanceModal from '../components/AdjustPotBalanceModal'
 import ColorSwatches from '../components/ColorSwatches'
+import Donut from '../components/Donut'
 import { nextCategoryColor } from '../lib/palette'
-ChartJS.register(ArcElement, Tooltip, Legend)
 
 export default function Budget() {
   const { profile, categories, transactions, cycles, pctHistory, refresh } = useApp()
@@ -49,15 +47,10 @@ export default function Budget() {
   const roundedTotal = Math.round(totalPct * 100) / 100
 
   const nonSaving = categories.filter(c => c.type !== 'saving')
-  const chartData = {
-    labels: nonSaving.map(c => c.name),
-    datasets: [{
-      data: nonSaving.map(c => salary * c.user_pct / 100),
-      backgroundColor: nonSaving.map(c => c.color),
-      borderWidth: 2,
-      borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#1c1c1e' : '#fff'
-    }]
-  }
+  const donutItems = nonSaving.map(c => ({
+    id: c.id, label: c.name, icon: c.icon, color: c.color,
+    value: salary * c.user_pct / 100, item: c,
+  }))
 
   const handlePctChange = async (catId, value) => {
     const v = Math.max(0, Math.min(50, parseFloat(value) || 0))
@@ -123,9 +116,7 @@ export default function Budget() {
       <div className="grid-2 mb-4">
         <div className="card">
           <div className="section-header"><h3>Distribución actual</h3></div>
-          <div style={{ position: 'relative', height: 220 }}>
-            <Doughnut data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
-          </div>
+          <Donut items={donutItems} onSelect={setDetailCat} centerLabel="Presupuestado" />
         </div>
         <div className="card">
           <div className="section-header"><h3>Estado por categoría</h3></div>

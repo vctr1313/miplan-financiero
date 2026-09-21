@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useApp } from '../App'
 import { addTransaction, markFixedExpenseCharged } from '../lib/supabase'
 import { getPendingFixedExpenses, fmt, getCurrentCycle } from '../lib/finance'
@@ -8,11 +8,32 @@ export default function RecurringExpensesBanner() {
   const [dismissed, setDismissed] = useState(false)
   const [applying, setApplying] = useState(false)
   const [checked, setChecked] = useState(() => new Set())
+  // What was just confirmed, kept so the stamp can still be shown after
+  // refresh() has emptied the pending list underneath it.
+  const [done, setDone] = useState(null)
+
+  useEffect(() => {
+    if (!done) return
+    const t = setTimeout(() => setDismissed(true), 1900)
+    return () => clearTimeout(t)
+  }, [done])
 
   const cycle = getCurrentCycle(cycles)
   const pending = getPendingFixedExpenses({ fixedExpenses, cycle })
 
-  if (!cycle || pending.length === 0 || dismissed) return null
+  if (!cycle || dismissed) return null
+
+  if (done) {
+    return (
+      <div className="card mb-4 fixed-done" style={{ background: 'var(--e50)', borderColor: 'transparent' }}>
+        <div className="stamp" aria-hidden="true"><i className="fa fa-check" /> Registrado</div>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>{done.count} gasto{done.count !== 1 ? 's' : ''} fijo{done.count !== 1 ? 's' : ''} registrado{done.count !== 1 ? 's' : ''}</div>
+        <div className="text-sm text-muted">{fmt(done.total)} añadidos a este ciclo</div>
+      </div>
+    )
+  }
+
+  if (pending.length === 0) return null
 
   const toggle = (id) => {
     setChecked(prev => {
@@ -48,7 +69,7 @@ export default function RecurringExpensesBanner() {
         await markFixedExpenseCharged(f.id, today)
       }
       await refresh()
-      setDismissed(true)
+      setDone({ count: toApply.length, total: toApply.reduce((sum, f) => sum + f.amount, 0) })
     } finally {
       setApplying(false)
     }

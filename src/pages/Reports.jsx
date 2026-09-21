@@ -1,9 +1,12 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { useApp } from '../App'
-import { fmt, fmtShort, catBudget, calcSavingsRate } from '../lib/finance'
-import { Chart as ChartJS, BarElement, LineElement, PointElement, ArcElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
-import { Bar, Doughnut, Line } from 'react-chartjs-2'
-ChartJS.register(BarElement, LineElement, PointElement, ArcElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
+import Donut from '../components/Donut'
+import EmptyState from '../components/EmptyState'
+import SpendingHeatmap from '../components/SpendingHeatmap'
+import { fmt, fmtShort, catBudget, calcSavingsRate, cap } from '../lib/finance'
+import { Chart as ChartJS, BarElement, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
+import { Bar, Line } from 'react-chartjs-2'
+ChartJS.register(BarElement, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 export default function Reports() {
   const { profile, categories, transactions, pctHistory } = useApp()
@@ -92,7 +95,7 @@ export default function Reports() {
       </div>
 
       {tab === 'monthly' && <MonthlyTab last6Months={last6Months} monthlyData={monthlyData} />}
-      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} pctHistory={pctHistory} curM={curM} curY={curY} setCurM={setCurM} />}
+      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} pctHistory={pctHistory} curM={curM} curY={curY} setCurM={setCurM} setCurY={setCurY} />}
       {tab === 'savings' && <SavingsTab monthlyData={monthlyData} last6Months={last6Months} categories={categories} salary={salary} />}
       {tab === 'annual' && <AnnualTab transactions={transactions} curY={curY} setCurY={setCurY} categories={categories} />}
     </div>
@@ -155,7 +158,7 @@ function MonthlyTab({ last6Months, monthlyData }) {
   )
 }
 
-function CategoriesTab({ categories, transactions, salary, pctHistory, curM, curY, setCurM }) {
+function CategoriesTab({ categories, transactions, salary, pctHistory, curM, curY, setCurM, setCurY }) {
   // Judge the selected month against the % that was actually active
   // when it ended, not today's live %, so lowering a budget later
   // doesn't retroactively paint an already-fine month as over budget.
@@ -172,27 +175,32 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, curM, cur
     budget: catBudget(c, salary, pctHistory, atDate)
   })).filter(c => c.spent > 0 || c.budget > 0).sort((a, b) => b.spent - a.spent)
 
-  const pieData = {
-    labels: catData.filter(c => c.spent > 0).map(c => c.name),
-    datasets: [{ data: catData.filter(c => c.spent > 0).map(c => c.spent), backgroundColor: catData.filter(c => c.spent > 0).map(c => c.color), borderWidth: 0 }]
-  }
+  const donutItems = catData.filter(c => c.spent > 0).map(c => ({
+    id: c.id, label: c.name, icon: c.icon, color: c.color, value: c.spent, item: c,
+  }))
 
   const monthLabel = new Date(curY, curM, 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' })
-  const goToPrevMonth = () => setCurM(m => m === 0 ? 11 : m - 1)
-  const goToNextMonth = () => setCurM(m => m === 11 ? 0 : m + 1)
+  // Crossing a year boundary has to move the year too -- stepping back
+  // from January used to land on December of the SAME year.
+  const goToPrevMonth = () => { if (curM === 0) { setCurM(11); setCurY(y => y - 1) } else setCurM(curM - 1) }
+  const goToNextMonth = () => { if (curM === 11) { setCurM(0); setCurY(y => y + 1) } else setCurM(curM + 1) }
 
   return (
     <>
       <div className="flex items-center gap-2 mb-3">
         <button className="btn btn-ghost btn-icon" onClick={goToPrevMonth}><i className="fa fa-chevron-left" /></button>
-        <h3 style={{ fontSize: 15, fontWeight: 600, textTransform: 'capitalize', minWidth: 160, textAlign: 'center' }}>{monthLabel}</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 600, minWidth: 160, textAlign: 'center' }}>{cap(monthLabel)}</h3>
         <button className="btn btn-ghost btn-icon" onClick={goToNextMonth}><i className="fa fa-chevron-right" /></button>
+      </div>
+      <div className="card mb-4">
+        <div className="section-header"><h3>Gasto por día</h3></div>
+        <SpendingHeatmap transactions={transactions} month={curM} year={curY} />
       </div>
       <div className="grid-2 mb-4">
         <div className="card"><div className="section-header"><h3>Distribución de gastos</h3></div>
-          <div style={{ position: 'relative', height: 290 }}>
-            <Doughnut data={pieData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 9 } } } }} />
-          </div>
+          {donutItems.length
+            ? <Donut items={donutItems} centerLabel="Gastado" />
+            : <EmptyState art="receipt" title="Sin gastos este mes" />}
         </div>
         <div className="card"><div className="section-header"><h3>Desglose vs presupuesto</h3></div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -305,10 +313,8 @@ function AnnualTab({ transactions, curY, setCurY, categories }) {
     if (yearCatTotals[t.category_id] !== undefined) yearCatTotals[t.category_id] += t.amount
   })
   const yearCats = categories.filter(c => yearCatTotals[c.id] > 0).sort((a, b) => yearCatTotals[b.id] - yearCatTotals[a.id])
-  const annPie = {
-    labels: yearCats.map(c => c.icon + ' ' + c.name),
-    datasets: [{ data: yearCats.map(c => yearCatTotals[c.id]), backgroundColor: yearCats.map(c => c.color), borderWidth: 0 }]
-  }
+  const annDonut = yearCats.map(c => ({ id: c.id, label: c.name, icon: c.icon, color: c.color, value: yearCatTotals[c.id], item: c }))
+
 
   return (
     <>
@@ -328,7 +334,7 @@ function AnnualTab({ transactions, curY, setCurY, categories }) {
           <div style={{ position: 'relative', height: 290 }}><Bar data={annChart} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => fmtShort(v) } } }, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } } } }} /></div>
         </div>
         <div className="card"><div className="section-header"><h3>Gastos por categoría (año)</h3></div>
-          <div style={{ position: 'relative', height: 290 }}><Doughnut data={annPie} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 9 } } } }} /></div>
+          {annDonut.length ? <Donut items={annDonut} centerLabel={`Gastado en ${curY}`} /> : <EmptyState art="receipt" title="Sin gastos este año" />}
         </div>
       </div>
       <div className="card">

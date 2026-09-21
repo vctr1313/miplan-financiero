@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useApp } from '../App'
 import { addTransaction } from '../lib/supabase'
 import { autoFocusOnPointer } from '../lib/ui'
+import AmountPad, { formatAmountDisplay } from './AmountPad'
 import ExtraPaymentModal from './ExtraPaymentModal'
 
 const INCOME_TYPES = [
@@ -23,6 +24,9 @@ export default function AddTransactionModal({ onClose, onSaved }) {
   const { categories, transactions, refresh } = useApp()
   const [type, setType] = useState('expense')
   const [amount, setAmount] = useState('')
+  // Touch devices get the in-sheet keypad instead of the system keyboard.
+  const [usePad] = useState(() => !autoFocusOnPointer())
+  const [padOpen, setPadOpen] = useState(true)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -173,17 +177,43 @@ export default function AddTransactionModal({ onClose, onSaved }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Cantidad (€) *</label>
-              <input className="form-control" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" autoFocus={autoFocusOnPointer()} />
+        {/* Focusing any real field (description, notes...) brings up the
+            system keyboard, so fold our keypad away rather than stack two. */}
+        <form onSubmit={handleSubmit} onFocusCapture={e => { if (usePad && e.target.matches('input, select, textarea')) setPadOpen(false) }}>
+          {usePad ? (
+            <>
+              {/* Touch: big amount display driven by our own keypad. */}
+              <div className="form-group">
+                <label>Cantidad *</label>
+                <button
+                  type="button"
+                  className={`amount-display ${padOpen ? 'active' : ''} ${type}`}
+                  onClick={() => setPadOpen(o => !o)}
+                  aria-label="Cantidad"
+                >
+                  <span className={amount ? '' : 'placeholder'}>{formatAmountDisplay(amount)}</span>
+                  <small>€</small>
+                  {padOpen && <i className="amount-caret" aria-hidden="true" />}
+                </button>
+                {padOpen && <AmountPad onChange={setAmount} onDone={() => setPadOpen(false)} />}
+              </div>
+              <div className="form-group">
+                <label>Fecha *</label>
+                <input className="form-control" type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+            </>
+          ) : (
+            <div className="form-row">
+              <div className="form-group">
+                <label>Cantidad (€) *</label>
+                <input className="form-control" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" autoFocus={autoFocusOnPointer()} />
+              </div>
+              <div className="form-group">
+                <label>Fecha *</label>
+                <input className="form-control" type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
             </div>
-            <div className="form-group">
-              <label>Fecha *</label>
-              <input className="form-control" type="date" value={date} onChange={e => setDate(e.target.value)} />
-            </div>
-          </div>
+          )}
 
           <div className="form-group">
             <label>Descripción *</label>
