@@ -7,6 +7,8 @@ import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
 import AnimatedNumber from '../components/AnimatedNumber'
+import CyclePace from '../components/CyclePace'
+import EmptyState from '../components/EmptyState'
 
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh } = useApp()
@@ -16,6 +18,12 @@ export default function Dashboard() {
   const salary = profile?.salary || 0
   const cycle = getCurrentCycle(cycles)
   const stats = calcCycleStats({ transactions, cycle, categories, salary, fixedExpenses })
+
+  // What the pace dial measures against: everything budgeted to be
+  // SPENT this cycle (saving categories are set aside, not spent).
+  const spendableBudget = categories
+    .filter(c => c.type !== 'saving')
+    .reduce((sum, c) => sum + catBudget(c, salary), 0)
 
   const mySavingPerCycle = salary * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
   // Mirror House.jsx's calculation exactly (via the shared
@@ -134,6 +142,10 @@ export default function Dashboard() {
 
       <RecurringExpensesBanner />
 
+      <div className="card mb-4">
+        <CyclePace cycle={cycle} spent={stats.netExpenses} budget={spendableBudget} />
+      </div>
+
       <div className="grid-4 mb-4">
         <div className="stat-card green">
           <div className="label"><i className="fa fa-arrow-down" style={{ color: 'var(--e5)' }} /> Ingresos</div>
@@ -207,7 +219,7 @@ export default function Dashboard() {
             <button className="btn btn-sm btn-outline" onClick={() => navigate('/transactions')}>Ver todos</button>
           </div>
           {recentTx.length === 0 ? (
-            <div className="text-sm text-muted text-center" style={{ padding: 18 }}>Sin movimientos aún.</div>
+            <EmptyState art="receipt" title="Aún no hay movimientos" text="Añade tu primer gasto o tu nómina y empezará a llenarse." />
           ) : recentTx.map(t => <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser reimburseMap={reimburseMap} txById={txById} />)}
         </div>
       </div>

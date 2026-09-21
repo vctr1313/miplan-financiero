@@ -155,9 +155,9 @@ export default function AddTransactionModal({ onClose, onSaved }) {
         <h3 className="modal-title">Añadir movimiento</h3>
 
         <div className="tabs" style={{ marginBottom: 13 }}>
-          <button type="button" className={`tab ${type === 'expense' ? 'active' : ''}`} onClick={() => setType('expense')}>💸 Gasto</button>
-          <button type="button" className={`tab ${type === 'income' ? 'active' : ''}`} onClick={() => setType('income')}>💰 Ingreso / Nómina</button>
-          <button type="button" className={`tab ${type === 'transfer' ? 'active' : ''}`} onClick={() => setType('transfer')}>↩️ Reembolso</button>
+          <button type="button" className={`tab ${type === 'expense' ? 'active' : ''}`} onClick={() => setType('expense')}><i className="fa fa-arrow-up" /> Gasto</button>
+          <button type="button" className={`tab ${type === 'income' ? 'active' : ''}`} onClick={() => setType('income')}><i className="fa fa-arrow-down" /> Ingreso</button>
+          <button type="button" className={`tab ${type === 'transfer' ? 'active' : ''}`} onClick={() => setType('transfer')}><i className="fa fa-rotate-left" /> Reembolso</button>
         </div>
 
         {type === 'income' && (

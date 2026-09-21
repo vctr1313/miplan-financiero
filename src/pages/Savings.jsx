@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useApp } from '../App'
 import { addTransaction } from '../lib/supabase'
 import { fmt, calcPotBalance } from '../lib/finance'
+import AnimatedNumber from '../components/AnimatedNumber'
+import CategoryDetailModal from '../components/CategoryDetailModal'
 
 function MovePotModal({ pots, salary, cycles, transactions, pctHistory, refresh, onClose }) {
   const [fromId, setFromId] = useState('')
@@ -101,6 +103,7 @@ export default function Savings() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [showMove, setShowMove] = useState(false)
+  const [detailCat, setDetailCat] = useState(null)
 
   const pots = categories.filter(c => c.type === 'pot')
   const savingCats = categories.filter(c => c.type === 'saving')
@@ -160,26 +163,37 @@ export default function Savings() {
         </div>
       </div>
 
-      <div className="grid-auto mb-4">
+      <div className="pot-grid mb-4">
         {[...pots, ...savingCats].map(c => {
           const isPot = c.type === 'pot'
           const bal = isPot ? calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }) : null
           const isNegative = isPot && bal < 0
           const monthly = salary * c.user_pct / 100
+          const bucket = c.saving_bucket || (c.name.toLowerCase().includes('casa') ? 'house' : 'invest')
           return (
-            <div key={c.id} className="card" style={isNegative ? { boxShadow: "inset 0 0 0 1.5px var(--r5)" } : undefined}>
-              <div style={{ fontSize: 24, marginBottom: 6 }}>{c.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g700)' }}>{c.name}</div>
-              <div style={{ fontSize: 19, fontWeight: 700, marginTop: 3, color: isNegative ? 'var(--r5)' : c.color }}>
-                {isPot ? fmt(bal) : fmt(monthly) + '/mes'}
+            <button
+              key={c.id}
+              type="button"
+              className={`pot-card ${isNegative ? 'negative' : ''}`}
+              style={{ '--c': isNegative ? '#ff3b30' : (c.color || '#007aff') }}
+              onClick={() => setDetailCat(c)}
+            >
+              <div className="pot-card-top">
+                <span className="pot-card-icon">{c.icon}</span>
+                <span className="pot-card-kind">{isPot ? 'Bote' : 'Ahorro'}</span>
               </div>
-              <div style={{ fontSize: 10.5, color: isNegative ? 'var(--r5)' : 'var(--muted)' }}>
-                {isPot
-                  ? (isNegative ? `En negativo, se recupera con +${fmt(monthly)} cada ciclo` : `+${fmt(monthly)} cada ciclo`)
-                  : (c.saving_bucket || (c.name.toLowerCase().includes('casa') ? 'house' : 'invest')) === 'house'
-                    ? '🏠 Para la casa' : '📈 Inversión'}
+              <div>
+                <div className="pot-card-name">{c.name}</div>
+                <div className="pot-card-value">
+                  {isPot ? <AnimatedNumber value={bal} format={fmt} /> : <>{fmt(monthly)}<small>/mes</small></>}
+                </div>
+                <div className="pot-card-sub">
+                  {isPot
+                    ? (isNegative ? `En negativo · se recupera con +${fmt(monthly)}/ciclo` : `+${fmt(monthly)} cada ciclo`)
+                    : bucket === 'house' ? 'Suma a la meta de la casa' : 'Suma al total invertido'}
+                </div>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
@@ -216,6 +230,8 @@ export default function Savings() {
           {error && <div className="alert alert-danger">{error}</div>}
         </form>
       </div>
+
+      {detailCat && <CategoryDetailModal category={detailCat} onClose={() => setDetailCat(null)} />}
 
       {showMove && (
         <MovePotModal

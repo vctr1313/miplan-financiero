@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, getPartnerSummary, getCategoryPctHistory, subscribeToHousehold } from './lib/supabase'
 import { buildCycles } from './lib/finance'
 import { useKeyboardInset } from './lib/ui'
+import { applyChartTheme } from './lib/charts'
+import { DashboardSkeleton } from './components/Skeleton'
 
 // Pages
 import Login from './pages/Login'
@@ -17,6 +19,10 @@ import Reports from './pages/Reports'
 import AIChat from './pages/AIChat'
 import Settings from './pages/Settings'
 import Layout from './components/Layout'
+
+// Once, before any chart mounts: every Chart.js chart inherits the
+// app's look from these defaults (see lib/charts.js).
+applyChartTheme()
 
 // ── APP CONTEXT ───────────────────────────────────────────────
 export const AppContext = createContext(null)
@@ -119,14 +125,7 @@ function AppProvider({ children }) {
 // ── PROTECTED ROUTE ───────────────────────────────────────────
 function Protected({ children }) {
   const { session, loading } = useApp()
-  if (loading) return (
-    <div className="boot">
-      <div className="boot-inner">
-        <div className="boot-spinner" />
-        <p>Cargando tu plan financiero…</p>
-      </div>
-    </div>
-  )
+  if (loading) return <DashboardSkeleton />
   return session ? children : <Navigate to="/login" replace />
 }
 

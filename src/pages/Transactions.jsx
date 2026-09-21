@@ -4,6 +4,7 @@ import { deleteTransaction } from '../lib/supabase'
 import AddTransactionModal from '../components/AddTransactionModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import { TxRow } from './Dashboard'
+import EmptyState from '../components/EmptyState'
 
 const PAGE_SIZE = 15
 
@@ -160,7 +161,9 @@ export default function Transactions() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-sm text-muted text-center" style={{ padding: 22 }}>No hay movimientos con estos filtros.</div>
+          (hasFilters
+            ? <EmptyState art="search" title="Nada con estos filtros" text="Prueba a quitar alguno o ampliar las fechas." action={<button className="btn btn-sm btn-ghost" onClick={clearFilters}><i className="fa fa-xmark" /> Limpiar filtros</button>} />
+            : <EmptyState art="receipt" title="Aún no hay movimientos" text="Todo lo que añadas aparecerá aquí." />)
         ) : (
           <>
             {visible.map(t => (

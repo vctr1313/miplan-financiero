@@ -6,6 +6,8 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
 import CategoryDetailModal from '../components/CategoryDetailModal'
 import AdjustPotBalanceModal from '../components/AdjustPotBalanceModal'
+import ColorSwatches from '../components/ColorSwatches'
+import { nextCategoryColor } from '../lib/palette'
 ChartJS.register(ArcElement, Tooltip, Legend)
 
 export default function Budget() {
@@ -277,11 +279,11 @@ export default function Budget() {
 }
 
 function CategoryModal({ category, onClose, salary }) {
-  const { profile, refresh } = useApp()
+  const { profile, categories, refresh } = useApp()
   const [icon, setIcon] = useState(category?.icon || '🎯')
   const [name, setName] = useState(category?.name || '')
   const [type, setType] = useState(category?.type || 'normal')
-  const [color, setColor] = useState(category?.color || '#007aff')
+  const [color, setColor] = useState(() => category?.color || nextCategoryColor(categories.map(c => c.color)))
   const [pct, setPct] = useState(category?.user_pct ?? 5)
   // Which of the two running totals in Mi Casa a saving category
   // feeds. Only meaningful for type='saving'.
@@ -366,7 +368,7 @@ function CategoryModal({ category, onClose, salary }) {
         )}
         <div className="form-group">
           <label>Color</label>
-          <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 80, height: 36, padding: 2, borderRadius: 6, cursor: 'pointer' }} />
+          <ColorSwatches value={color} onChange={setColor} />
         </div>
         <div className="form-group">
           <label>% del sueldo</label>

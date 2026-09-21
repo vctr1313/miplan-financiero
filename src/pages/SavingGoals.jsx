@@ -2,6 +2,9 @@ import React, { useState } from 'react'
 import { useApp } from '../App'
 import { upsertSavingGoal, deleteSavingGoal } from '../lib/supabase'
 import { fmt, fmtShort } from '../lib/finance'
+import { burstConfetti } from '../lib/confetti'
+import EmptyState from '../components/EmptyState'
+import ColorSwatches from '../components/ColorSwatches'
 
 const PRESET_ICONS = ['✈️', '🚗', '🛡️', '💍', '🎓', '🏖️', '👶', '💻', '🎯']
 
@@ -20,7 +23,7 @@ export default function SavingGoals() {
     <div>
       <div className="page-header">
         <div className="flex items-center justify-between">
-          <div><h2>🎯 Mis metas de ahorro</h2><p>Más allá de la casa: viajes, coche, fondo de emergencia…</p></div>
+          <div><h2>Mis metas de ahorro</h2><p>Más allá de la casa: viajes, coche, fondo de emergencia…</p></div>
           <button className="btn btn-primary" onClick={() => { setEditingGoal(null); setShowModal(true) }}>
             <i className="fa fa-plus" /> Nueva meta
           </button>
@@ -28,12 +31,13 @@ export default function SavingGoals() {
       </div>
 
       {savingGoals.length === 0 ? (
-        <div className="card text-center" style={{ padding: 40 }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>🎯</div>
-          <p className="text-sm text-muted mb-3">Aún no tienes metas de ahorro adicionales.</p>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            <i className="fa fa-plus" /> Crear tu primera meta
-          </button>
+        <div className="card">
+          <EmptyState
+            art="target"
+            title="Aún no tienes metas"
+            text="Un viaje, el coche, un colchón para imprevistos… ponle cifra y fecha y verás cuánto te falta."
+            action={<button className="btn btn-primary" onClick={() => setShowModal(true)}><i className="fa fa-plus" /> Crear tu primera meta</button>}
+          />
         </div>
       ) : (
         <div className="grid-2">
@@ -58,11 +62,13 @@ function GoalCard({ goal, onEdit, onDelete }) {
     daysLeft = Math.ceil((new Date(goal.target_date) - new Date()) / 86400000)
   }
 
+  const done = pct >= 100
   return (
-    <div className="card">
+    <div className={`card goal-card ${done ? 'done' : ''}`} style={{ '--c': goal.color }}>
+      {done && <span className="goal-done-badge"><i className="fa fa-check" /> Conseguida</span>}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 26 }}>{goal.icon}</span>
+          <span className="goal-icon">{goal.icon}</span>
           <div>
             <div style={{ fontWeight: 600, fontSize: 14 }}>{goal.name}</div>
             {goal.target_date && (
@@ -104,15 +110,21 @@ function GoalModal({ goal, onClose }) {
     if (!name.trim() || !target) { alert('Nombre y objetivo son obligatorios'); return }
     setSaving(true)
     try {
+      const newSaved = parseFloat(saved) || 0
+      const newTarget = parseFloat(target)
+      const wasDone = goal && goal.target > 0 && goal.saved >= goal.target
       await upsertSavingGoal({
         id: goal?.id,
         household_id: profile.household_id,
         name: name.trim(), icon, color,
-        target: parseFloat(target), saved: parseFloat(saved) || 0,
+        target: newTarget, saved: newSaved,
         target_date: targetDate || null,
       })
       await refresh()
       onClose()
+      // Only on the save that actually crosses the line, not every
+      // later edit of an already-finished goal.
+      if (!wasDone && newTarget > 0 && newSaved >= newTarget) burstConfetti()
     } finally {
       setSaving(false)
     }
@@ -130,11 +142,7 @@ function GoalModal({ goal, onClose }) {
               <button
                 key={ic} type="button"
                 onClick={() => setIcon(ic)}
-                style={{
-                  fontSize: 20, padding: '6px 10px', borderRadius: 8,
-                  border: icon === ic ? '2px solid var(--i5)' : '1px solid var(--border)',
-                  background: icon === ic ? 'var(--i50)' : 'var(--card)', cursor: 'pointer'
-                }}
+                className={`icon-pick ${icon === ic ? 'selected' : ''}`}
               >
                 {ic}
               </button>
@@ -165,7 +173,7 @@ function GoalModal({ goal, onClose }) {
 
         <div className="form-group">
           <label>Color</label>
-          <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 80, height: 36, padding: 2, borderRadius: 6, cursor: 'pointer' }} />
+          <ColorSwatches value={color} onChange={setColor} />
         </div>
 
         <div className="modal-footer">

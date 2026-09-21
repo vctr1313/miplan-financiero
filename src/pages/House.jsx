@@ -107,9 +107,6 @@ export default function House() {
     accSav += houseCalc.totalMonthly || 0
     accInv = (accInv + (houseCalc.totalMonthly || 0)) * (1 + r)
   }
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-  const gridColor = isDark ? '#2c2c2e' : '#eeeef2'
-  const tickColor = isDark ? '#98989d' : '#8e8e93'
 
   const chartData = {
     labels,
@@ -123,7 +120,7 @@ export default function House() {
   return (
     <div>
       <div className="page-header">
-        <h2>🏠 Meta: Mi primera casa</h2>
+        <h2>Meta: Mi primera casa</h2>
         <p>Objetivo de ahorro a largo plazo, solo/a o en pareja</p>
       </div>
 
@@ -241,10 +238,10 @@ export default function House() {
             <Line data={chartData} options={{
               responsive: true, maintainAspectRatio: false,
               scales: {
-                y: { ticks: { callback: v => fmtShort(v), color: tickColor }, grid: { color: gridColor } },
-                x: { ticks: { maxTicksLimit: 12, maxRotation: 0, color: tickColor }, grid: { color: gridColor } }
+                y: { ticks: { callback: v => fmtShort(v) } },
+                x: { ticks: { maxTicksLimit: 12, maxRotation: 0 } }
               },
-              plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12, color: tickColor } } }
+              plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } } }
             }} />
           </div>
         </div>

@@ -12,9 +12,6 @@ export default function Reports() {
   const [curY, setCurY] = useState(new Date().getFullYear())
   const salary = profile?.salary || 0
 
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-  const gridColor = isDark ? '#2c2c2e' : '#eeeef2'
-  const tickColor = isDark ? '#98989d' : '#8e8e93'
 
   // ── FIX: get transactions for a SPECIFIC calendar month, not accumulated ──
   const getMonthTx = useCallback((m, y) => transactions.filter(t => {
@@ -88,42 +85,42 @@ export default function Reports() {
       </div>
 
       <div className="tabs">
-        <button className={`tab ${tab === 'monthly' ? 'active' : ''}`} onClick={() => setTab('monthly')}>📅 Mensual</button>
-        <button className={`tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>🏷️ Categorías</button>
-        <button className={`tab ${tab === 'savings' ? 'active' : ''}`} onClick={() => setTab('savings')}>💰 Ahorro</button>
-        <button className={`tab ${tab === 'annual' ? 'active' : ''}`} onClick={() => setTab('annual')}>📆 Anual</button>
+        <button className={`tab ${tab === 'monthly' ? 'active' : ''}`} onClick={() => setTab('monthly')}><i className="fa fa-calendar-days" /> Mensual</button>
+        <button className={`tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}><i className="fa fa-tags" /> Categorías</button>
+        <button className={`tab ${tab === 'savings' ? 'active' : ''}`} onClick={() => setTab('savings')}><i className="fa fa-piggy-bank" /> Ahorro</button>
+        <button className={`tab ${tab === 'annual' ? 'active' : ''}`} onClick={() => setTab('annual')}><i className="fa fa-calendar" /> Anual</button>
       </div>
 
-      {tab === 'monthly' && <MonthlyTab last6Months={last6Months} monthlyData={monthlyData} gridColor={gridColor} tickColor={tickColor} />}
-      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} pctHistory={pctHistory} curM={curM} curY={curY} setCurM={setCurM} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
-      {tab === 'savings' && <SavingsTab monthlyData={monthlyData} last6Months={last6Months} categories={categories} salary={salary} gridColor={gridColor} tickColor={tickColor} />}
-      {tab === 'annual' && <AnnualTab transactions={transactions} curY={curY} setCurY={setCurY} categories={categories} gridColor={gridColor} tickColor={tickColor} isDark={isDark} />}
+      {tab === 'monthly' && <MonthlyTab last6Months={last6Months} monthlyData={monthlyData} />}
+      {tab === 'categories' && <CategoriesTab categories={categories} transactions={transactions} salary={salary} pctHistory={pctHistory} curM={curM} curY={curY} setCurM={setCurM} />}
+      {tab === 'savings' && <SavingsTab monthlyData={monthlyData} last6Months={last6Months} categories={categories} salary={salary} />}
+      {tab === 'annual' && <AnnualTab transactions={transactions} curY={curY} setCurY={setCurY} categories={categories} />}
     </div>
   )
 }
 
-function MonthlyTab({ last6Months, monthlyData, gridColor, tickColor }) {
+function MonthlyTab({ last6Months, monthlyData }) {
   const labels = last6Months.map(x => x.label)
   const incomeChart = {
     labels,
     datasets: [
-      { label: 'Ingresos', data: monthlyData.map(d => d.income), backgroundColor: 'rgba(52,199,89,.4)', borderColor: '#34c759', borderWidth: 1.5 },
-      { label: 'Gastos', data: monthlyData.map(d => d.expenses), backgroundColor: 'rgba(255,59,48,.35)', borderColor: '#ff3b30', borderWidth: 1.5 },
+      { label: 'Ingresos', data: monthlyData.map(d => d.income), backgroundColor: '#34c759', borderColor: '#34c759', borderWidth: 0 },
+      { label: 'Gastos', data: monthlyData.map(d => d.expenses), backgroundColor: '#ff3b30', borderColor: '#ff3b30', borderWidth: 0 },
     ]
   }
   const balanceChart = {
     labels,
     datasets: [{
       label: 'Balance', data: monthlyData.map(d => d.balance),
-      backgroundColor: monthlyData.map(d => d.balance >= 0 ? 'rgba(52,199,89,.45)' : 'rgba(255,59,48,.4)'),
+      backgroundColor: monthlyData.map(d => d.balance >= 0 ? '#34c759' : '#ff3b30'),
       borderColor: monthlyData.map(d => d.balance >= 0 ? '#34c759' : '#ff3b30'),
-      borderWidth: 1.5
+      borderWidth: 0
     }]
   }
   const chartOpts = {
     responsive: true, maintainAspectRatio: false,
-    scales: { y: { ticks: { callback: v => fmtShort(v), color: tickColor }, grid: { color: gridColor } } },
-    plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12, color: tickColor } } }
+    scales: { y: { ticks: { callback: v => fmtShort(v) } } },
+    plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } } }
   }
 
   const best = monthlyData.reduce((a, b) => b.balance > a.balance ? b : a, monthlyData[0])
@@ -158,7 +155,7 @@ function MonthlyTab({ last6Months, monthlyData, gridColor, tickColor }) {
   )
 }
 
-function CategoriesTab({ categories, transactions, salary, pctHistory, curM, curY, setCurM, gridColor, tickColor, isDark }) {
+function CategoriesTab({ categories, transactions, salary, pctHistory, curM, curY, setCurM }) {
   // Judge the selected month against the % that was actually active
   // when it ended, not today's live %, so lowering a budget later
   // doesn't retroactively paint an already-fine month as over budget.
@@ -177,7 +174,7 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, curM, cur
 
   const pieData = {
     labels: catData.filter(c => c.spent > 0).map(c => c.name),
-    datasets: [{ data: catData.filter(c => c.spent > 0).map(c => c.spent), backgroundColor: catData.filter(c => c.spent > 0).map(c => c.color), borderWidth: 2, borderColor: isDark ? '#1c1c1e' : '#fff' }]
+    datasets: [{ data: catData.filter(c => c.spent > 0).map(c => c.spent), backgroundColor: catData.filter(c => c.spent > 0).map(c => c.color), borderWidth: 0 }]
   }
 
   const monthLabel = new Date(curY, curM, 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' })
@@ -194,7 +191,7 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, curM, cur
       <div className="grid-2 mb-4">
         <div className="card"><div className="section-header"><h3>Distribución de gastos</h3></div>
           <div style={{ position: 'relative', height: 290 }}>
-            <Doughnut data={pieData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 9, color: tickColor } } } }} />
+            <Doughnut data={pieData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 9 } } } }} />
           </div>
         </div>
         <div className="card"><div className="section-header"><h3>Desglose vs presupuesto</h3></div>
@@ -240,7 +237,7 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, curM, cur
   )
 }
 
-function SavingsTab({ monthlyData, last6Months, categories, salary, gridColor, tickColor }) {
+function SavingsTab({ monthlyData, last6Months, categories, salary }) {
   const labels = last6Months.map(x => x.label)
   const savedLine = monthlyData.map(d => Math.max(0, d.balance))
   const plannedPct = categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0)
@@ -250,14 +247,14 @@ function SavingsTab({ monthlyData, last6Months, categories, salary, gridColor, t
   const savChart = {
     labels, datasets: [
       { label: 'Ahorro real', data: savedLine, borderColor: '#007aff', backgroundColor: 'rgba(0,122,255,.1)', fill: true, tension: .4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#007aff' },
-      { label: 'Planificado', data: plannedLine, borderColor: '#ff9500', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0 },
+      { label: 'Planificado', data: plannedLine, borderColor: '#ff9500', borderDash: [5, 5], borderWidth: 0, fill: false, pointRadius: 0 },
     ]
   }
   const rateChart = {
     labels, datasets: [{
       label: 'Tasa ahorro %', data: savRates,
-      backgroundColor: savRates.map(v => v >= 20 ? 'rgba(52,199,89,.5)' : v >= 10 ? 'rgba(245,158,11,.5)' : 'rgba(255,59,48,.4)'),
-      borderColor: savRates.map(v => v >= 20 ? '#34c759' : v >= 10 ? '#ff9500' : '#ff3b30'), borderWidth: 1.5
+      backgroundColor: savRates.map(v => v >= 20 ? '#34c759' : v >= 10 ? '#ff9500' : '#ff3b30'),
+      borderColor: savRates.map(v => v >= 20 ? '#34c759' : v >= 10 ? '#ff9500' : '#ff3b30'), borderWidth: 0
     }]
   }
 
@@ -265,19 +262,19 @@ function SavingsTab({ monthlyData, last6Months, categories, salary, gridColor, t
     <div className="grid-2 mb-4">
       <div className="card"><div className="section-header"><h3>Evolución del ahorro</h3></div>
         <div style={{ position: 'relative', height: 290 }}>
-          <Line data={savChart} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => fmtShort(v), color: tickColor }, grid: { color: gridColor } } }, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12, color: tickColor } } } }} />
+          <Line data={savChart} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => fmtShort(v) } } }, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } } } }} />
         </div>
       </div>
       <div className="card"><div className="section-header"><h3>Tasa de ahorro mensual (%)</h3></div>
         <div style={{ position: 'relative', height: 290 }}>
-          <Bar data={rateChart} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => v + '%', color: tickColor }, grid: { color: gridColor }, suggestedMax: 40 } }, plugins: { legend: { display: false } } }} />
+          <Bar data={rateChart} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => v + '%' }, suggestedMax: 40 } }, plugins: { legend: { display: false } } }} />
         </div>
       </div>
     </div>
   )
 }
 
-function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickColor, isDark }) {
+function AnnualTab({ transactions, curY, setCurY, categories }) {
   const months = Array.from({ length: 12 }, (_, m) => ({
     m, label: new Date(curY, m, 1).toLocaleString('es-ES', { month: 'long' })
   }))
@@ -297,8 +294,8 @@ function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickCol
   const annChart = {
     labels: months.map(m => m.label.slice(0, 3)),
     datasets: [
-      { label: 'Ingresos', data: monthData.map(d => d.income), backgroundColor: 'rgba(52,199,89,.4)', borderColor: '#34c759', borderWidth: 1.5 },
-      { label: 'Gastos', data: monthData.map(d => d.expenses), backgroundColor: 'rgba(255,59,48,.35)', borderColor: '#ff3b30', borderWidth: 1.5 },
+      { label: 'Ingresos', data: monthData.map(d => d.income), backgroundColor: '#34c759', borderColor: '#34c759', borderWidth: 0 },
+      { label: 'Gastos', data: monthData.map(d => d.expenses), backgroundColor: '#ff3b30', borderColor: '#ff3b30', borderWidth: 0 },
     ]
   }
 
@@ -310,7 +307,7 @@ function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickCol
   const yearCats = categories.filter(c => yearCatTotals[c.id] > 0).sort((a, b) => yearCatTotals[b.id] - yearCatTotals[a.id])
   const annPie = {
     labels: yearCats.map(c => c.icon + ' ' + c.name),
-    datasets: [{ data: yearCats.map(c => yearCatTotals[c.id]), backgroundColor: yearCats.map(c => c.color), borderWidth: 2, borderColor: isDark ? '#1c1c1e' : '#fff' }]
+    datasets: [{ data: yearCats.map(c => yearCatTotals[c.id]), backgroundColor: yearCats.map(c => c.color), borderWidth: 0 }]
   }
 
   return (
@@ -328,10 +325,10 @@ function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickCol
       </div>
       <div className="grid-2 mb-4">
         <div className="card"><div className="section-header"><h3>Flujo anual</h3></div>
-          <div style={{ position: 'relative', height: 290 }}><Bar data={annChart} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => fmtShort(v), color: tickColor }, grid: { color: gridColor } } }, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12, color: tickColor } } } }} /></div>
+          <div style={{ position: 'relative', height: 290 }}><Bar data={annChart} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => fmtShort(v) } } }, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } } } }} /></div>
         </div>
         <div className="card"><div className="section-header"><h3>Gastos por categoría (año)</h3></div>
-          <div style={{ position: 'relative', height: 290 }}><Doughnut data={annPie} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 9, color: tickColor } } } }} /></div>
+          <div style={{ position: 'relative', height: 290 }}><Doughnut data={annPie} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 9 } } } }} /></div>
         </div>
       </div>
       <div className="card">
