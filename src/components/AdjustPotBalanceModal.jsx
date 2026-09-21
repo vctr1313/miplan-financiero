@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useApp } from '../App'
 import { setCategoryOpeningBalance } from '../lib/supabase'
 import { fmt, calcPotBalance } from '../lib/finance'
+import { autoFocusOnPointer } from '../lib/ui'
 
 // Lets the user declare "this is what I actually have in this pot
 // today" -- e.g. money already saved outside the app before they
@@ -42,7 +43,7 @@ export default function AdjustPotBalanceModal({ category, onClose }) {
         <div className="form-group">
           <label>Saldo real hoy (€)</label>
           <input
-            className="form-control" type="number" step="0.01" autoFocus
+            className="form-control" type="number" step="0.01" autoFocus={autoFocusOnPointer()}
             value={value} onChange={e => setValue(e.target.value)}
           />
         </div>

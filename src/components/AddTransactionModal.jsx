@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useApp } from '../App'
 import { addTransaction } from '../lib/supabase'
+import { autoFocusOnPointer } from '../lib/ui'
 import ExtraPaymentModal from './ExtraPaymentModal'
 
 const INCOME_TYPES = [
@@ -176,7 +177,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
           <div className="form-row">
             <div className="form-group">
               <label>Cantidad (€) *</label>
-              <input className="form-control" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" autoFocus />
+              <input className="form-control" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" autoFocus={autoFocusOnPointer()} />
             </div>
             <div className="form-group">
               <label>Fecha *</label>

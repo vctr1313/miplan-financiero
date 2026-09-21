@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useApp } from '../App'
 import { updateTransaction } from '../lib/supabase'
 import { fmt } from '../lib/finance'
+import { autoFocusOnPointer } from '../lib/ui'
 
 const TYPE_LABELS = {
   expense: '💸 Gasto',
@@ -78,7 +79,7 @@ export default function EditTransactionModal({ tx, onClose, onSaved }) {
         <div className="form-row">
           <div className="form-group">
             <label>Cantidad (€) *</label>
-            <input className="form-control" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} autoFocus />
+            <input className="form-control" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} autoFocus={autoFocusOnPointer()} />
           </div>
           <div className="form-group">
             <label>Fecha *</label>

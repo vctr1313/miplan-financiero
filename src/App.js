@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, getPartnerSummary, getCategoryPctHistory, subscribeToHousehold } from './lib/supabase'
 import { buildCycles } from './lib/finance'
+import { useKeyboardInset } from './lib/ui'
 
 // Pages
 import Login from './pages/Login'
@@ -35,6 +36,10 @@ function AppProvider({ children }) {
   const [syncing, setSyncing] = useState(false)
 
   const cycles = buildCycles(transactions)
+
+  // Keeps `--kb` (on-screen keyboard height) up to date for the CSS
+  // that lifts bottom-sheet dialogs above the keyboard.
+  useKeyboardInset()
 
   const loadAll = useCallback(async (userId) => {
     setSyncing(true)

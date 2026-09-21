@@ -59,6 +59,10 @@
 
   --sidebar-width: 252px;
   --header-height: 56px;
+  /* Height of the on-screen keyboard, kept current by
+     useKeyboardInset() in lib/ui.js. 0 on desktop and whenever no
+     keyboard is up. */
+  --kb: 0px;
 }
 
 [data-theme="dark"] {
@@ -475,9 +479,16 @@ select.form-control {
 .modal {
   background: var(--card); border-radius: var(--radius-lg); padding: 26px;
   width: 100%; max-width: 480px; border: .5px solid var(--card-border);
-  box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-md); overflow-y: auto; overscroll-behavior: contain;
+  max-height: 90vh;
+  /* Shrink instead of hiding behind the keyboard when one is open. */
+  max-height: calc(90dvh - var(--kb));
   animation: modalIn .45s var(--spring);
 }
+/* Stops the page behind a dialog from scrolling under it -- on touch
+   especially, dragging inside a sheet would otherwise chain through
+   and move the page. */
+body:has(.modal-overlay) { overflow: hidden; }
 .modal-title { font-size: 19px; font-weight: 700; margin-bottom: 18px; color: var(--g900); letter-spacing: -.02em; }
 .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
@@ -615,12 +626,19 @@ select.form-control {
   /* Modals become iOS-style bottom sheets: anchored to the bottom
      edge, rounded only on top, with a grab handle -- the shape a
      phone user expects for a dialog, and it puts the controls within
-     thumb reach instead of floating mid-screen. */
-  .modal-overlay { align-items: flex-end; padding: 0; }
+     thumb reach instead of floating mid-screen.
+     The overlay's bottom padding is the keyboard height, so the sheet
+     sits directly ON TOP of the keyboard rather than behind it (iOS
+     never moves fixed elements for the keyboard by itself). */
+  .modal-overlay { align-items: flex-end; padding: 0 0 var(--kb); }
   .modal {
-    max-width: 100%; max-height: 92vh;
+    max-width: 100%;
+    max-height: 92vh;
+    max-height: calc(92dvh - var(--kb));
     border-radius: 22px 22px 0 0; border-bottom: none;
-    padding: 12px 20px calc(22px + env(safe-area-inset-bottom));
+    /* The gesture-bar inset is only real when no keyboard covers it,
+       so max() drops it back to plain padding once one is open. */
+    padding: 12px 20px max(calc(22px + env(safe-area-inset-bottom) - var(--kb)), 22px);
     animation: sheetIn .45s var(--ease-out);
   }
   .modal::before {
@@ -628,6 +646,9 @@ select.form-control {
     border-radius: 3px; background: var(--g300);
     margin: 0 auto 16px;
   }
+  /* 16px is the threshold below which iOS zooms the page in on focus
+     -- which on a bottom sheet shoves half of it off-screen. */
+  .form-control { font-size: 16px; }
 
   /* Bottom nav for mobile */
   .bottom-nav {
