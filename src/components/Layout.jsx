@@ -52,8 +52,11 @@ export default function Layout() {
     if (path === pathname) { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
     const commit = () => flushSync(() => navigate(path))
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    if (document.startViewTransition && !reduced) document.startViewTransition(commit)
-    else commit()
+    if (document.startViewTransition && !reduced) {
+      const root = document.documentElement
+      root.classList.add('vt')
+      document.startViewTransition(commit).finished.finally(() => root.classList.remove('vt'))
+    } else commit()
     window.scrollTo(0, 0)
   }
 

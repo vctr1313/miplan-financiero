@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useApp } from '../App'
 import { deleteTransaction, deleteSplitGroup } from '../lib/supabase'
 import AddTransactionModal from '../components/AddTransactionModal'
+import ImportStatementModal from '../components/ImportStatementModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import TxRow from '../components/TxRow'
 import { splitGroups } from '../lib/split'
@@ -43,6 +44,7 @@ function exportCSV(transactions) {
 export default function Transactions() {
   const { transactions, categories, profile, refresh, removeTransactionLocally } = useApp()
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
@@ -125,6 +127,9 @@ export default function Transactions() {
         <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
           <div><h2>Movimientos</h2><p>Historial completo de ingresos y gastos del hogar</p></div>
           <div className="flex items-center gap-2">
+            <button className="btn btn-outline" onClick={() => setShowImport(true)} title="Importar extracto del banco (CSV o Excel)">
+              <i className="fa fa-file-import" /> Importar
+            </button>
             <button className="btn btn-outline" onClick={() => exportCSV(filtered)} title="Exportar a Excel/CSV">
               <i className="fa fa-file-excel" /> Exportar
             </button>
@@ -209,6 +214,7 @@ export default function Transactions() {
       </div>
 
       {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} />}
+      {showImport && <ImportStatementModal onClose={() => setShowImport(false)} />}
       {editingTx && <EditTransactionModal tx={editingTx} onClose={() => setEditingTx(null)} />}
     </div>
   )

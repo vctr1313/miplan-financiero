@@ -263,6 +263,23 @@ export const deleteTransaction = async (id) => {
   markDirty('transactions')
 }
 
+// Inserts many movements in a few requests (bank import), rather than
+// one round trip each. Chunked so a year-long statement doesn't become
+// one oversized request.
+export const addTransactionsBulk = async (txs) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  const profile = await getProfile(user.id)
+  const inserted = []
+  for (let i = 0; i < txs.length; i += 200) {
+    const chunk = txs.slice(i, i + 200).map(tx => ({ ...tx, user_id: user.id, household_id: profile.household_id }))
+    const { data, error } = await supabase.from('transactions').insert(chunk).select('id')
+    if (error) throw error
+    inserted.push(...data)
+  }
+  markDirty('transactions')
+  return inserted
+}
+
 // Deletes every part of a purchase that was split across categories.
 export const deleteSplitGroup = async (groupId) => {
   const { error } = await supabase.from('transactions').delete().eq('split_group', groupId)

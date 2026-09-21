@@ -939,7 +939,11 @@ body:has(.modal-overlay) { overflow: hidden; }
    Only the page area takes part (chrome stays put): the old page
    fades and sinks slightly while the new one comes in. The cards'
    own riseIn entrance then plays inside the new page. */
-.main { view-transition-name: page; }
+/* Named ONLY while a transition runs (html.vt, set in Layout's go()).
+   A permanent view-transition-name makes .main its own stacking
+   context, which trapped every page's dialogs beneath the sidebar and
+   the mobile bottom bar. */
+html.vt .main { view-transition-name: page; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 ::view-transition-old(page) { animation: vtOut .2s ease both; }
 ::view-transition-new(page) { animation: vtIn .32s var(--ease-out) both; }
@@ -1101,3 +1105,54 @@ tr.tappable:active { transform: none; }
 .split-rest.over { color: var(--r5); }
 .tx-split-tag { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--i5); background: var(--accent-tint); padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
 .tx-split-tag i { font-size: 9.5px; margin-right: 2px; }
+
+/* ── BANK IMPORT ──────────────────────────────────────────────── */
+.import-steps { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; }
+.import-steps span { width: 28px; height: 4px; border-radius: 2px; background: var(--fill); transition: background .3s, width .4s var(--spring); }
+.import-steps span.past { background: var(--i200); }
+.import-steps span.on { background: var(--i5); width: 44px; }
+.dropzone {
+  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 34px 20px; border-radius: 18px; border: 2px dashed var(--g300); background: var(--fill);
+  color: var(--text); font: inherit; cursor: pointer;
+  transition: border-color .2s, background .2s, transform .35s var(--spring);
+}
+.dropzone i { font-size: 30px; color: var(--i5); margin-bottom: 4px; }
+.dropzone strong { font-size: 15px; }
+.dropzone span { font-size: 12.5px; color: var(--muted); }
+.dropzone:hover, .dropzone.over { border-color: var(--i5); background: var(--accent-tint); }
+.dropzone.over { transform: scale(1.015); }
+.import-preview { border-radius: 12px; background: var(--fill); padding: 4px 12px 8px; }
+.import-preview-head { font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 8px 0 4px; }
+.import-preview-row { display: flex; gap: 10px; font-size: 13px; padding: 5px 0; border-top: .5px solid var(--sep); font-variant-numeric: tabular-nums; }
+.import-preview-row .grow { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.import-summary { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.import-summary strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.import-summary .btn { margin-left: auto; }
+.import-list { max-height: min(52vh, 460px); overflow-y: auto; margin: 0 -6px; padding: 0 6px; }
+.import-row {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr) 110px 170px 90px; gap: 10px; align-items: center;
+  padding: 8px 0; border-bottom: .5px solid var(--sep); transition: opacity .2s;
+}
+.import-row.off { opacity: .45; }
+.import-main { min-width: 0; }
+.import-desc { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.import-meta { font-size: 11.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.import-tag { font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--accent-tint); color: var(--i5); }
+.import-tag.dup { background: var(--a100); color: var(--a6); }
+.import-row .form-control { padding: 6px 28px 6px 9px; font-size: 13px; background-position: right 9px center; }
+.import-cat.missing { box-shadow: 0 0 0 1.5px var(--a5); }
+.import-cat.placeholder { font-size: 12px; color: var(--muted); }
+.import-amount { text-align: right; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.import-done { text-align: center; padding: 18px 0 6px; }
+.import-done h4 { font-size: 18px; margin-top: 12px; letter-spacing: -.02em; }
+.import-done-check {
+  width: 64px; height: 64px; border-radius: 50%; margin: 0 auto; display: grid; place-items: center;
+  background: var(--e5); color: #fff; font-size: 28px; animation: popIn .55s var(--spring) both;
+}
+@media (max-width: 768px) {
+  .import-row { grid-template-columns: 24px minmax(0, 1fr) 90px; }
+  .import-row .import-kind { grid-column: 2; }
+  .import-row .import-cat { grid-column: 2 / span 2; }
+  .import-row .import-amount { grid-row: 1; grid-column: 3; }
+}
