@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from 'react'
 import { useApp } from '../App'
 import { fmt, calcCycleStats, calcSavingsRate } from '../lib/finance'
+import CycleRecap from '../components/CycleRecap'
 
 export default function CycleHistory() {
   const { profile, categories, transactions, fixedExpenses, cycles } = useApp()
   const salary = profile?.salary || 0
   const [compareA, setCompareA] = useState(null)
   const [compareB, setCompareB] = useState(null)
+  const [recapFor, setRecapFor] = useState(null)
 
   const cycleStats = useMemo(() => {
     return [...cycles].reverse().map(cycle => {
@@ -76,7 +78,7 @@ export default function CycleHistory() {
       )}
 
       <div className="card">
-        <div className="section-header"><h3>Todos los ciclos</h3></div>
+        <div className="section-header"><h3>Todos los ciclos</h3><span className="text-xs text-muted">Toca un ciclo cerrado para ver su resumen</span></div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
@@ -92,7 +94,12 @@ export default function CycleHistory() {
             {cycleStats.map((cs, i) => {
               const rate = calcSavingsRate(cs.stats.income, cs.stats.expenses)
               return (
-                <tr key={i} style={{ borderBottom: '.5px solid var(--sep)' }}>
+                <tr
+                  key={i}
+                  className={cs.cycle.index < cycles.length - 1 ? 'tappable' : ''}
+                  style={{ borderBottom: '.5px solid var(--sep)' }}
+                  onClick={() => cs.cycle.index < cycles.length - 1 && setRecapFor(cs.cycle)}
+                >
                   <td style={tdStyle}>{cycleLabel(cs.cycle)}</td>
                   <td style={tdStyle}>{cs.cycle.userName || '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--e5)' }}>{fmt(cs.stats.income)}</td>
@@ -107,6 +114,14 @@ export default function CycleHistory() {
           </tbody>
         </table>
       </div>
+
+      {recapFor && (
+        <CycleRecap
+          cycle={recapFor}
+          prevCycle={cycles[recapFor.index - 1] || null}
+          onClose={() => setRecapFor(null)}
+        />
+      )}
     </div>
   )
 }

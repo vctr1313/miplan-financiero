@@ -8,14 +8,23 @@ import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
 import AnimatedNumber from '../components/AnimatedNumber'
 import CyclePace from '../components/CyclePace'
+import CycleRecap from '../components/CycleRecap'
+import { pendingRecap, markRecapSeen } from '../lib/recap'
 import ActivityRings from '../components/ActivityRings'
 import EmptyState from '../components/EmptyState'
 import TxRow from '../components/TxRow'
 
 export default function Dashboard() {
-  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh, removeTransactionLocally } = useApp()
+  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh, removeTransactionLocally, loading } = useApp()
   const navigate = useNavigate()
   const [showAddModal, setShowAddModal] = useState(false)
+  // One-time "how did the last cycle go" sheet after a new nómina.
+  const [recap, setRecap] = useState(null)
+  useEffect(() => {
+    if (!loading) setRecap(pendingRecap(cycles))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, cycles.length])
+  const closeRecap = () => { if (recap) markRecapSeen(recap.cycle); setRecap(null) }
 
   const salary = profile?.salary || 0
   const cycle = getCurrentCycle(cycles)
@@ -273,6 +282,7 @@ export default function Dashboard() {
       {alerts}
 
       {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} />}
+      {recap && !showAddModal && <CycleRecap cycle={recap.cycle} prevCycle={recap.prevCycle} onClose={closeRecap} celebrate />}
     </div>
   )
 }

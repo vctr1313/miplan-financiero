@@ -1069,3 +1069,24 @@ input[type="checkbox"]:active { transform: scale(.88); }
 .dot-legend { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 3px; flex-shrink: 0; }
 .heat-cell { position: relative; }
 .heat-month { position: absolute; bottom: 2px; left: 0; right: 0; font-size: 8.5px; font-weight: 700; text-transform: uppercase; opacity: .7; letter-spacing: .04em; }
+
+/* ── CYCLE RECAP ──────────────────────────────────────────────── */
+.recap-hero { text-align: center; padding: 4px 0 18px; }
+.recap-kicker { font-size: 12px; color: var(--muted); font-weight: 500; }
+.recap-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; }
+.recap-big { font-size: 42px; font-weight: 800; letter-spacing: -.04em; line-height: 1.1; margin-top: 8px; font-variant-numeric: tabular-nums; animation: popIn .6s var(--spring) both .15s; }
+.recap-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.recap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.recap-grid > div { background: var(--fill); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
+.recap-grid span { font-size: 11px; color: var(--muted); }
+.recap-grid strong { font-size: 15px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.recap-section { margin-top: 12px; }
+.recap-section-title { font-size: 12.5px; font-weight: 600; color: var(--g700); margin-bottom: 6px; display: flex; gap: 6px; align-items: center; }
+.recap-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: .5px solid var(--sep); animation: riseIn .4s var(--ease-out) both; }
+.recap-row:last-child { border-bottom: none; }
+.recap-ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
+.recap-name { flex: 1; font-size: 13.5px; }
+.recap-name small { color: var(--muted); }
+.recap-val { font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+tr.tappable { cursor: pointer; }
+tr.tappable:active { transform: none; }
