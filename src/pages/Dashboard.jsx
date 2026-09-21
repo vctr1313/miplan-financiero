@@ -13,7 +13,7 @@ import EmptyState from '../components/EmptyState'
 import TxRow from '../components/TxRow'
 
 export default function Dashboard() {
-  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh } = useApp()
+  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh, removeTransactionLocally } = useApp()
   const navigate = useNavigate()
   const [showAddModal, setShowAddModal] = useState(false)
 
@@ -86,7 +86,15 @@ export default function Dashboard() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('¿Eliminar este movimiento?')) return
-    await deleteTransaction(id)
+    // Optimistic: the row goes immediately; put it back if the server
+    // refuses.
+    const restore = removeTransactionLocally(id)
+    try {
+      await deleteTransaction(id)
+    } catch (err) {
+      restore()
+      alert('No se pudo eliminar: ' + err.message)
+    }
     refresh()
   }
 

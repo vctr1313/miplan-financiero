@@ -5,6 +5,19 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// ── CHANGE TRACKING ───────────────────────────────────────────
+// Every write below records which slice of app state it touched, so
+// AppProvider's refresh() can refetch just those instead of reloading
+// all eight datasets after every single change (which was noticeably
+// slow on phones). Keys match the loaders in App.js.
+const dirty = new Set()
+export const markDirty = (...keys) => keys.forEach(k => dirty.add(k))
+export const takeDirty = () => {
+  const keys = [...dirty]
+  dirty.clear()
+  return keys
+}
+
 // ── AUTH ──────────────────────────────────────────────────────
 export const signUp = (email, password, name) =>
   supabase.auth.signUp({ email, password, options: { data: { name } } })
@@ -53,6 +66,7 @@ export const updateProfile = async (userId, updates) => {
     .select()
     .single()
   if (error) throw error
+  markDirty('profile')
   return data
 }
 
@@ -66,12 +80,14 @@ export const linkPartner = async (inviteCode) => {
   const { data: partnerId, error } = await supabase
     .rpc('link_partner_by_invite_code', { p_invite_code: inviteCode })
   if (error || !partnerId) throw new Error('Código de invitación no válido')
+  markDirty('profile', 'partnerSummary')
   return partnerId
 }
 
 export const unlinkPartner = async () => {
   const { error } = await supabase.rpc('unlink_partner')
   if (error) throw error
+  markDirty('profile', 'partnerSummary')
 }
 
 export const getPartnerSummary = async () => {
@@ -103,12 +119,14 @@ export const upsertCategory = async (cat) => {
   // -- see getPctAtDate in lib/finance.js for why every change needs
   // its own timestamped row instead of overwriting a single value.
   await addCategoryPctHistory(data.household_id, data.id, data.user_pct)
+  markDirty('categories', 'pctHistory')
   return data
 }
 
 export const deleteCategory = async (id) => {
   const { error } = await supabase.from('categories').delete().eq('id', id)
   if (error) throw error
+  markDirty('categories', 'pctHistory', 'transactions', 'fixedExpenses')
 }
 
 export const updateCategoryPct = async (id, userPct) => {
@@ -120,6 +138,7 @@ export const updateCategoryPct = async (id, userPct) => {
     .single()
   if (error) throw error
   await addCategoryPctHistory(data.household_id, id, userPct)
+  markDirty('categories', 'pctHistory')
 }
 
 // ── CATEGORY % HISTORY ────────────────────────────────────────
@@ -163,6 +182,7 @@ export const setCategoryOpeningBalance = async (id, openingBalance, openingBalan
     })
     .eq('id', id)
   if (error) throw error
+  markDirty('categories')
 }
 
 // ── FIXED EXPENSES ────────────────────────────────────────────
@@ -184,12 +204,14 @@ export const addFixedExpense = async (expense) => {
     .select()
     .single()
   if (error) throw error
+  markDirty('fixedExpenses')
   return data
 }
 
 export const deleteFixedExpense = async (id) => {
   const { error } = await supabase.from('fixed_expenses').delete().eq('id', id)
   if (error) throw error
+  markDirty('fixedExpenses')
 }
 
 export const markFixedExpenseCharged = async (id, date) => {
@@ -198,6 +220,7 @@ export const markFixedExpenseCharged = async (id, date) => {
     .update({ last_charged_date: date })
     .eq('id', id)
   if (error) throw error
+  markDirty('fixedExpenses')
 }
 
 // ── TRANSACTIONS ──────────────────────────────────────────────
@@ -230,12 +253,14 @@ export const addTransaction = async (tx) => {
     .select('*, categories(name,icon,color,type)')
     .single()
   if (error) throw error
+  markDirty('transactions')
   return data
 }
 
 export const deleteTransaction = async (id) => {
   const { error } = await supabase.from('transactions').delete().eq('id', id)
   if (error) throw error
+  markDirty('transactions')
 }
 
 export const updateTransaction = async (id, patch) => {
@@ -246,6 +271,7 @@ export const updateTransaction = async (id, patch) => {
     .select('*, categories(name,icon,color,type)')
     .single()
   if (error) throw error
+  markDirty('transactions')
   return data
 }
 
@@ -271,6 +297,7 @@ export const updateHouseGoal = async (goal) => {
     .select()
     .single()
   if (error) throw error
+  markDirty('houseGoal')
   return data
 }
 
@@ -288,6 +315,7 @@ export const incrementHouseGoalSavings = async ({ mySavedDelta = 0, investSavedD
     invest_saved_delta: investSavedDelta,
   })
   if (error) throw error
+  markDirty('houseGoal')
   return data
 }
 
@@ -310,12 +338,14 @@ export const upsertSavingGoal = async (goal) => {
     .select()
     .single()
   if (error) throw error
+  markDirty('savingGoals')
   return data
 }
 
 export const deleteSavingGoal = async (id) => {
   const { error } = await supabase.from('saving_goals').delete().eq('id', id)
   if (error) throw error
+  markDirty('savingGoals')
 }
 
 // ── REALTIME SUBSCRIPTION ─────────────────────────────────────

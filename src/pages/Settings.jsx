@@ -3,9 +3,17 @@ import { useApp } from '../App'
 import { updateProfile, addFixedExpense, deleteFixedExpense, linkPartner, unlinkPartner } from '../lib/supabase'
 import { fmt, fixedTotal, fixedPct } from '../lib/finance'
 import { requestNotificationPermission, getNotificationPermission } from '../lib/notifications'
+import { buildBackup, downloadBackup } from '../lib/backup'
 
 export default function Settings() {
-  const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh } = useApp()
+  const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh, transactions, houseGoal, savingGoals, pctHistory } = useApp()
+  const [backupDone, setBackupDone] = useState(false)
+
+  const handleBackup = () => {
+    downloadBackup(buildBackup({ profile, categories, transactions, fixedExpenses, houseGoal, savingGoals, pctHistory }))
+    setBackupDone(true)
+    setTimeout(() => setBackupDone(false), 2500)
+  }
   const [salary, setSalary] = useState(profile?.salary || '')
   const [name, setName] = useState(profile?.name || '')
   const [birthYear, setBirthYear] = useState(profile?.birth_year || '')
@@ -243,7 +251,21 @@ export default function Settings() {
       </div>
 
       <div className="card mb-4">
-        <div className="section-header"><h3>🔔 Notificaciones</h3></div>
+        <div className="section-header"><h3><i className="fa fa-box-archive" style={{ color: 'var(--i5)', marginRight: 8 }} />Copia de seguridad</h3></div>
+        <p className="text-xs text-muted mb-3">
+          Descarga en un archivo todo lo que tienes en la app: movimientos, categorías y su historial de porcentajes,
+          gastos fijos, botes, metas y la meta de la casa. Guárdalo donde quieras; es tuyo.
+        </p>
+        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={handleBackup}>
+            <i className={`fa ${backupDone ? 'fa-check' : 'fa-download'}`} /> {backupDone ? 'Descargada' : 'Descargar copia (.json)'}
+          </button>
+          <span className="text-xs text-muted">{transactions.length} movimientos · {categories.length} categorías</span>
+        </div>
+      </div>
+
+      <div className="card mb-4">
+        <div className="section-header"><h3><i className="fa fa-bell" style={{ color: 'var(--a5)', marginRight: 8 }} />Notificaciones</h3></div>
         <p className="text-xs text-muted mb-3">
           Recibe un aviso cuando superes el 80% o el 100% del presupuesto en alguna categoría. Funciona mientras la app esté abierta o instalada en tu móvil.
         </p>

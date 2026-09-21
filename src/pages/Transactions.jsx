@@ -40,7 +40,7 @@ function exportCSV(transactions) {
 }
 
 export default function Transactions() {
-  const { transactions, categories, profile, refresh } = useApp()
+  const { transactions, categories, profile, refresh, removeTransactionLocally } = useApp()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
   const [search, setSearch] = useState('')
@@ -86,7 +86,15 @@ export default function Transactions() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('¿Eliminar?')) return
-    await deleteTransaction(id)
+    // Optimistic: the row goes immediately; put it back if the server
+    // refuses.
+    const restore = removeTransactionLocally(id)
+    try {
+      await deleteTransaction(id)
+    } catch (err) {
+      restore()
+      alert('No se pudo eliminar: ' + err.message)
+    }
     refresh()
   }
 
