@@ -66,7 +66,7 @@ export default function BalanceReviewModal({ pots, onClose }) {
         </p>
         <div style={{ maxHeight: 320, overflowY: 'auto', marginBottom: 12 }}>
           {pots.map(c => (
-            <div key={c.id} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '1px solid var(--g100)' }}>
+            <div key={c.id} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '.5px solid var(--sep)' }}>
               <span style={{ fontSize: 18, width: 26 }}>{c.icon}</span>
               <span style={{ flex: 1, fontSize: 13.5 }}>{c.name}</span>
               <input

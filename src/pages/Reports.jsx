@@ -204,7 +204,7 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, curM, cur
               {catData.map(c => {
                 const dev = c.spent - c.budget
                 return (
-                  <tr key={c.id} style={{ borderBottom: '1px solid var(--g100)' }}>
+                  <tr key={c.id} style={{ borderBottom: '.5px solid var(--sep)' }}>
                     <td style={{ padding: 8, fontSize: 12.5 }}>{c.icon} {c.name}</td>
                     <td style={{ padding: 8, fontSize: 12.5, textAlign: 'right', fontWeight: 500 }}>{fmt(c.spent)}</td>
                     <td style={{ padding: 8, fontSize: 12.5, textAlign: 'right', color: 'var(--muted)' }}>{fmt(c.budget)}</td>
@@ -225,7 +225,7 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, curM, cur
           const color = pct >= 100 ? 'var(--r5)' : pct >= 80 ? 'var(--a5)' : 'var(--e5)'
           const emoji = pct >= 100 ? '🔴' : pct >= 80 ? '🟡' : '🟢'
           return (
-            <div key={c.id} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '1px solid var(--g100)' }}>
+            <div key={c.id} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '.5px solid var(--sep)' }}>
               <span style={{ fontSize: 16 }}>{emoji}</span>
               <span style={{ minWidth: 28, fontSize: 14 }}>{c.icon}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{c.name}</span>
@@ -342,7 +342,7 @@ function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickCol
             {months.map(({ m, label }) => {
               const d = monthData[m]
               return (
-                <tr key={m} style={{ borderBottom: '1px solid var(--g100)' }}>
+                <tr key={m} style={{ borderBottom: '.5px solid var(--sep)' }}>
                   <td style={{ padding: 8, fontSize: 12.5 }}>{label.charAt(0).toUpperCase() + label.slice(1)}</td>
                   <td style={{ padding: 8, fontSize: 12.5, textAlign: 'right', color: 'var(--e5)' }}>{fmt(d.income)}</td>
                   <td style={{ padding: 8, fontSize: 12.5, textAlign: 'right', color: 'var(--r5)' }}>{fmt(d.expenses)}</td>

@@ -134,8 +134,8 @@ export default function Budget() {
             const potBal = c.type === 'pot' ? calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }) : null
             return (
               <div
-                key={c.id} className="flex items-center gap-2"
-                style={{ padding: '9px 0', borderBottom: '1px solid var(--g100)', cursor: 'pointer' }}
+                key={c.id} className="flex items-center gap-2 tappable"
+                style={{ padding: '9px 10px', margin: '0 -10px', borderRadius: 12, borderBottom: '.5px solid var(--sep)' }}
                 onClick={() => setDetailCat(c)}
                 title="Ver movimientos de esta categoría"
               >

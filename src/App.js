@@ -115,10 +115,10 @@ function AppProvider({ children }) {
 function Protected({ children }) {
   const { session, loading } = useApp()
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, animation: 'spin 1s linear infinite', display: 'inline-block' }}>⚙️</div>
-        <p style={{ color: 'var(--muted)', marginTop: 12, fontSize: 14 }}>Cargando tu plan financiero…</p>
+    <div className="boot">
+      <div className="boot-inner">
+        <div className="boot-spinner" />
+        <p>Cargando tu plan financiero…</p>
       </div>
     </div>
   )

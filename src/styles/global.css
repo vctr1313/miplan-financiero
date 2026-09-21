@@ -44,8 +44,19 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 2px 10px rgba(0,0,0,.04);
   --shadow: 0 2px 6px rgba(0,0,0,.04), 0 10px 28px rgba(0,0,0,.06);
   --shadow-md: 0 6px 16px rgba(0,0,0,.06), 0 24px 60px rgba(0,0,0,.12);
+  --shadow-lift: 0 4px 10px rgba(0,0,0,.05), 0 16px 40px rgba(0,0,0,.09);
+  --accent-glow: 0 1px 2px rgba(0,113,227,.24), 0 5px 14px rgba(0,113,227,.22);
+  --accent-glow-strong: 0 2px 4px rgba(0,113,227,.28), 0 10px 24px rgba(0,113,227,.3);
 
+  /* Motion. --ease is the standard decelerate; --spring overshoots
+     slightly (iOS "pop"); --ease-out is a long, soft settle used for
+     entrances. Press feedback uses --press-in: fast, no overshoot, so
+     a tap feels instant while the release springs back. */
   --ease: cubic-bezier(.32,.72,0,1);
+  --spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --press-in: cubic-bezier(.4,0,.6,1);
+
   --sidebar-width: 252px;
   --header-height: 56px;
 }
@@ -81,11 +92,14 @@
   --shadow-sm: 0 0 0 .5px rgba(255,255,255,.04);
   --shadow: 0 0 0 .5px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.4);
   --shadow-md: 0 0 0 .5px rgba(255,255,255,.08), 0 24px 60px rgba(0,0,0,.6);
+  --shadow-lift: 0 0 0 .5px rgba(255,255,255,.09), 0 14px 36px rgba(0,0,0,.55);
+  --accent-glow: 0 2px 10px rgba(10,132,255,.38);
+  --accent-glow-strong: 0 4px 18px rgba(10,132,255,.5);
 }
 
 /* ── RESET ───────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
@@ -95,12 +109,14 @@ body {
   -webkit-tap-highlight-color: transparent;
   line-height: 1.5;
   letter-spacing: -0.005em;
+  overscroll-behavior-y: none;
   transition: background .25s, color .25s;
 }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
 input[type="range"] { accent-color: var(--i5); }
+h1, h2, h3 { text-wrap: balance; }
 :focus-visible { outline: 3px solid var(--accent-tint); outline-offset: 1px; }
 ::selection { background: var(--accent-tint); }
 
@@ -146,7 +162,7 @@ input[type="range"] { accent-color: var(--i5); }
      drawer on mobile and visually covers its lower section (salary,
      sync status, sign-out button) even while the sidebar is open. */
   z-index: 250;
-  transition: transform .35s var(--ease), background .25s;
+  transition: transform .42s var(--ease), background .25s;
 }
 .sidebar-logo {
   padding: 26px 22px 14px;
@@ -176,7 +192,7 @@ input[type="range"] { accent-color: var(--i5); }
   margin: 1px 10px;
   border-radius: var(--radius-sm);
   color: var(--g700);
-  transition: background .15s, color .15s;
+  transition: background .2s, color .2s, transform .4s var(--spring);
   font-size: 14px;
   font-weight: 500;
   border: none;
@@ -185,9 +201,10 @@ input[type="range"] { accent-color: var(--i5); }
   text-align: left;
 }
 .nav-item:hover { background: var(--fill); color: var(--text); }
+.nav-item:active { transform: scale(.975); transition: transform .09s var(--press-in); }
 .nav-item.active { background: var(--accent-tint); color: var(--i5); font-weight: 600; }
-.nav-item i { width: 18px; text-align: center; font-size: 13.5px; color: var(--g500); transition: color .15s; }
-.nav-item.active i { color: var(--i5); }
+.nav-item i { width: 18px; text-align: center; font-size: 13.5px; color: var(--g500); transition: color .2s, transform .45s var(--spring); }
+.nav-item.active i { color: var(--i5); transform: scale(1.14); }
 .sidebar-bottom {
   margin-top: auto;
   border-top: .5px solid var(--sep);
@@ -195,20 +212,21 @@ input[type="range"] { accent-color: var(--i5); }
 }
 
 /* Sidebar footer pieces (formerly inline styles in Layout.jsx) */
-.sb-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 22px; cursor: pointer; }
+.sb-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 22px; cursor: pointer; transition: background .2s; }
+.sb-row:hover { background: var(--fill); }
 .sb-label { font-size: 13px; color: var(--g700); }
 .sb-label i { margin-right: 8px; color: var(--g500); }
-.switch { width: 42px; height: 26px; border-radius: 13px; background: var(--fill-hover); position: relative; transition: background .25s; flex-shrink: 0; }
+.switch { width: 42px; height: 26px; border-radius: 13px; background: var(--fill-hover); position: relative; transition: background .3s var(--ease); flex-shrink: 0; }
 .switch.on { background: var(--e5); }
-.switch-knob { position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; top: 2px; left: 2px; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .25s var(--ease); }
+.switch-knob { position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; top: 2px; left: 2px; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .42s var(--spring); }
 .switch.on .switch-knob { transform: translateX(16px); }
 .sb-sync { padding: 2px 22px 10px; display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--g500); }
 .sb-salary { margin: 0 14px 6px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--fill); }
 .sb-salary-label { font-size: 11px; color: var(--g500); margin-bottom: 2px; font-weight: 500; }
-.sb-salary-value { font-size: 18px; font-weight: 700; color: var(--text); cursor: pointer; letter-spacing: -.02em; }
+.sb-salary-value { font-size: 18px; font-weight: 700; color: var(--text); cursor: pointer; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .sb-salary-value small { font-size: 11px; font-weight: 500; color: var(--g500); letter-spacing: 0; }
-.sb-signout { width: 100%; padding: 11px 22px; background: none; border: none; color: var(--g500); font-size: 12.5px; text-align: left; display: flex; align-items: center; gap: 8px; transition: color .15s; }
-.sb-signout:hover { color: var(--r5); }
+.sb-signout { width: 100%; padding: 11px 22px; background: none; border: none; color: var(--g500); font-size: 12.5px; text-align: left; display: flex; align-items: center; gap: 8px; transition: color .2s, background .2s; }
+.sb-signout:hover { color: var(--r5); background: var(--fill); }
 
 /* ── MAIN ─────────────────────────────────────────────────────── */
 .main {
@@ -223,6 +241,21 @@ input[type="range"] { accent-color: var(--i5); }
 .page-header h2 { font-size: 30px; font-weight: 700; color: var(--g900); letter-spacing: -.03em; line-height: 1.15; }
 .page-header p { color: var(--muted); margin-top: 6px; font-size: 14px; }
 
+/* ── ENTRANCE ─────────────────────────────────────────────────
+   Content rises into place on mount. Because React only mounts
+   these on an actual route change (a re-render after saving does
+   not remount), this reads as a page transition rather than
+   flickering every time data refreshes. The small nth-child delays
+   cascade the cards of a grid instead of moving them as one slab. */
+.page-header, .card, .stat-card, .house-card, .alert, .tabs {
+  animation: riseIn .5s var(--ease-out) both;
+}
+.grid-2 > *:nth-child(2), .grid-3 > *:nth-child(2), .grid-4 > *:nth-child(2), .grid-auto > *:nth-child(2) { animation-delay: .05s; }
+.grid-3 > *:nth-child(3), .grid-4 > *:nth-child(3), .grid-auto > *:nth-child(3) { animation-delay: .1s; }
+.grid-4 > *:nth-child(4), .grid-auto > *:nth-child(4) { animation-delay: .15s; }
+.grid-auto > *:nth-child(5) { animation-delay: .2s; }
+.grid-auto > *:nth-child(n+6) { animation-delay: .25s; }
+
 /* ── CARDS ────────────────────────────────────────────────────── */
 .card {
   background: var(--card);
@@ -230,6 +263,7 @@ input[type="range"] { accent-color: var(--i5); }
   border: .5px solid var(--card-border);
   padding: 20px 22px;
   box-shadow: var(--shadow-sm);
+  transition: box-shadow .3s var(--ease), transform .4s var(--spring);
 }
 .card-title { font-size: 15px; font-weight: 600; color: var(--g800); margin-bottom: 12px; }
 
@@ -246,37 +280,59 @@ input[type="range"] { accent-color: var(--i5); }
   background: var(--card);
   border: .5px solid var(--card-border);
   box-shadow: var(--shadow-sm);
+  transition: box-shadow .3s var(--ease), transform .4s var(--spring);
 }
 .stat-card .label {
   font-size: 12px; color: var(--muted); font-weight: 500;
   margin-bottom: 6px;
 }
-.stat-card .value { font-size: 26px; font-weight: 700; color: var(--g900); letter-spacing: -.03em; line-height: 1.15; }
+/* tabular-nums keeps the box from twitching while a value counts up */
+.stat-card .value { font-size: 26px; font-weight: 700; color: var(--g900); letter-spacing: -.03em; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .stat-card .sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
 /* The colored left borders are gone: color is carried by the value
    itself and the label icon, which reads cleaner than a stripe. */
 
+/* ── TAPPABLE (rows/cards that do something when clicked) ─────── */
+.tappable { cursor: pointer; transition: background .2s, box-shadow .3s var(--ease), transform .4s var(--spring); }
+.tappable:hover { background: var(--fill); }
+.tappable:active { transform: scale(.985); transition: transform .09s var(--press-in); }
+.card.tappable:hover, .stat-card.tappable:hover { background: var(--card); transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.card.tappable:active, .stat-card.tappable:active { transform: scale(.99); }
+
 /* ── BUTTONS ─────────────────────────────────────────────────── */
 .btn {
-  display: inline-flex; align-items: center; gap: 7px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   padding: 9px 18px; border-radius: var(--radius-sm); border: none;
   font-size: 13.5px; font-weight: 600; letter-spacing: -.005em;
-  transition: background .15s, transform .12s, opacity .15s, filter .15s; white-space: nowrap;
+  white-space: nowrap; position: relative;
+  transition: background .2s, box-shadow .3s var(--ease), filter .2s, opacity .2s,
+              transform .45s var(--spring);
 }
-.btn:active:not(:disabled) { transform: scale(.97); }
-.btn-primary { background: var(--i6); color: #fff; }
-.btn-primary:hover { filter: brightness(1.08); }
+/* Press: quick compress with no overshoot; the release springs back
+   through the base transition above, which is what gives it the
+   physical, iOS-button feel rather than a flat fade. */
+.btn:active:not(:disabled) { transform: scale(.955); transition: transform .08s var(--press-in); }
+.btn i { transition: transform .4s var(--spring); }
+.btn:active:not(:disabled) i { transform: scale(.92); }
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--i5) 0%, var(--i6) 100%);
+  color: #fff; box-shadow: var(--accent-glow);
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.07); box-shadow: var(--accent-glow-strong); transform: translateY(-1px); }
+.btn-primary:active:not(:disabled) { transform: scale(.955); box-shadow: var(--accent-glow); }
 .btn-outline { background: var(--accent-tint); color: var(--i5); border: none; }
-.btn-outline:hover { background: var(--i100); }
+.btn-outline:hover:not(:disabled) { background: var(--i100); }
 .btn-ghost { background: var(--fill); color: var(--g800); border: none; font-weight: 500; }
-.btn-ghost:hover { background: var(--fill-hover); color: var(--text); }
+.btn-ghost:hover:not(:disabled) { background: var(--fill-hover); color: var(--text); }
 .btn-danger { background: var(--r50); color: var(--danger-text); border: none; }
-.btn-danger:hover { background: var(--r100); }
+.btn-danger:hover:not(:disabled) { background: var(--r100); }
 .btn-success { background: var(--e50); color: var(--e6); border: none; }
-.btn-success:hover { background: var(--e100); }
+.btn-success:hover:not(:disabled) { background: var(--e100); }
 .btn-sm { padding: 6px 12px; font-size: 12.5px; border-radius: 9px; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn-icon { width: 34px; height: 34px; padding: 0; justify-content: center; border-radius: 50%; }
+.btn-icon { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+.btn-icon:hover:not(:disabled) { background: var(--fill-hover); }
 
 /* ── FORMS ────────────────────────────────────────────────────── */
 .form-group { margin-bottom: 14px; }
@@ -285,9 +341,10 @@ input[type="range"] { accent-color: var(--i5); }
   width: 100%; padding: 10px 12px;
   border: 1.5px solid transparent; border-radius: var(--radius-sm);
   font-size: 14.5px; color: var(--text); background: var(--inp);
-  transition: border-color .15s, box-shadow .15s, background .15s; outline: none;
+  transition: border-color .2s, box-shadow .3s var(--ease), background .2s; outline: none;
 }
 .form-control::placeholder { color: var(--g500); }
+.form-control:hover:not(:focus):not(:disabled) { background: var(--fill-hover); }
 .form-control:focus { border-color: var(--i5); background: var(--card); box-shadow: 0 0 0 4px var(--accent-tint); }
 select.form-control {
   -webkit-appearance: none; appearance: none; padding-right: 32px; cursor: pointer;
@@ -322,7 +379,13 @@ select.form-control {
 
 /* ── PROGRESS BAR ─────────────────────────────────────────────── */
 .progress-bar { height: 6px; background: var(--fill); border-radius: 10px; overflow: hidden; margin-top: 5px; }
-.progress-fill { height: 100%; border-radius: 10px; transition: width .6s var(--ease); }
+.progress-fill {
+  height: 100%; border-radius: 10px;
+  /* A touch of top-edge light so the bar reads as a filled capsule
+     rather than a flat block, and a long spring so it fills in. */
+  background-image: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0));
+  transition: width .8s var(--ease-out), background .3s;
+}
 
 /* ── HOUSE GOAL CARD ──────────────────────────────────────────── */
 .house-card {
@@ -332,23 +395,40 @@ select.form-control {
   color: #fff; border-radius: var(--radius-lg); padding: 26px;
   position: relative; overflow: hidden;
   box-shadow: var(--shadow);
+  transition: box-shadow .35s var(--ease), transform .45s var(--spring);
 }
 .house-card::after {
   content: '🏠'; position: absolute; right: 22px; top: 16px;
   font-size: 44px; opacity: .16;
+  transition: transform .5s var(--spring), opacity .3s;
 }
+.house-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.house-card:hover::after { transform: scale(1.08) rotate(-4deg); opacity: .22; }
+.house-card:active { transform: scale(.995); transition: transform .1s var(--press-in); }
 .house-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; letter-spacing: -.02em; }
-.house-goal-amount { font-size: 34px; font-weight: 700; color: #fff; letter-spacing: -.03em; }
+.house-goal-amount { font-size: 34px; font-weight: 700; color: #fff; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .house-progress-bar { background: rgba(255,255,255,.16); height: 8px; border-radius: 10px; margin: 14px 0 6px; overflow: hidden; }
-.house-progress-fill { height: 100%; background: linear-gradient(90deg, #0a84ff, #64d2ff); border-radius: 10px; transition: width .6s var(--ease); }
+.house-progress-fill { height: 100%; background: linear-gradient(90deg, #0a84ff, #64d2ff); border-radius: 10px; transition: width .9s var(--ease-out); }
 .house-meta { display: flex; gap: 22px; margin-top: 12px; flex-wrap: wrap; }
 .house-meta span { font-size: 11.5px; color: rgba(255,255,255,.55); }
-.house-meta strong { display: block; font-size: 14px; font-weight: 600; color: #fff; }
+.house-meta strong { display: block; font-size: 14px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
 
 /* ── TRANSACTION ROW ──────────────────────────────────────────── */
-.tx-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: .5px solid var(--sep); }
+.tx-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 10px; margin: 0 -10px;
+  border-radius: 12px;
+  border-bottom: .5px solid var(--sep);
+  transition: background .2s;
+}
 .tx-row:last-child { border-bottom: none; }
-.tx-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.tx-row:hover { background: var(--fill); }
+.tx-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; font-size: 15px; flex-shrink: 0;
+  transition: transform .45s var(--spring);
+}
+.tx-row:hover .tx-icon { transform: scale(1.08); }
 .tx-info { flex: 1; min-width: 0; }
 .tx-desc { font-size: 14px; font-weight: 500; color: var(--g900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tx-meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
@@ -358,6 +438,15 @@ select.form-control {
 .tx-amount.transfer { color: var(--i5); }
 .tx-amount.pot-withdrawal { color: var(--a5); }
 .tx-user-badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; flex-shrink: 0; }
+/* The row's trailing edit/delete buttons: invisible until the row is
+   hovered on a pointer device, always visible on touch (no hover). */
+.tx-row > button { border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; transition: background .2s, color .2s, opacity .2s, transform .35s var(--spring); }
+.tx-row > button:hover { background: var(--fill-hover); color: var(--text) !important; }
+.tx-row > button:active { transform: scale(.88); transition-duration: .08s; }
+@media (hover: hover) {
+  .tx-row > button { opacity: 0; }
+  .tx-row:hover > button, .tx-row > button:focus-visible { opacity: 1; }
+}
 
 /* ── TABS (iOS segmented control) ─────────────────────────────── */
 .tabs {
@@ -368,9 +457,11 @@ select.form-control {
 .tab {
   flex: 1; padding: 7px 16px; font-size: 13px; font-weight: 500; color: var(--g700);
   cursor: pointer; border: none; border-radius: 9px; white-space: nowrap; text-align: center;
-  transition: background .2s, color .2s, box-shadow .2s; background: none;
+  background: none;
+  transition: background .25s var(--ease), color .25s, box-shadow .25s, transform .4s var(--spring);
 }
 .tab:hover { color: var(--text); }
+.tab:active { transform: scale(.96); transition: transform .08s var(--press-in); }
 .tab.active { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.14), 0 0 0 .5px rgba(0,0,0,.04); }
 [data-theme="dark"] .tab.active { background: #636366; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 
@@ -379,13 +470,13 @@ select.form-control {
   position: fixed; inset: 0; background: rgba(0,0,0,.35);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 18px;
-  animation: overlayIn .25s ease;
+  animation: overlayIn .3s ease;
 }
 .modal {
   background: var(--card); border-radius: var(--radius-lg); padding: 26px;
   width: 100%; max-width: 480px; border: .5px solid var(--card-border);
   box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto;
-  animation: modalIn .35s var(--ease);
+  animation: modalIn .45s var(--spring);
 }
 .modal-title { font-size: 19px; font-weight: 700; margin-bottom: 18px; color: var(--g900); letter-spacing: -.02em; }
 .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
@@ -395,11 +486,28 @@ select.form-control {
 .section-header h3 { font-size: 16px; font-weight: 600; color: var(--g900); letter-spacing: -.015em; }
 
 /* ── SYNC INDICATOR ───────────────────────────────────────────── */
-.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--e5); animation: pulse 2s infinite; }
-.sync-dot.syncing { background: var(--a5); animation: spin .8s linear infinite; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--e5); position: relative; flex-shrink: 0; }
+/* A halo ripple instead of the whole dot blinking -- calmer, and it
+   reads as "live" rather than "warning". */
+.sync-dot::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  border: 1.5px solid var(--e5); animation: halo 2.4s var(--ease-out) infinite;
+}
+.sync-dot.syncing { background: var(--a5); }
+.sync-dot.syncing::after { border-color: var(--a5); animation-duration: 1s; }
+
+/* ── BOOT / LOADING ───────────────────────────────────────────── */
+.boot { display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg); }
+.boot-inner { text-align: center; animation: riseIn .5s var(--ease-out) both; }
+.boot-spinner {
+  width: 30px; height: 30px; margin: 0 auto; border-radius: 50%;
+  border: 2.5px solid var(--fill); border-top-color: var(--i5);
+  animation: spin .7s linear infinite;
+}
+.boot p { color: var(--muted); margin-top: 14px; font-size: 14px; }
 
 /* ── CHAT ─────────────────────────────────────────────────────── */
-.chat-msg { display: flex; margin-bottom: 12px; animation: fadeIn .25s; }
+.chat-msg { display: flex; margin-bottom: 12px; animation: bubbleIn .4s var(--spring); }
 .chat-msg.user { justify-content: flex-end; }
 .chat-bubble { max-width: 85%; padding: 10px 15px; border-radius: 20px; font-size: 14px; line-height: 1.55; }
 .chat-msg.user .chat-bubble { background: var(--i5); color: #fff; border-bottom-right-radius: 6px; }
@@ -436,12 +544,15 @@ select.form-control {
      reliably tappable even right at the edge of the safe area. */
   min-width: 44px; min-height: 44px;
   display: flex; align-items: center; justify-content: center;
+  transition: transform .4s var(--spring), opacity .2s;
 }
+.hamburger:active { transform: scale(.88); opacity: .6; transition-duration: .08s; }
 .mobile-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,.4); z-index: 99;
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
 }
+.mobile-overlay.open { animation: overlayIn .3s ease; }
 
 @media (max-width: 768px) {
   :root { --sidebar-width: 0px; }
@@ -501,6 +612,23 @@ select.form-control {
   .grid-auto { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
   .card { padding: 16px 16px; }
 
+  /* Modals become iOS-style bottom sheets: anchored to the bottom
+     edge, rounded only on top, with a grab handle -- the shape a
+     phone user expects for a dialog, and it puts the controls within
+     thumb reach instead of floating mid-screen. */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    max-width: 100%; max-height: 92vh;
+    border-radius: 22px 22px 0 0; border-bottom: none;
+    padding: 12px 20px calc(22px + env(safe-area-inset-bottom));
+    animation: sheetIn .45s var(--ease-out);
+  }
+  .modal::before {
+    content: ''; display: block; width: 38px; height: 5px;
+    border-radius: 3px; background: var(--g300);
+    margin: 0 auto 16px;
+  }
+
   /* Bottom nav for mobile */
   .bottom-nav {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0;
@@ -520,10 +648,12 @@ select.form-control {
     flex: 1; display: flex; flex-direction: column; align-items: center;
     justify-content: center; gap: 3px;
     background: none; border: none; color: var(--g500); font-size: 10px; font-weight: 500;
-    min-height: 44px; transition: color .15s;
+    min-height: 44px; transition: color .2s;
   }
   .bottom-nav-item.active { color: var(--i5); }
-  .bottom-nav-item i { font-size: 19px; }
+  .bottom-nav-item i { font-size: 19px; transition: transform .45s var(--spring); }
+  .bottom-nav-item.active i { transform: translateY(-2px) scale(1.12); }
+  .bottom-nav-item:active i { transform: scale(.88); transition-duration: .09s; }
 }
 @media (min-width: 769px) {
   .bottom-nav { display: none; }
@@ -531,11 +661,15 @@ select.form-control {
 }
 
 /* ── ANIMATIONS ──────────────────────────────────────────────── */
+@keyframes riseIn    { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn    { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bubbleIn  { from { opacity: 0; transform: translateY(8px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes modalIn   { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes modalIn   { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sheetIn   { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes spin      { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes pulse     { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes halo      { 0% { transform: scale(.7); opacity: .9; } 70%, 100% { transform: scale(2.1); opacity: 0; } }
 @keyframes bounce    { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes slideIn   { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
@@ -555,3 +689,4 @@ select.form-control {
 .w-full { width: 100%; }
 .divider { border: none; border-top: .5px solid var(--sep); margin: 16px 0; }
 .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tnum { font-variant-numeric: tabular-nums; }

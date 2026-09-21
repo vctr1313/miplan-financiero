@@ -305,7 +305,7 @@ export default function Settings() {
           {fixedExpenses.length === 0 ? (
             <div className="text-sm text-muted text-center" style={{ padding: 14 }}>Sin gastos fijos aún.</div>
           ) : fixedExpenses.map(f => (
-            <div key={f.id} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '1px solid var(--g100)' }}>
+            <div key={f.id} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '.5px solid var(--sep)' }}>
               <span style={{ fontSize: 17 }}>{f.icon}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{f.name}</span>
               <span className="text-xs text-muted">{f.categories?.name}</span>
@@ -322,7 +322,7 @@ export default function Settings() {
         <div className="section-header"><h3>% recomendados <span className="badge badge-indigo">Solo lectura</span></h3></div>
         <p className="text-xs text-muted mb-2">Referencia (regla 50/30/20 adaptada). Para cambiar tu distribución ve a Presupuesto.</p>
         {DEFAULT_REFERENCE.map(c => (
-          <div key={c.id} className="flex items-center gap-2" style={{ padding: '7px 0', borderBottom: '1px solid var(--g100)' }}>
+          <div key={c.id} className="flex items-center gap-2" style={{ padding: '7px 0', borderBottom: '.5px solid var(--sep)' }}>
             <span>{c.icon}</span>
             <span style={{ flex: 1, fontSize: 13 }}>{c.name}</span>
             <span className={`badge ${c.type === 'saving' ? 'badge-green' : c.type === 'pot' ? 'badge-amber' : 'badge-gray'}`}>{c.defPct}%</span>

@@ -92,7 +92,7 @@ export default function CycleHistory() {
             {cycleStats.map((cs, i) => {
               const rate = calcSavingsRate(cs.stats.income, cs.stats.expenses)
               return (
-                <tr key={i} style={{ borderBottom: '1px solid var(--g100)' }}>
+                <tr key={i} style={{ borderBottom: '.5px solid var(--sep)' }}>
                   <td style={tdStyle}>{cycleLabel(cs.cycle)}</td>
                   <td style={tdStyle}>{cs.cycle.userName || '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--e5)' }}>{fmt(cs.stats.income)}</td>

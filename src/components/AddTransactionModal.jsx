@@ -269,7 +269,7 @@ export default function AddTransactionModal({ onClose, onSaved }) {
                         <div
                           key={t.id}
                           onClick={() => { setLinkedExpenseId(t.id); setExpenseSearch('') }}
-                          style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--g100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                          style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '.5px solid var(--sep)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
                           onMouseEnter={e => e.currentTarget.style.background = 'var(--g50)'}
                           onMouseLeave={e => e.currentTarget.style.background = ''}
                         >

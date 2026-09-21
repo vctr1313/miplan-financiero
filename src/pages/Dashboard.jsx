@@ -6,6 +6,7 @@ import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catB
 import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
+import AnimatedNumber from '../components/AnimatedNumber'
 
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh } = useApp()
@@ -136,12 +137,12 @@ export default function Dashboard() {
       <div className="grid-4 mb-4">
         <div className="stat-card green">
           <div className="label"><i className="fa fa-arrow-down" style={{ color: 'var(--e5)' }} /> Ingresos</div>
-          <div className="value text-green">{fmt(stats.income)}</div>
+          <div className="value text-green"><AnimatedNumber value={stats.income} format={fmt} /></div>
           <div className="sub">Este ciclo</div>
         </div>
         <div className="stat-card red">
           <div className="label"><i className="fa fa-arrow-up" style={{ color: 'var(--r5)' }} /> Gastos</div>
-          <div className="value text-red">{fmt(stats.netExpenses)}</div>
+          <div className="value text-red"><AnimatedNumber value={stats.netExpenses} format={fmt} /></div>
           <div className="sub">
             Este ciclo{stats.reimbursements > 0 && <span style={{ marginLeft: 4, color: 'var(--e5)' }}>(-{fmt(stats.reimbursements)} devuelto)</span>}
             {expenseDeltaPct !== null && (
@@ -153,12 +154,12 @@ export default function Dashboard() {
         </div>
         <div className="stat-card indigo">
           <div className="label"><i className="fa fa-scale-balanced" style={{ color: 'var(--i5)' }} /> Balance</div>
-          <div className="value" style={{ color: stats.balance >= 0 ? 'var(--e5)' : 'var(--r5)' }}>{fmt(stats.balance)}</div>
+          <div className="value" style={{ color: stats.balance >= 0 ? 'var(--e5)' : 'var(--r5)' }}><AnimatedNumber value={stats.balance} format={fmt} /></div>
           <div className="sub">Ingreso − Gasto</div>
         </div>
         <div className="stat-card amber">
           <div className="label"><i className="fa fa-wallet" style={{ color: 'var(--a5)' }} /> Disponible</div>
-          <div className="value text-amber">{fmt(stats.available)}</div>
+          <div className="value text-amber"><AnimatedNumber value={stats.available} format={fmt} /></div>
           <div className="sub">Tras fijos ({fmtShort(stats.fxTotal)}) y ahorro ({fmtShort(stats.savingAmt)})</div>
         </div>
       </div>
@@ -182,7 +183,7 @@ export default function Dashboard() {
             const pct = barTotal > 0 ? Math.min(100, spent / barTotal * 100) : (potNeg ? 100 : 0)
             const over = isPot ? potNeg : (spent > budget && budget > 0)
             return (
-              <div key={c.id} className="flex items-center gap-2" style={{ padding: '9px 0', borderBottom: '1px solid var(--g100)' }}>
+              <div key={c.id} className="flex items-center gap-2" style={{ padding: '9px 0', borderBottom: '.5px solid var(--sep)' }}>
                 <div style={{ width: 33, height: 33, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: c.color + '22', color: c.color, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>{c.name}</div>
@@ -215,7 +216,7 @@ export default function Dashboard() {
         <h3>🏠 Meta: Mi Primera Casa</h3>
         <div className="flex items-center gap-3 mt-2" style={{ flexWrap: 'wrap' }}>
           <div>
-            <div className="house-goal-amount">{fmtShort(houseCalc.totalSaved || 0)}</div>
+            <div className="house-goal-amount"><AnimatedNumber value={houseCalc.totalSaved || 0} format={fmtShort} /></div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.52)' }}>de {fmtShort(houseCalc.entryTarget || 0)} para la entrada</div>
           </div>
           <div style={{ flex: 1, minWidth: 120 }}>

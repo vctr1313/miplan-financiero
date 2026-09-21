@@ -127,7 +127,7 @@ export default function EditTransactionModal({ tx, onClose, onSaved }) {
                   <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, maxHeight: 200, overflowY: 'auto', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', marginTop: 2 }}>
                     {filteredExpenses.slice(0, 10).map(t => (
                       <div key={t.id} onClick={() => { setLinkedExpenseId(t.id); setExpenseSearch('') }}
-                        style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--g100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                        style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '.5px solid var(--sep)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--g50)'}
                         onMouseLeave={e => e.currentTarget.style.background = ''}>
                         <div style={{ flex: 1, minWidth: 0 }}>

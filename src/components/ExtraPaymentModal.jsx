@@ -264,7 +264,7 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
           ) : (
             <div style={{ marginBottom: 16 }}>
               {eligible.map(cat => (
-                <div key={cat.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--g100)' }}>
+                <div key={cat.id} style={{ padding: '8px 0', borderBottom: '.5px solid var(--sep)' }}>
                   <div className="flex items-center gap-2">
                     <span style={{ fontSize: 18, width: 26 }}>{cat.icon}</span>
                     <span style={{ flex: 1, fontSize: 13.5 }}>

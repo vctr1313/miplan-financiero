@@ -32,10 +32,10 @@ export default function Login() {
   // form (which would look like "it kicked me back to login").
   if (appLoading) {
     return (
-      <div style={pageStyle}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 32, animation: 'spin 1s linear infinite', display: 'inline-block' }}>⚙️</div>
-          <p style={{ color: 'var(--muted, #6b7280)', marginTop: 12, fontSize: 14 }}>Completando inicio de sesión…</p>
+      <div className="boot">
+        <div className="boot-inner">
+          <div className="boot-spinner" />
+          <p>Completando inicio de sesión…</p>
         </div>
       </div>
     )

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../App'
 import { updateHouseGoal } from '../lib/supabase'
 import { fmt, fmtShort, calcHouseProgress, simulateMortgage, getPartnerContribution } from '../lib/finance'
+import AnimatedNumber from '../components/AnimatedNumber'
 import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
@@ -147,7 +148,7 @@ export default function House() {
         <h3>Tu progreso hacia la casa</h3>
         <div className="flex items-center gap-3 mt-2" style={{ flexWrap: 'wrap' }}>
           <div>
-            <div className="house-goal-amount">{fmtShort(houseCalc.totalSaved || 0)}</div>
+            <div className="house-goal-amount"><AnimatedNumber value={houseCalc.totalSaved || 0} format={fmtShort} /></div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.52)' }}>de {fmtShort(houseCalc.entryTarget || 0)} para la entrada</div>
             <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{Math.round(houseCalc.pct || 0)}% del objetivo</div>
           </div>

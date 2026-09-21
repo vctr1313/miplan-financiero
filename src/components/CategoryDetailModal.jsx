@@ -82,7 +82,7 @@ function buildPotLedger({ category, salary, cycles, transactions, pctHistory }) 
 
 function LedgerRow({ label, dateLabel, delta, afterLabel, afterValue, prefix }) {
   return (
-    <div className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '1px solid var(--g100)' }}>
+    <div className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '.5px solid var(--sep)' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 500 }}>{prefix}{label}</div>
         <div className="text-xs text-muted">{dateLabel}</div>
