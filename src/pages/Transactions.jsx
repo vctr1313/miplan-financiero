@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import { useApp } from '../App'
-import { deleteTransaction } from '../lib/supabase'
+import { deleteTransaction, deleteSplitGroup } from '../lib/supabase'
 import AddTransactionModal from '../components/AddTransactionModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import TxRow from '../components/TxRow'
+import { splitGroups } from '../lib/split'
 import EmptyState from '../components/EmptyState'
 import { toLocalISODate } from '../lib/finance'
 
@@ -84,15 +85,25 @@ export default function Transactions() {
     return { reimburseMap, txById }
   }, [transactions])
 
+  const splitInfo = useMemo(() => splitGroups(transactions), [transactions])
+
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Eliminar?')) return
-    // Optimistic: the row goes immediately; put it back if the server
+    const tx = transactions.find(t => t.id === id)
+    const group = tx?.split_group ? transactions.filter(t => t.split_group === tx.split_group) : null
+    // A split purchase goes as a whole: deleting one part alone would
+    // leave the ticket's other categories orphaned and the total wrong.
+    const question = group && group.length > 1
+      ? `Esta compra está repartida en ${group.length} categorías. ¿Eliminar las ${group.length} partes?`
+      : '¿Eliminar?'
+    if (!window.confirm(question)) return
+    // Optimistic: the rows go immediately; put them back if the server
     // refuses.
-    const restore = removeTransactionLocally(id)
+    const restores = (group || [tx || { id }]).map(t => removeTransactionLocally(t.id))
     try {
-      await deleteTransaction(id)
+      if (group) await deleteSplitGroup(tx.split_group)
+      else await deleteTransaction(id)
     } catch (err) {
-      restore()
+      restores.forEach(r => r())
       alert('No se pudo eliminar: ' + err.message)
     }
     refresh()
@@ -183,6 +194,7 @@ export default function Transactions() {
                 showUser={uniqueUsers.length > 1}
                 reimburseMap={reimburseMap}
                 txById={txById}
+                splitInfo={splitInfo}
               />
             ))}
             {hasMore && (

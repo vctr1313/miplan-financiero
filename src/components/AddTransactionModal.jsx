@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useApp } from '../App'
-import { addTransaction } from '../lib/supabase'
+import { addTransaction, deleteTransaction } from '../lib/supabase'
+import { validateSplit, splitRemaining } from '../lib/split'
 import { autoFocusOnPointer } from '../lib/ui'
 import AmountPad, { formatAmountDisplay } from './AmountPad'
 import ExtraPaymentModal from './ExtraPaymentModal'
@@ -28,6 +29,23 @@ export default function AddTransactionModal({ onClose, onSaved }) {
   // Touch devices get the in-sheet keypad instead of the system keyboard.
   const [usePad] = useState(() => !autoFocusOnPointer())
   const [padOpen, setPadOpen] = useState(true)
+  // Splitting one purchase across categories (expenses only).
+  const [splitMode, setSplitMode] = useState(false)
+  const [splitLines, setSplitLines] = useState([])
+  const newLine = (categoryId = '') => ({ key: Math.random().toString(36).slice(2), categoryId, amount: '' })
+  const startSplit = () => {
+    setSplitLines([{ ...newLine(categoryId), amount: amount || '' }, newLine()])
+    setSplitMode(true)
+  }
+  const updateLine = (key, patch) => setSplitLines(ls => ls.map(l => (l.key === key ? { ...l, ...patch } : l)))
+  const removeLine = (key) => setSplitLines(ls => ls.filter(l => l.key !== key))
+  const fillRest = (key) => {
+    setSplitLines(ls => {
+      const others = ls.filter(l => l.key !== key)
+      const rest = splitRemaining(amount, others)
+      return ls.map(l => (l.key === key ? { ...l, amount: rest > 0 ? rest.toFixed(2) : '' } : l))
+    })
+  }
   const [date, setDate] = useState(toLocalISODate(new Date()))
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -131,6 +149,34 @@ export default function AddTransactionModal({ onClose, onSaved }) {
       return
     }
 
+    if (type === 'expense' && splitMode) {
+      const problem = validateSplit(amount, splitLines)
+      if (problem) { setError(problem); return }
+      setSaving(true)
+      const group = window.crypto.randomUUID()
+      const created = []
+      try {
+        for (const l of splitLines) {
+          const row = await addTransaction({
+            type: 'expense', amount: parseFloat(l.amount), date,
+            description: description.trim(), notes: notes.trim() || null,
+            category_id: l.categoryId, is_salary: false, split_group: group,
+          })
+          created.push(row.id)
+        }
+        await refresh()
+        onSaved?.()
+        onClose()
+      } catch (err) {
+        // All parts or none: undo the ones already saved.
+        await Promise.all(created.map(id => deleteTransaction(id).catch(() => {})))
+        setError(err.message)
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
@@ -221,10 +267,59 @@ export default function AddTransactionModal({ onClose, onSaved }) {
             <input className="form-control" value={description} onChange={e => setDescription(e.target.value)} placeholder="Ej: Gasolina, cena cumpleaños…" />
           </div>
 
-          {type === 'expense' && (
+          {type === 'expense' && splitMode && (
+            <div className="form-group split">
+              <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                <label style={{ margin: 0 }}>Repartir entre categorías</label>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => { setSplitMode(false); setError('') }}>
+                  <i className="fa fa-xmark" /> Una sola
+                </button>
+              </div>
+              {splitLines.map((l, idx) => (
+                <div key={l.key} className="split-line">
+                  <select className="form-control" value={l.categoryId} onChange={e => updateLine(l.key, { categoryId: e.target.value })}>
+                    <option value="">Categoría…</option>
+                    {expenseCats.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                  </select>
+                  <input
+                    className="form-control split-amount" type="number" inputMode="decimal" step="0.01" min="0"
+                    placeholder="0,00" value={l.amount} onChange={e => updateLine(l.key, { amount: e.target.value })}
+                  />
+                  <button type="button" className="btn btn-icon btn-ghost" title="El resto" aria-label="Poner el resto aquí" onClick={() => fillRest(l.key)}>
+                    <i className="fa fa-equals" />
+                  </button>
+                  {splitLines.length > 2 && (
+                    <button type="button" className="btn btn-icon btn-ghost" aria-label="Quitar parte" onClick={() => removeLine(l.key)}>
+                      <i className="fa fa-minus" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <div className="split-foot">
+                <button type="button" className="btn btn-sm btn-outline" onClick={() => setSplitLines(ls => [...ls, newLine()])}>
+                  <i className="fa fa-plus" /> Otra categoría
+                </button>
+                {(() => {
+                  const rest = splitRemaining(amount, splitLines)
+                  return (
+                    <span className={`split-rest ${Math.abs(rest) < 0.005 ? 'ok' : rest < 0 ? 'over' : ''}`}>
+                      {Math.abs(rest) < 0.005 ? <><i className="fa fa-check" /> Cuadra</> : rest > 0 ? `Faltan ${rest.toFixed(2).replace('.', ',')} €` : `Sobran ${(-rest).toFixed(2).replace('.', ',')} €`}
+                    </span>
+                  )
+                })()}
+              </div>
+            </div>
+          )}
+
+          {type === 'expense' && !splitMode && (
             <div className="form-group">
-              <label>Categoría *</label>
-              <select className="form-control" value={categoryId} onChange={e => { setCategoryId(e.target.value); setAiSuggestion(null) }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                <label style={{ margin: 0 }}>Categoría *</label>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={startSplit}>
+                  <i className="fa fa-code-branch" /> Repartir
+                </button>
+              </div>
+              <select className="form-control" value={categoryId} onChange={e => { setCategoryId(e.target.value); setAiSuggestion(null) }} aria-label="Categoría">
                 <optgroup label="Gastos">
                   {expenseCats.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                 </optgroup>

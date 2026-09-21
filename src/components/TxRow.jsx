@@ -10,7 +10,7 @@ import { fmt } from '../lib/finance'
 // scrolling to the browser, which fires pointercancel the moment it
 // takes over -- so a scroll that starts on a row never gets hijacked
 // into a half-swipe. Direction is locked after the first ~8px.
-export default function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, txById }) {
+export default function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, txById, splitInfo }) {
   const cat = tx.categories
   const isNeg = tx.type === 'expense' || tx.type === 'pot-withdrawal'
   const icon = tx.type === 'income' ? '💰' : tx.type === 'transfer' ? '↩️' : cat?.icon || '💸'
@@ -100,6 +100,11 @@ export default function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, tx
           <div className="tx-meta">
             {dateStr} · {cat?.name || (tx.type === 'income' ? 'Ingreso' : tx.type === 'transfer' ? 'Reembolso' : 'Movimiento')}
             {showUser && userName && <span> · {userName}</span>}
+            {tx.split_group && splitInfo?.[tx.split_group] && (
+              <span className="tx-split-tag" title="Parte de una compra repartida">
+                <i className="fa fa-code-branch" /> parte de {fmt(splitInfo[tx.split_group].total)}
+              </span>
+            )}
             {linkedExpense && <span style={{ color: 'var(--i5)' }}> · para: {linkedExpense.description}</span>}
             {reimbursed > 0 && (
               <span style={{ color: 'var(--e6)' }}> · devuelto {fmt(reimbursed)} · neto {fmt(tx.amount - reimbursed)}</span>

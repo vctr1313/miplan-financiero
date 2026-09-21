@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
-import { deleteTransaction } from '../lib/supabase'
+import { deleteTransaction, deleteSplitGroup } from '../lib/supabase'
 import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution, calcPotBalance, toLocalISODate } from '../lib/finance'
 import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
@@ -13,6 +13,7 @@ import { pendingRecap, markRecapSeen } from '../lib/recap'
 import ActivityRings from '../components/ActivityRings'
 import EmptyState from '../components/EmptyState'
 import TxRow from '../components/TxRow'
+import { splitGroups } from '../lib/split'
 
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh, removeTransactionLocally, loading } = useApp()
@@ -72,6 +73,7 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 6)
 
+  const splitInfo = useMemo(() => splitGroups(transactions), [transactions])
   const reimburseMap = {}
   const txById = {}
   transactions.forEach(t => {
@@ -94,14 +96,22 @@ export default function Dashboard() {
   }, [cycle?.start, stats.expenses])
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Eliminar este movimiento?')) return
-    // Optimistic: the row goes immediately; put it back if the server
+    const tx = transactions.find(t => t.id === id)
+    const group = tx?.split_group ? transactions.filter(t => t.split_group === tx.split_group) : null
+    // A split purchase goes as a whole: deleting one part alone would
+    // leave the ticket's other categories orphaned and the total wrong.
+    const question = group && group.length > 1
+      ? `Esta compra está repartida en ${group.length} categorías. ¿Eliminar las ${group.length} partes?`
+      : '¿Eliminar este movimiento?'
+    if (!window.confirm(question)) return
+    // Optimistic: the rows go immediately; put them back if the server
     // refuses.
-    const restore = removeTransactionLocally(id)
+    const restores = (group || [tx || { id }]).map(t => removeTransactionLocally(t.id))
     try {
-      await deleteTransaction(id)
+      if (group) await deleteSplitGroup(tx.split_group)
+      else await deleteTransaction(id)
     } catch (err) {
-      restore()
+      restores.forEach(r => r())
       alert('No se pudo eliminar: ' + err.message)
     }
     refresh()
@@ -257,7 +267,7 @@ export default function Dashboard() {
           </div>
           {recentTx.length === 0 ? (
             <EmptyState art="receipt" title="Aún no hay movimientos" text="Añade tu primer gasto o tu nómina y empezará a llenarse." />
-          ) : recentTx.map(t => <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser reimburseMap={reimburseMap} txById={txById} />)}
+          ) : recentTx.map(t => <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser reimburseMap={reimburseMap} txById={txById} splitInfo={splitInfo} />)}
         </div>
       </div>
 

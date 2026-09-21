@@ -1090,3 +1090,14 @@ input[type="checkbox"]:active { transform: scale(.88); }
 .recap-val { font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
 tr.tappable { cursor: pointer; }
 tr.tappable:active { transform: none; }
+
+/* ── SPLIT EXPENSES ───────────────────────────────────────────── */
+.split-line { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; animation: riseIn .3s var(--ease-out) both; }
+.split-line select { flex: 1; min-width: 0; }
+.split-amount { width: 104px; flex-shrink: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.split-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.split-rest { font-size: 13px; font-weight: 600; color: var(--a6); font-variant-numeric: tabular-nums; transition: color .2s; }
+.split-rest.ok { color: var(--e6); }
+.split-rest.over { color: var(--r5); }
+.tx-split-tag { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--i5); background: var(--accent-tint); padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
+.tx-split-tag i { font-size: 9.5px; margin-right: 2px; }

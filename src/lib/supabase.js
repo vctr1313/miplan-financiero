@@ -263,6 +263,13 @@ export const deleteTransaction = async (id) => {
   markDirty('transactions')
 }
 
+// Deletes every part of a purchase that was split across categories.
+export const deleteSplitGroup = async (groupId) => {
+  const { error } = await supabase.from('transactions').delete().eq('split_group', groupId)
+  if (error) throw error
+  markDirty('transactions')
+}
+
 export const updateTransaction = async (id, patch) => {
   const { data, error } = await supabase
     .from('transactions')
