@@ -30,10 +30,10 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
   const { categories, houseGoal, refresh } = useApp()
   const [sourceId, setSourceId] = useState('')
   const savingCats = useMemo(() => categories.filter(c => c.type === 'saving'), [categories])
-  // Same house/invest name-matching heuristic suggestedSavingTargets
-  // uses below -- it's the only mapping that exists today from a
-  // saving-type category to its house_goals field.
-  const bucketOf = (cat) => cat.name.toLowerCase().includes('casa') ? 'house' : 'invest'
+  // Which house_goals total this saving category feeds. Set explicitly
+  // per category (Presupuesto -> editar categoría); the name fallback
+  // is only for a row created before that column existed.
+  const bucketOf = (cat) => cat.saving_bucket || (cat.name.toLowerCase().includes('casa') ? 'house' : 'invest')
   const bucketBalance = (cat) => bucketOf(cat) === 'house' ? (houseGoal?.my_saved || 0) : (houseGoal?.invest_saved || 0)
   const sourceCat = isWithdrawal ? savingCats.find(c => c.id === sourceId) : null
   const sourceBucket = sourceCat ? bucketOf(sourceCat) : null
@@ -44,17 +44,15 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
     [categories, isWithdrawal, sourceId]
   )
 
-  // Best-effort starting suggestion for which house_goals field each
-  // saving category maps to, based on its name -- purely a default to
-  // pre-fill the dropdown below, never used directly to decide where
-  // money goes. The user can change it freely per category, and
-  // handleSubmit requires it to be explicitly set either way.
+  // Pre-fills the per-row destination dropdown from each category's
+  // own configured bucket. Still only a default -- the user can
+  // override it for this one distribution, and handleSubmit requires
+  // it to be set either way.
   const suggestedSavingTargets = useMemo(() => {
     const out = {}
-    eligible.filter(c => c.type === 'saving').forEach(c => {
-      out[c.id] = c.name.toLowerCase().includes('casa') ? 'house' : 'invest'
-    })
+    eligible.filter(c => c.type === 'saving').forEach(c => { out[c.id] = bucketOf(c) })
     return out
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eligible])
 
   // splits: { [categoryId]: '123.45' as typed string }

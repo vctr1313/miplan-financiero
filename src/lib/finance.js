@@ -116,7 +116,14 @@ export const calcPotBalance = ({ category, salary, cycles, transactions, pctHist
 
   getIncludedCycles(category, cycles, asOfDate).forEach(cy => {
     const pct = getPctAtDate(pctHistory, category.id, cy.end, category.user_pct)
-    balance += salary * pct / 100
+    // Each cycle contributes a share of the salary THAT cycle actually
+    // received (cy.salary is the amount of the nómina that opened it),
+    // not today's configured salary. Using the live figure meant a
+    // raise silently rewrote every past cycle's contribution -- the
+    // same retroactive-rewrite class of bug as using today's % for
+    // closed cycles. Falls back to the passed-in salary for a cycle
+    // with no recorded amount.
+    balance += (cy.salary || salary) * pct / 100
   })
 
   // Build a lookup so linked reimbursements (transfers) can be matched

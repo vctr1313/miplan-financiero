@@ -55,8 +55,11 @@ function buildPotLedger({ category, salary, cycles, transactions, pctHistory }) 
     const pct = getPctAtDate(pctHistory, category.id, cy.end, category.user_pct)
     return {
       id: `cycle-${cy.index}`, date: cy.start, synthetic: true,
-      label: `Asignación del ciclo (${pct}% del sueldo)`,
-      delta: salary * pct / 100,
+      label: `Asignación del ciclo (${pct}% de ${fmt(cy.salary || salary)})`,
+      // Same per-cycle salary as calcPotBalance -- the two must agree
+      // or the ledger's final running total stops matching the pot's
+      // headline figure.
+      delta: (cy.salary || salary) * pct / 100,
     }
   })
 

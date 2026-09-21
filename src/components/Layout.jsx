@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../App'
 import { signOut } from '../lib/supabase'
 import { fmt } from '../lib/finance'
+import { isDarkActive, applyTheme, useSystemThemeSync } from '../lib/ui'
 import BalanceReviewModal from './BalanceReviewModal'
 import '../styles/global.css'
 
@@ -25,7 +26,9 @@ export default function Layout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
+  // The theme is already on <html> before React mounts (inline script
+  // in index.html), so this just reads it rather than deciding it.
+  const [dark, setDark] = useState(isDarkActive)
 
   // One-time prompt (see BalanceReviewModal) for existing users whose
   // pots already have real transaction history -- a brand-new pot
@@ -34,9 +37,10 @@ export default function Layout() {
   const potsWithHistory = categories.filter(c => c.type === 'pot' && transactions.some(t => t.category_id === c.id))
   const showBalanceReview = !loading && profile && !profile.balances_reviewed_at && potsWithHistory.length > 0
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
-  }, [dark])
+  // Follow the system until the user picks a side explicitly.
+  useSystemThemeSync(setDark)
+
+  const toggleTheme = () => setDark(applyTheme(dark ? 'light' : 'dark'))
 
   const go = (path) => { navigate(path); setSidebarOpen(false) }
 
@@ -71,7 +75,7 @@ export default function Layout() {
 
       {/* Dark mode toggle */}
       <div className="sidebar-bottom">
-        <div className="sb-row" onClick={() => setDark(d => !d)}>
+        <div className="sb-row" onClick={toggleTheme}>
           <span className="sb-label">
             <i className="fa fa-moon" />
             Modo oscuro

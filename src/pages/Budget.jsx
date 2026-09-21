@@ -15,6 +15,7 @@ export default function Budget() {
   const [reassignFrom, setReassignFrom] = useState(null)
   const [detailCat, setDetailCat] = useState(null)
   const [adjustingCat, setAdjustingCat] = useState(null)
+  const [showRebalance, setShowRebalance] = useState(false)
   // Local draft values for the euro-amount inputs, keyed by category id.
   // These exist separately from c.user_pct (the server-derived value)
   // specifically so the input reflects what the user is actively
@@ -174,9 +175,16 @@ export default function Budget() {
       <div className="card mb-4">
         <div className="section-header">
           <h3>Porcentajes</h3>
-          <span className={`badge ${roundedTotal === 100 ? 'badge-green' : roundedTotal > 100 ? 'badge-red' : 'badge-amber'}`}>
-            Total: {roundedTotal}%
-          </span>
+          <div className="flex items-center gap-2">
+            {roundedTotal !== 100 && totalPct > 0 && (
+              <button className="btn btn-sm btn-outline" onClick={() => setShowRebalance(true)}>
+                <i className="fa fa-scale-balanced" /> Equilibrar a 100%
+              </button>
+            )}
+            <span className={`badge ${roundedTotal === 100 ? 'badge-green' : roundedTotal > 100 ? 'badge-red' : 'badge-amber'}`}>
+              Total: {roundedTotal}%
+            </span>
+          </div>
         </div>
         {categories.map(c => {
           // The stored % can carry up to 8 decimal places now (see
@@ -255,6 +263,15 @@ export default function Budget() {
       {adjustingCat && (
         <AdjustPotBalanceModal category={adjustingCat} onClose={() => setAdjustingCat(null)} />
       )}
+
+      {showRebalance && (
+        <RebalanceModal
+          categories={categories}
+          salary={salary}
+          totalPct={totalPct}
+          onClose={() => setShowRebalance(false)}
+        />
+      )}
     </div>
   )
 }
@@ -266,6 +283,9 @@ function CategoryModal({ category, onClose, salary }) {
   const [type, setType] = useState(category?.type || 'normal')
   const [color, setColor] = useState(category?.color || '#007aff')
   const [pct, setPct] = useState(category?.user_pct ?? 5)
+  // Which of the two running totals in Mi Casa a saving category
+  // feeds. Only meaningful for type='saving'.
+  const [savingBucket, setSavingBucket] = useState(category?.saving_bucket || 'house')
   const [saving, setSaving] = useState(false)
 
   // Local draft for the € input, same reasoning as Budget()'s
@@ -302,6 +322,7 @@ function CategoryModal({ category, onClose, salary }) {
         household_id: profile.household_id,
         name: name.trim(), icon, type, color,
         def_pct: parseFloat(pct), user_pct: parseFloat(pct),
+        saving_bucket: type === 'saving' ? savingBucket : null,
         sort_order: category?.sort_order ?? 99
       })
       await refresh()
@@ -331,6 +352,18 @@ function CategoryModal({ category, onClose, salary }) {
             <option value="saving">Ahorro / Inversión</option>
           </select>
         </div>
+        {type === 'saving' && (
+          <div className="form-group">
+            <label>Destino del ahorro</label>
+            <select className="form-control" value={savingBucket} onChange={e => setSavingBucket(e.target.value)}>
+              <option value="house">🏠 Meta de la casa</option>
+              <option value="invest">📈 Total invertido</option>
+            </select>
+            <div className="form-hint">
+              A cuál de los dos totales de <strong>Mi Casa</strong> suma lo que repartas en esta categoría.
+            </div>
+          </div>
+        )}
         <div className="form-group">
           <label>Color</label>
           <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 80, height: 36, padding: 2, borderRadius: 6, cursor: 'pointer' }} />
@@ -417,6 +450,95 @@ function ReassignModal({ fromCat, balance, categories, onClose }) {
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={handleConfirm} disabled={saving}>
             <i className="fa fa-arrow-right" /> Reasignar y eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Scales every category proportionally so the percentages add up to
+// exactly 100%. Proportional (rather than, say, dumping the remainder
+// on one category) is the only rule that preserves the relative
+// weighting the user already chose -- it answers "same plan, but
+// adding up" instead of quietly re-prioritising for them.
+function RebalanceModal({ categories, salary, totalPct, onClose }) {
+  const { refresh } = useApp()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const factor = totalPct > 0 ? 100 / totalPct : 0
+  const rows = categories.map(c => {
+    const from = parseFloat(c.user_pct) || 0
+    // 8 decimals, matching the column precision used everywhere else.
+    const to = Math.round(from * factor * 1e8) / 1e8
+    return { cat: c, from, to, clamped: to > 50 }
+  })
+  // 50 is the per-category cap the sliders enforce; if scaling would
+  // push anything past it the result wouldn't be reachable by hand
+  // either, so say so instead of silently producing a different total.
+  const anyClamped = rows.some(r => r.clamped)
+
+  const handleConfirm = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      for (const r of rows) {
+        if (Math.abs(r.to - r.from) < 1e-8) continue
+        await updateCategoryPct(r.cat.id, r.to)
+      }
+      await refresh()
+      onClose()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 480 }}>
+        <h3 className="modal-title">Equilibrar a 100%</h3>
+        <div className="alert alert-info">
+          <i className="fa fa-circle-info" />
+          <div>
+            Tus categorías suman <strong>{Math.round(totalPct * 100) / 100}%</strong>. Se ajustarán todas
+            en la misma proporción para llegar a 100%, manteniendo el peso relativo entre ellas.
+          </div>
+        </div>
+
+        {anyClamped && (
+          <div className="alert alert-warning">
+            <i className="fa fa-triangle-exclamation" />
+            <div>Alguna categoría superaría el máximo del 50%. Ajusta esas a mano antes de equilibrar.</div>
+          </div>
+        )}
+
+        <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+          {rows.map(r => (
+            <div key={r.cat.id} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '.5px solid var(--sep)' }}>
+              <span style={{ fontSize: 16, width: 24 }}>{r.cat.icon}</span>
+              <span style={{ flex: 1, fontSize: 13.5 }}>{r.cat.name}</span>
+              <span className="text-xs text-muted tnum">
+                {Math.round(r.from * 100) / 100}%
+                {salary > 0 && <> · {fmt(salary * r.from / 100)}</>}
+              </span>
+              <i className="fa fa-arrow-right text-xs" style={{ color: 'var(--g300)' }} />
+              <span className="tnum" style={{ fontSize: 13, fontWeight: 600, minWidth: 92, textAlign: 'right', color: r.clamped ? 'var(--r5)' : 'var(--text)' }}>
+                {Math.round(r.to * 100) / 100}%
+                {salary > 0 && <> · {fmt(salary * r.to / 100)}</>}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {error && <div className="alert alert-danger mt-2">{error}</div>}
+
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={handleConfirm} disabled={saving || anyClamped}>
+            <i className="fa fa-check" /> {saving ? 'Ajustando…' : 'Aplicar'}
           </button>
         </div>
       </div>

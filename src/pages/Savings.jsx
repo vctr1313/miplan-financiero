@@ -176,7 +176,8 @@ export default function Savings() {
               <div style={{ fontSize: 10.5, color: isNegative ? 'var(--r5)' : 'var(--muted)' }}>
                 {isPot
                   ? (isNegative ? `En negativo, se recupera con +${fmt(monthly)} cada ciclo` : `+${fmt(monthly)} cada ciclo`)
-                  : c.name.toLowerCase().includes('casa') ? '🏠 Para la casa' : '📈 Inversión'}
+                  : (c.saving_bucket || (c.name.toLowerCase().includes('casa') ? 'house' : 'invest')) === 'house'
+                    ? '🏠 Para la casa' : '📈 Inversión'}
               </div>
             </div>
           )

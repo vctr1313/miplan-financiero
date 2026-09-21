@@ -1,5 +1,55 @@
 import { useEffect } from 'react'
 
+// ── THEME ─────────────────────────────────────────────────────
+// Stored in localStorage rather than the profile, because the theme
+// has to be applied before React (and therefore before the profile
+// request) has run at all -- see the inline script in index.html.
+// 'light' | 'dark' | null, where null means "follow the system".
+const THEME_KEY = 'fp_theme'
+
+const systemPrefersDark = () =>
+  window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+
+export const getStoredTheme = () => {
+  try {
+    const v = localStorage.getItem(THEME_KEY)
+    return v === 'light' || v === 'dark' ? v : null
+  } catch { return null }
+}
+
+export const isDarkActive = () =>
+  document.documentElement.getAttribute('data-theme') === 'dark'
+
+export const applyTheme = (theme) => {
+  const dark = theme ? theme === 'dark' : systemPrefersDark()
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+  // Keep the browser/OS chrome (status bar, tab strip) in step with
+  // the app instead of leaving a light bar above a dark page.
+  document.querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', dark ? '#000000' : '#f5f5f7')
+  try {
+    if (theme) localStorage.setItem(THEME_KEY, theme)
+    else localStorage.removeItem(THEME_KEY)
+  } catch { /* private mode: the theme just won't persist */ }
+  return dark
+}
+
+// Follows the OS while the user hasn't made an explicit choice, so
+// the app flips with the system's own light/dark schedule.
+export function useSystemThemeSync(onChange) {
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
+    if (!mq) return
+    const handler = () => {
+      if (getStoredTheme()) return
+      document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light')
+      onChange?.(mq.matches)
+    }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [onChange])
+}
+
 // Only autofocus a field on pointer devices. On a phone, autofocus
 // pops the on-screen keyboard the instant a dialog opens, which
 // covers a bottom-anchored sheet before the user has even read it --

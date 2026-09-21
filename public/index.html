@@ -19,6 +19,21 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <title>Mi Plan Financiero</title>
+
+  <!-- Applies the saved theme before the app renders. Without this the
+       page paints light first and flashes to dark once React mounts,
+       since the stylesheet's default palette is the light one. Falls
+       back to the OS preference when nothing was ever chosen. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('fp_theme')
+        var dark = saved === 'dark' || (saved !== 'light' &&
+          window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+      } catch (e) { /* private mode / storage blocked: stay on light */ }
+    })()
+  </script>
 </head>
 <body>
   <noscript>Necesitas activar JavaScript para usar esta aplicación.</noscript>
