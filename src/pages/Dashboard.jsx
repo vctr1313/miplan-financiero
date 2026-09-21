@@ -241,7 +241,7 @@ function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, txById }) {
   const isNeg = tx.type === 'expense' || tx.type === 'pot-withdrawal'
   const cls = tx.type
   const icon = tx.type === 'income' ? '💰' : tx.type === 'transfer' ? '↩️' : cat?.icon || '💸'
-  const color = tx.type === 'income' ? '#10b981' : tx.type === 'transfer' ? '#6366f1' : cat?.color || '#888'
+  const color = tx.type === 'income' ? '#34c759' : tx.type === 'transfer' ? '#007aff' : cat?.color || '#888'
   const dateStr = new Date(tx.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
   const userName = tx.profiles?.name
 
@@ -256,9 +256,9 @@ function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, txById }) {
         <div className="tx-meta">
           {dateStr} · {cat?.name || (tx.type === 'income' ? 'Ingreso' : tx.type === 'transfer' ? 'Reembolso' : 'Movimiento')}
           {showUser && userName && <span> · {userName}</span>}
-          {linkedExpense && <span style={{ color: '#6366f1' }}> · para: {linkedExpense.description}</span>}
+          {linkedExpense && <span style={{ color: '#007aff' }}> · para: {linkedExpense.description}</span>}
           {reimbursed > 0 && (
-            <span style={{ color: '#10b981' }}> · ↩️ devuelto {fmt(reimbursed)} · neto {fmt(tx.amount - reimbursed)}</span>
+            <span style={{ color: '#34c759' }}> · ↩️ devuelto {fmt(reimbursed)} · neto {fmt(tx.amount - reimbursed)}</span>
           )}
         </div>
       </div>

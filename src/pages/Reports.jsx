@@ -13,8 +13,8 @@ export default function Reports() {
   const salary = profile?.salary || 0
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-  const gridColor = isDark ? '#2a2840' : '#f3f4f6'
-  const tickColor = isDark ? '#8884a8' : '#9ca3af'
+  const gridColor = isDark ? '#2c2c2e' : '#eeeef2'
+  const tickColor = isDark ? '#98989d' : '#8e8e93'
 
   // ── FIX: get transactions for a SPECIFIC calendar month, not accumulated ──
   const getMonthTx = useCallback((m, y) => transactions.filter(t => {
@@ -107,16 +107,16 @@ function MonthlyTab({ last6Months, monthlyData, gridColor, tickColor }) {
   const incomeChart = {
     labels,
     datasets: [
-      { label: 'Ingresos', data: monthlyData.map(d => d.income), backgroundColor: 'rgba(16,185,129,.4)', borderColor: '#10b981', borderWidth: 1.5 },
-      { label: 'Gastos', data: monthlyData.map(d => d.expenses), backgroundColor: 'rgba(244,63,94,.35)', borderColor: '#f43f5e', borderWidth: 1.5 },
+      { label: 'Ingresos', data: monthlyData.map(d => d.income), backgroundColor: 'rgba(52,199,89,.4)', borderColor: '#34c759', borderWidth: 1.5 },
+      { label: 'Gastos', data: monthlyData.map(d => d.expenses), backgroundColor: 'rgba(255,59,48,.35)', borderColor: '#ff3b30', borderWidth: 1.5 },
     ]
   }
   const balanceChart = {
     labels,
     datasets: [{
       label: 'Balance', data: monthlyData.map(d => d.balance),
-      backgroundColor: monthlyData.map(d => d.balance >= 0 ? 'rgba(16,185,129,.45)' : 'rgba(244,63,94,.4)'),
-      borderColor: monthlyData.map(d => d.balance >= 0 ? '#10b981' : '#f43f5e'),
+      backgroundColor: monthlyData.map(d => d.balance >= 0 ? 'rgba(52,199,89,.45)' : 'rgba(255,59,48,.4)'),
+      borderColor: monthlyData.map(d => d.balance >= 0 ? '#34c759' : '#ff3b30'),
       borderWidth: 1.5
     }]
   }
@@ -177,7 +177,7 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, curM, cur
 
   const pieData = {
     labels: catData.filter(c => c.spent > 0).map(c => c.name),
-    datasets: [{ data: catData.filter(c => c.spent > 0).map(c => c.spent), backgroundColor: catData.filter(c => c.spent > 0).map(c => c.color), borderWidth: 2, borderColor: isDark ? '#181727' : '#fff' }]
+    datasets: [{ data: catData.filter(c => c.spent > 0).map(c => c.spent), backgroundColor: catData.filter(c => c.spent > 0).map(c => c.color), borderWidth: 2, borderColor: isDark ? '#1c1c1e' : '#fff' }]
   }
 
   const monthLabel = new Date(curY, curM, 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' })
@@ -249,15 +249,15 @@ function SavingsTab({ monthlyData, last6Months, categories, salary, gridColor, t
 
   const savChart = {
     labels, datasets: [
-      { label: 'Ahorro real', data: savedLine, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.1)', fill: true, tension: .4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#6366f1' },
-      { label: 'Planificado', data: plannedLine, borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0 },
+      { label: 'Ahorro real', data: savedLine, borderColor: '#007aff', backgroundColor: 'rgba(0,122,255,.1)', fill: true, tension: .4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#007aff' },
+      { label: 'Planificado', data: plannedLine, borderColor: '#ff9500', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0 },
     ]
   }
   const rateChart = {
     labels, datasets: [{
       label: 'Tasa ahorro %', data: savRates,
-      backgroundColor: savRates.map(v => v >= 20 ? 'rgba(16,185,129,.5)' : v >= 10 ? 'rgba(245,158,11,.5)' : 'rgba(244,63,94,.4)'),
-      borderColor: savRates.map(v => v >= 20 ? '#10b981' : v >= 10 ? '#f59e0b' : '#f43f5e'), borderWidth: 1.5
+      backgroundColor: savRates.map(v => v >= 20 ? 'rgba(52,199,89,.5)' : v >= 10 ? 'rgba(245,158,11,.5)' : 'rgba(255,59,48,.4)'),
+      borderColor: savRates.map(v => v >= 20 ? '#34c759' : v >= 10 ? '#ff9500' : '#ff3b30'), borderWidth: 1.5
     }]
   }
 
@@ -297,8 +297,8 @@ function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickCol
   const annChart = {
     labels: months.map(m => m.label.slice(0, 3)),
     datasets: [
-      { label: 'Ingresos', data: monthData.map(d => d.income), backgroundColor: 'rgba(16,185,129,.4)', borderColor: '#10b981', borderWidth: 1.5 },
-      { label: 'Gastos', data: monthData.map(d => d.expenses), backgroundColor: 'rgba(244,63,94,.35)', borderColor: '#f43f5e', borderWidth: 1.5 },
+      { label: 'Ingresos', data: monthData.map(d => d.income), backgroundColor: 'rgba(52,199,89,.4)', borderColor: '#34c759', borderWidth: 1.5 },
+      { label: 'Gastos', data: monthData.map(d => d.expenses), backgroundColor: 'rgba(255,59,48,.35)', borderColor: '#ff3b30', borderWidth: 1.5 },
     ]
   }
 
@@ -310,7 +310,7 @@ function AnnualTab({ transactions, curY, setCurY, categories, gridColor, tickCol
   const yearCats = categories.filter(c => yearCatTotals[c.id] > 0).sort((a, b) => yearCatTotals[b.id] - yearCatTotals[a.id])
   const annPie = {
     labels: yearCats.map(c => c.icon + ' ' + c.name),
-    datasets: [{ data: yearCats.map(c => yearCatTotals[c.id]), backgroundColor: yearCats.map(c => c.color), borderWidth: 2, borderColor: isDark ? '#181727' : '#fff' }]
+    datasets: [{ data: yearCats.map(c => yearCatTotals[c.id]), backgroundColor: yearCats.map(c => c.color), borderWidth: 2, borderColor: isDark ? '#1c1c1e' : '#fff' }]
   }
 
   return (
@@ -376,12 +376,12 @@ function exportPDF({ monthlyData, last6Months, categories, salary, curM, curY, t
     const spent = txs.filter(t => t.category_id === c.id).reduce((s, t) => s + t.amount, 0)
     const budget = catBudget(c, salary, pctHistory, atDate)
     if (spent === 0 && budget === 0) return null
-    return `<tr><td>${c.icon} ${c.name}</td><td style="text-align:right">${fmt(spent)}</td><td style="text-align:right">${fmt(budget)}</td><td style="text-align:right;color:${spent > budget ? '#ef4444' : '#10b981'}">${fmt(spent - budget)}</td></tr>`
+    return `<tr><td>${c.icon} ${c.name}</td><td style="text-align:right">${fmt(spent)}</td><td style="text-align:right">${fmt(budget)}</td><td style="text-align:right;color:${spent > budget ? '#ff3b30' : '#34c759'}">${fmt(spent - budget)}</td></tr>`
   }).filter(Boolean).join('')
 
   const monthRows = last6Months.map((m, i) => {
     const d = monthlyData[i]
-    return `<tr><td>${m.label}</td><td style="text-align:right;color:#10b981">${fmt(d.income)}</td><td style="text-align:right;color:#ef4444">${fmt(d.expenses)}</td><td style="text-align:right;color:${d.balance >= 0 ? '#10b981' : '#ef4444'}">${fmt(d.balance)}</td></tr>`
+    return `<tr><td>${m.label}</td><td style="text-align:right;color:#34c759">${fmt(d.income)}</td><td style="text-align:right;color:#ff3b30">${fmt(d.expenses)}</td><td style="text-align:right;color:${d.balance >= 0 ? '#34c759' : '#ff3b30'}">${fmt(d.balance)}</td></tr>`
   }).join('')
 
   const totalIncome = monthlyData.reduce((s, d) => s + d.income, 0)
@@ -391,23 +391,23 @@ function exportPDF({ monthlyData, last6Months, categories, salary, curM, curY, t
   const win = window.open('', '_blank')
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte — ${monthLabel}</title>
   <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;color:#1f2937;padding:40px;font-size:13px;line-height:1.5}
-  h1{font-size:26px;font-weight:700;color:#312e81;margin-bottom:4px}p.sub{color:#6b7280;margin-bottom:28px}
+  h1{font-size:26px;font-weight:700;color:#1d1d1f;margin-bottom:4px}p.sub{color:#6b7280;margin-bottom:28px}
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
-  .kpi{background:#f8f7ff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;border-left:4px solid #6366f1}
+  .kpi{background:#f5f5f7;border:1px solid #e5e7eb;border-radius:10px;padding:14px;border-left:4px solid #007aff}
   .kpi .l{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;margin-bottom:4px}.kpi .v{font-size:22px;font-weight:700}
-  h2{font-size:15px;font-weight:600;color:#312e81;margin:24px 0 10px;padding-bottom:4px;border-bottom:2px solid #e0e7ff}
+  h2{font-size:15px;font-weight:600;color:#1d1d1f;margin:24px 0 10px;padding-bottom:4px;border-bottom:2px solid #d6e8ff}
   table{width:100%;border-collapse:collapse;margin-bottom:20px}th{text-align:left;font-size:10.5px;font-weight:600;color:#6b7280;padding:8px 10px;border-bottom:2px solid #e5e7eb}
-  td{padding:8px 10px;border-bottom:1px solid #f3f4f6;font-size:12.5px}
+  td{padding:8px 10px;border-bottom:1px solid #eeeef2;font-size:12.5px}
   @media print{button{display:none}}</style></head><body>
   <div style="display:flex;justify-content:space-between;margin-bottom:20px">
     <div><h1>Reporte Financiero</h1><p class="sub">${monthLabel} · ${new Date().toLocaleDateString('es-ES')}</p></div>
-    <button onclick="window.print()" style="padding:8px 16px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Imprimir / PDF</button>
+    <button onclick="window.print()" style="padding:8px 16px;background:#0071e3;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Imprimir / PDF</button>
   </div>
   <div class="kpi-grid">
-    <div class="kpi"><div class="l">Ingresos (6m)</div><div class="v" style="color:#10b981">${fmt(totalIncome)}</div></div>
-    <div class="kpi"><div class="l">Gastos (6m)</div><div class="v" style="color:#ef4444">${fmt(totalExpenses)}</div></div>
-    <div class="kpi"><div class="l">Balance</div><div class="v" style="color:${totalIncome - totalExpenses >= 0 ? '#10b981' : '#ef4444'}">${fmt(totalIncome - totalExpenses)}</div></div>
-    <div class="kpi"><div class="l">Tasa ahorro</div><div class="v" style="color:#6366f1">${totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome * 100).toFixed(1) : 0}%</div></div>
+    <div class="kpi"><div class="l">Ingresos (6m)</div><div class="v" style="color:#34c759">${fmt(totalIncome)}</div></div>
+    <div class="kpi"><div class="l">Gastos (6m)</div><div class="v" style="color:#ff3b30">${fmt(totalExpenses)}</div></div>
+    <div class="kpi"><div class="l">Balance</div><div class="v" style="color:${totalIncome - totalExpenses >= 0 ? '#34c759' : '#ff3b30'}">${fmt(totalIncome - totalExpenses)}</div></div>
+    <div class="kpi"><div class="l">Tasa ahorro</div><div class="v" style="color:#007aff">${totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome * 100).toFixed(1) : 0}%</div></div>
   </div>
   <h2>Evolución mensual</h2>
   <table><thead><tr><th>Mes</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Gastos</th><th style="text-align:right">Balance</th></tr></thead><tbody>${monthRows}</tbody></table>

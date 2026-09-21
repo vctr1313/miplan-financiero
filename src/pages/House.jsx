@@ -107,15 +107,15 @@ export default function House() {
     accInv = (accInv + (houseCalc.totalMonthly || 0)) * (1 + r)
   }
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-  const gridColor = isDark ? '#2a2840' : '#f3f4f6'
-  const tickColor = isDark ? '#8884a8' : '#9ca3af'
+  const gridColor = isDark ? '#2c2c2e' : '#eeeef2'
+  const tickColor = isDark ? '#98989d' : '#8e8e93'
 
   const chartData = {
     labels,
     datasets: [
-      { label: 'Ahorro puro', data: savLine, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.1)', fill: true, tension: .35, borderWidth: 2, pointRadius: 0 },
-      { label: 'Con inversión (7%/año)', data: invLine, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.07)', fill: true, tension: .35, borderWidth: 2, pointRadius: 0 },
-      { label: 'Objetivo entrada', data: Array(121).fill(houseCalc.entryTarget || 0), borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0 },
+      { label: 'Ahorro puro', data: savLine, borderColor: '#007aff', backgroundColor: 'rgba(0,122,255,.1)', fill: true, tension: .35, borderWidth: 2, pointRadius: 0 },
+      { label: 'Con inversión (7%/año)', data: invLine, borderColor: '#34c759', backgroundColor: 'rgba(52,199,89,.07)', fill: true, tension: .35, borderWidth: 2, pointRadius: 0 },
+      { label: 'Objetivo entrada', data: Array(121).fill(houseCalc.entryTarget || 0), borderColor: '#ff9500', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0 },
     ]
   }
 

@@ -71,61 +71,33 @@ export default function Layout() {
 
       {/* Dark mode toggle */}
       <div className="sidebar-bottom">
-        <div
-          onClick={() => setDark(d => !d)}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '11px 15px', cursor: 'pointer'
-          }}
-        >
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-            <i className="fa fa-moon" style={{ marginRight: 6 }} />
+        <div className="sb-row" onClick={() => setDark(d => !d)}>
+          <span className="sb-label">
+            <i className="fa fa-moon" />
             Modo oscuro
           </span>
-          <div style={{
-            width: 34, height: 18, borderRadius: 9,
-            background: dark ? 'var(--i5)' : 'rgba(255,255,255,0.14)',
-            position: 'relative', transition: 'background .2s'
-          }}>
-            <div style={{
-              position: 'absolute', width: 12, height: 12, background: '#fff',
-              borderRadius: '50%', top: 3, left: dark ? 19 : 3, transition: 'left .2s'
-            }} />
+          <div className={`switch ${dark ? 'on' : ''}`} role="switch" aria-checked={dark}>
+            <div className="switch-knob" />
           </div>
         </div>
 
         {/* Sync indicator */}
-        <div style={{ padding: '6px 15px', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="sb-sync">
           <div className={`sync-dot ${syncing ? 'syncing' : ''}`} />
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
-            {syncing ? 'Sincronizando…' : 'Sincronizado'}
-          </span>
+          <span>{syncing ? 'Sincronizando…' : 'Sincronizado'}</span>
         </div>
 
         {/* Salary */}
-        <div style={{ padding: '10px 15px 14px', background: 'rgba(0,0,0,0.18)' }}>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 3 }}>
-            Sueldo neto mensual
-          </div>
-          <div
-            onClick={() => go('/settings')}
-            style={{ color: 'var(--a4)', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
-          >
+        <div className="sb-salary">
+          <div className="sb-salary-label">Sueldo neto mensual</div>
+          <div className="sb-salary-value" onClick={() => go('/settings')}>
             {profile?.salary ? fmt(profile.salary) : '—'}
-            <small style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}> / mes</small>
+            <small> / mes</small>
           </div>
         </div>
 
         {/* Sign out */}
-        <button
-          onClick={handleSignOut}
-          style={{
-            width: '100%', padding: '10px 15px', background: 'none', border: 'none',
-            color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'left',
-            borderTop: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8
-          }}
-        >
+        <button className="sb-signout" onClick={handleSignOut}>
           <i className="fa fa-right-from-bracket" />
           Cerrar sesión ({profile?.name || 'usuario'})
         </button>
@@ -140,8 +112,8 @@ export default function Layout() {
         <button className="hamburger" onClick={() => setSidebarOpen(true)}>
           <i className="fa fa-bars" />
         </button>
-        <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>
-          Mi Plan <span style={{ color: 'var(--a4)' }}>Financiero</span>
+        <span className="mobile-title">
+          Mi Plan <span>Financiero</span>
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div className={`sync-dot ${syncing ? 'syncing' : ''}`} />

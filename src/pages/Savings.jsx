@@ -167,7 +167,7 @@ export default function Savings() {
           const isNegative = isPot && bal < 0
           const monthly = salary * c.user_pct / 100
           return (
-            <div key={c.id} className="card" style={{ borderTop: `3px solid ${isNegative ? 'var(--r5)' : c.color}` }}>
+            <div key={c.id} className="card" style={isNegative ? { boxShadow: "inset 0 0 0 1.5px var(--r5)" } : undefined}>
               <div style={{ fontSize: 24, marginBottom: 6 }}>{c.icon}</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g700)' }}>{c.name}</div>
               <div style={{ fontSize: 19, fontWeight: 700, marginTop: 3, color: isNegative ? 'var(--r5)' : c.color }}>

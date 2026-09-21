@@ -52,7 +52,7 @@ export default function Budget() {
       data: nonSaving.map(c => salary * c.user_pct / 100),
       backgroundColor: nonSaving.map(c => c.color),
       borderWidth: 2,
-      borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#181727' : '#fff'
+      borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#1c1c1e' : '#fff'
     }]
   }
 
@@ -264,7 +264,7 @@ function CategoryModal({ category, onClose, salary }) {
   const [icon, setIcon] = useState(category?.icon || '🎯')
   const [name, setName] = useState(category?.name || '')
   const [type, setType] = useState(category?.type || 'normal')
-  const [color, setColor] = useState(category?.color || '#6366f1')
+  const [color, setColor] = useState(category?.color || '#007aff')
   const [pct, setPct] = useState(category?.user_pct ?? 5)
   const [saving, setSaving] = useState(false)
 

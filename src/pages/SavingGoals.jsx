@@ -59,7 +59,7 @@ function GoalCard({ goal, onEdit, onDelete }) {
   }
 
   return (
-    <div className="card" style={{ borderTop: `3px solid ${goal.color}` }}>
+    <div className="card">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span style={{ fontSize: 26 }}>{goal.icon}</span>
@@ -97,7 +97,7 @@ function GoalModal({ goal, onClose }) {
   const [target, setTarget] = useState(goal?.target || '')
   const [saved, setSaved] = useState(goal?.saved || 0)
   const [targetDate, setTargetDate] = useState(goal?.target_date || '')
-  const [color, setColor] = useState(goal?.color || '#6366f1')
+  const [color, setColor] = useState(goal?.color || '#007aff')
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {

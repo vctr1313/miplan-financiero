@@ -57,7 +57,7 @@ export default function RecurringExpensesBanner() {
   const totalSelected = pending.filter(f => checked.has(f.id)).reduce((s, f) => s + f.amount, 0)
 
   return (
-    <div className="card mb-4" style={{ borderLeft: '3px solid var(--a5)' }}>
+    <div className="card mb-4" style={{ background: 'var(--a100)', borderColor: 'transparent' }}>
       <div className="flex items-center justify-between mb-2">
         <h3 style={{ fontSize: 13.5, fontWeight: 600 }}>
           <i className="fa fa-rotate" style={{ color: 'var(--a5)', marginRight: 6 }} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
 import { fmt, catBudget, getTxInCycle, getIncludedCycles, isPotAffectingTx, potTxDelta, getPctAtDate } from '../lib/finance'
@@ -102,6 +102,10 @@ export default function CategoryDetailModal({ category, onClose }) {
   const navigate = useNavigate()
   const salary = profile?.salary || 0
   const [cycleIndex, setCycleIndex] = useState(cycles.length ? cycles.length - 1 : null)
+  // The pot ledger is oldest-first and scrolls inside a fixed-height box,
+  // so open it scrolled to the end: the latest movements (the ones that
+  // explain the 'Acumulado actual' total right below) are what matter.
+  const scrollToEnd = useCallback(el => { if (el) el.scrollTop = el.scrollHeight }, [])
 
   if (category.type === 'saving') {
     const monthly = salary * category.user_pct / 100
@@ -141,7 +145,7 @@ export default function CategoryDetailModal({ category, onClose }) {
               <div>Saldo ajustado manualmente el {openingDate.toLocaleDateString('es-ES')}: <strong>{fmt(openingBalance)}</strong></div>
             </div>
           )}
-          <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+          <div ref={scrollToEnd} style={{ maxHeight: 380, overflowY: 'auto' }}>
             {rows.length === 0 ? (
               <div className="text-sm text-muted text-center" style={{ padding: 18 }}>Sin movimientos todavía.</div>
             ) : rows.map(r => (
@@ -191,7 +195,7 @@ export default function CategoryDetailModal({ category, onClose }) {
               </button>
             </div>
             <div className="text-sm text-muted mb-2">Presupuesto de este ciclo: <strong>{fmt(budget)}</strong></div>
-            <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+            <div ref={scrollToEnd} style={{ maxHeight: 340, overflowY: 'auto' }}>
               {rows.length === 0 ? (
                 <div className="text-sm text-muted text-center" style={{ padding: 18 }}>Sin movimientos en este ciclo.</div>
               ) : rows.map(r => (

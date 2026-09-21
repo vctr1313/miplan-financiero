@@ -94,10 +94,10 @@ export default function Login() {
     <div style={pageStyle}>
       <div style={cardStyle}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#312e81' }}>
-            Mi Plan <span style={{ color: '#f59e0b' }}>Financiero</span>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.03em' }}>
+            Mi Plan <span style={{ color: 'var(--i5)' }}>Financiero</span>
           </h1>
-          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, letterSpacing: '.05em' }}>
+          <p style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 6, letterSpacing: '.1em', fontWeight: 500 }}>
             CONTROL · AHORRO · INVERSIÓN
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function Login() {
 
           {error && <div className="alert alert-danger">{error}</div>}
 
-          <button type="submit" className="btn btn-primary w-full" disabled={loading} style={{ justifyContent: 'center', padding: '10px 0' }}>
+          <button type="submit" className="btn btn-primary w-full" disabled={loading} style={{ justifyContent: 'center', padding: '12px 0', fontSize: 15 }}>
             {loading ? 'Cargando…' : mode === 'signin' ? 'Entrar' : mode === 'signup' ? 'Crear cuenta' : 'Vincular'}
           </button>
         </form>
@@ -180,9 +180,9 @@ function translateError(msg) {
 
 const pageStyle = {
   minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  background: 'linear-gradient(135deg, #f7f6ff 0%, #eef2ff 100%)', padding: 20
+  background: 'var(--bg)', padding: 20
 }
 const cardStyle = {
-  background: '#fff', borderRadius: 20, padding: 32, width: '100%', maxWidth: 420,
-  boxShadow: '0 20px 60px rgba(49,46,129,0.15)', border: '1px solid #e5e7eb'
+  background: 'var(--card)', borderRadius: 26, padding: '36px 32px', width: '100%', maxWidth: 420,
+  boxShadow: 'var(--shadow-md)', border: '.5px solid var(--card-border)'
 }
