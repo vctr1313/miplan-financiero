@@ -1,47 +1,54 @@
 import React, { useMemo, useState } from 'react'
-import { fmt } from '../lib/finance'
+import { parseISO } from 'date-fns'
+import { fmt, toLocalISODate } from '../lib/finance'
 
-// A month as a calendar, each day shaded by how much was spent on it.
-// Patterns a list can't show jump out here: the Friday-night spikes,
-// the quiet stretch before payday, the one day that sank the month.
+// A period (a salary cycle or a month) laid out as a calendar, each
+// day shaded by how much was spent on it. Patterns a list can't show
+// jump out here: the Friday-night spikes, the quiet stretch before
+// payday, the one day that sank the month.
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
-export default function SpendingHeatmap({ transactions, month, year }) {
+export default function SpendingHeatmap({ transactions, start, end }) {
   const [hover, setHover] = useState(null)
+  const todayKey = toLocalISODate(new Date())
 
   const { cells, max, total, busiest } = useMemo(() => {
+    const first = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+    const last = new Date(end.getFullYear(), end.getMonth(), end.getDate())
     const byDay = {}
     transactions.forEach(t => {
       if (t.type !== 'expense') return
-      const d = new Date(t.date)
-      if (d.getMonth() !== month || d.getFullYear() !== year) return
-      const day = d.getDate()
-      byDay[day] = (byDay[day] || 0) + t.amount
+      const d = parseISO(t.date)
+      if (d < first || d > last) return
+      byDay[t.date] = (byDay[t.date] || 0) + t.amount
     })
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    // Monday-first offset for the first day of the month.
-    const lead = (new Date(year, month, 1).getDay() + 6) % 7
+
+    // Monday-first offset for the first day shown.
+    const lead = (first.getDay() + 6) % 7
+    const days = []
+    // Stepping by calendar day (not +86400000ms) keeps DST changes from
+    // skipping or repeating a date.
+    for (let d = new Date(first); d <= last; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+      const key = toLocalISODate(d)
+      days.push({ key, date: d, day: d.getDate(), amount: byDay[key] || 0 })
+      if (days.length > 62) break // guard against a malformed range
+    }
     const cells = [
       ...Array.from({ length: lead }, (_, i) => ({ key: `pad-${i}`, pad: true })),
-      ...Array.from({ length: daysInMonth }, (_, i) => {
-        const day = i + 1
-        return { key: day, day, amount: byDay[day] || 0 }
-      }),
+      ...days,
     ]
     const amounts = Object.values(byDay)
     const max = amounts.length ? Math.max(...amounts) : 0
     const total = amounts.reduce((s, v) => s + v, 0)
-    const busiestDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0]
-    return { cells, max, total, busiest: busiestDay ? { day: +busiestDay[0], amount: busiestDay[1] } : null }
-  }, [transactions, month, year])
-
-  const today = new Date()
-  const isThisMonth = today.getMonth() === month && today.getFullYear() === year
+    const top = days.reduce((best, c) => (c.amount > (best?.amount || 0) ? c : best), null)
+    return { cells, max, total, busiest: top }
+  }, [transactions, start, end])
 
   // sqrt keeps a handful of small days visible next to one huge one.
   const level = (amount) => (max > 0 && amount > 0 ? 0.18 + 0.82 * Math.sqrt(amount / max) : 0)
+  const dateLabel = (c) => c.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 
-  const shown = hover ?? (busiest ? { day: busiest.day, amount: busiest.amount, busiest: true } : null)
+  const shown = hover || (busiest ? { ...busiest, busiest: true } : null)
 
   return (
     <div className="heat">
@@ -55,14 +62,23 @@ export default function SpendingHeatmap({ transactions, month, year }) {
           <button
             key={c.key}
             type="button"
-            className={`heat-cell ${level(c.amount) > 0.55 ? 'strong' : ''} ${isThisMonth && c.day === today.getDate() ? 'today' : ''} ${isThisMonth && c.day > today.getDate() ? 'future' : ''}`}
+            className={[
+              'heat-cell',
+              level(c.amount) > 0.55 ? 'strong' : '',
+              c.key === todayKey ? 'today' : '',
+              c.key > todayKey ? 'future' : '',
+            ].join(' ')}
             style={{ '--lvl': level(c.amount), animationDelay: `${i * 12}ms` }}
             onMouseEnter={() => setHover(c)}
             onFocus={() => setHover(c)}
             onClick={() => setHover(c)}
-            aria-label={`Día ${c.day}: ${fmt(c.amount)}`}
+            aria-label={`${dateLabel(c)}: ${fmt(c.amount)}`}
           >
             {c.day}
+            {/* Mark where a new month starts inside a cycle. */}
+            {c.day === 1 && i > 0 && (
+              <small className="heat-month">{c.date.toLocaleDateString('es-ES', { month: 'short' })}</small>
+            )}
           </button>
         ))}
       </div>
@@ -70,10 +86,10 @@ export default function SpendingHeatmap({ transactions, month, year }) {
         <div className="heat-readout">
           {shown ? (
             <>
-              <strong>{shown.busiest ? `Día más caro: ${shown.day}` : `Día ${shown.day}`}</strong>
+              <strong>{shown.busiest ? `Día más caro: ${dateLabel(shown)}` : dateLabel(shown)}</strong>
               <span>{fmt(shown.amount)}</span>
             </>
-          ) : <span className="text-muted">Sin gastos este mes</span>}
+          ) : <span className="text-muted">Sin gastos en este periodo</span>}
         </div>
         <div className="heat-scale">
           <span>Menos</span>
@@ -81,7 +97,7 @@ export default function SpendingHeatmap({ transactions, month, year }) {
           <span>Más</span>
         </div>
       </div>
-      {total > 0 && <div className="heat-total">Total del mes: <strong>{fmt(total)}</strong></div>}
+      {total > 0 && <div className="heat-total">Total del periodo: <strong>{fmt(total)}</strong></div>}
     </div>
   )
 }
