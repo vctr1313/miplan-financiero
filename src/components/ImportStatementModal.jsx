@@ -278,7 +278,7 @@ export default function ImportStatementModal({ onClose }) {
                 </button>
               )}
               {step === 'review' && (
-                <button className="btn btn-primary" onClick={doImport} disabled={busy || !chosen.length || missingCategory > 0}>
+                <button className={`btn btn-primary ${busy ? 'is-busy' : ''}`} onClick={doImport} disabled={busy || !chosen.length || missingCategory > 0}>
                   <i className="fa fa-file-import" /> {busy ? 'Importando…' : `Importar ${chosen.length}`}
                 </button>
               )}

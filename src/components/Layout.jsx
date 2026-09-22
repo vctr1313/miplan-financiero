@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../App'
 import { signOut } from '../lib/supabase'
 import { fmt } from '../lib/finance'
-import { isDarkActive, applyTheme, useSystemThemeSync } from '../lib/ui'
+import { isDarkActive, applyTheme, useSystemThemeSync, haptic } from '../lib/ui'
 import BalanceReviewModal from './BalanceReviewModal'
 import '../styles/global.css'
 
@@ -42,7 +42,7 @@ export default function Layout() {
   // Follow the system until the user picks a side explicitly.
   useSystemThemeSync(setDark)
 
-  const toggleTheme = () => setDark(applyTheme(dark ? 'light' : 'dark'))
+  const toggleTheme = () => { haptic('select'); setDark(applyTheme(dark ? 'light' : 'dark')) }
 
   // Section changes go through the View Transitions API where it
   // exists, so the old page cross-fades out instead of vanishing.
@@ -109,7 +109,7 @@ export default function Layout() {
       if (pullRef.current < THRESHOLD) { set(0); return }
       setRefreshing(true)
       set(56)
-      navigator.vibrate?.(10)
+      haptic('success')
       try { await refreshRef.current?.() } finally { setRefreshing(false); set(0) }
     }
     window.addEventListener('touchstart', onStart, { passive: true })

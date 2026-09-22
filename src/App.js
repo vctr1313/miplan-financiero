@@ -20,6 +20,7 @@ import AIChat from './pages/AIChat'
 import Settings from './pages/Settings'
 import Shared from './pages/Shared'
 import Layout from './components/Layout'
+import DialogHost from './components/DialogHost'
 
 // Once, before any chart mounts: every Chart.js chart inherits the
 // app's look from these defaults (see lib/charts.js).
@@ -33,7 +34,16 @@ export function AppProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [categories, setCategories] = useState([])
-  const [transactions, setTransactions] = useState([])
+  const [allTransactions, setTransactions] = useState([])
+  // Movements deleted in the UI whose "Deshacer" window hasn't closed
+  // yet. They're filtered out of everything the app shows, but kept in
+  // state, so a realtime reload in the meantime can't bring them back
+  // and an undo is instant.
+  const [hiddenTx, setHiddenTx] = useState(() => new Set())
+  const transactions = useMemo(
+    () => hiddenTx.size ? allTransactions.filter(t => !hiddenTx.has(t.id)) : allTransactions,
+    [allTransactions, hiddenTx]
+  )
   const [fixedExpenses, setFixedExpenses] = useState([])
   const [houseGoal, setHouseGoal] = useState(null)
   const [savingGoals, setSavingGoals] = useState([])
@@ -163,16 +173,17 @@ export function AppProvider({ children }) {
     return load(session.user.id, wanted.length ? wanted : ALL_KEYS)
   }
 
-  // Drops a movement from local state immediately; the server delete
-  // runs behind it. Returns a restore function for the failure path.
-  const removeTransactionLocally = (id) => {
-    let removed = null
-    setTransactions(prev => {
-      removed = prev.find(t => t.id === id) || null
-      return prev.filter(t => t.id !== id)
+  // Hides a movement immediately; the server delete runs behind it
+  // (after the undo window). Returns the function that shows it again,
+  // for "Deshacer" and for a failed delete.
+  const removeTransactionLocally = useCallback((id) => {
+    setHiddenTx(prev => new Set(prev).add(id))
+    return () => setHiddenTx(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
     })
-    return () => removed && setTransactions(prev => [removed, ...prev])
-  }
+  }, [])
 
   const value = {
     session, profile, setProfile,
@@ -218,6 +229,7 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
+        <DialogHost />
       </AppProvider>
     </BrowserRouter>
   )

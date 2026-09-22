@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { haptic } from '../lib/ui'
 
 // Own numeric keypad for entering amounts on phones.
 //
@@ -38,7 +39,7 @@ export default function AmountPad({ onChange, onDone }) {
     // several taps land before React has re-rendered.
     onChange(prev => nextAmount(prev || '', key))
     // Light haptic tick where the platform supports it.
-    navigator.vibrate?.(6)
+    haptic('light')
   }
 
   return (

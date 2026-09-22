@@ -1216,3 +1216,107 @@ tr.tappable:active { transform: none; }
 .push-list i { width: 18px; text-align: center; color: var(--a5); }
 .push-toggle { border: 1px solid var(--border); border-radius: 12px; }
 .push-toggle[aria-disabled="true"] { opacity: .6; cursor: default; }
+
+/* ── DIALOGS (lib/dialog.js) ─────────────────────────────────────
+   iOS alert: small centred card, stacked title/message, full-width
+   buttons separated by hairlines. */
+.alert-overlay {
+  position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px;
+  background: rgba(0,0,0,.32); animation: overlayIn .2s var(--ease) both;
+}
+.alert-box {
+  width: min(300px, 100%); background: var(--card); border-radius: 18px; overflow: hidden; text-align: center;
+  box-shadow: var(--shadow-md); animation: alertIn .34s var(--spring) both;
+}
+[data-theme="dark"] .alert-box { background: #2c2c2e; }
+.alert-box-icon {
+  width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; margin: 20px auto 0;
+  background: var(--accent-tint); color: var(--i5); font-size: 19px;
+}
+.alert-box-icon.danger { background: var(--r50); color: var(--r5); }
+.alert-box-title { font-size: 16.5px; font-weight: 650; padding: 14px 18px 0; letter-spacing: -.01em; }
+.alert-box-msg { font-size: 13.5px; color: var(--muted); padding: 5px 18px 0; line-height: 1.45; }
+.alert-box-actions { display: grid; margin-top: 18px; border-top: .5px solid var(--sep); }
+.alert-box-actions.two { grid-template-columns: 1fr 1fr; }
+.alert-box-actions button {
+  background: none; border: none; padding: 13px 8px; font-size: 16px; color: var(--i5);
+  transition: background .15s;
+}
+.alert-box-actions.two button + button { border-left: .5px solid var(--sep); }
+.alert-box-actions button:active { background: var(--fill); }
+.alert-box-actions button.primary { font-weight: 650; }
+.alert-box-actions button.danger { color: var(--r5); }
+@keyframes alertIn { from { opacity: 0; transform: scale(1.12); } to { opacity: 1; transform: scale(1); } }
+
+/* ── TOASTS ──────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 1100;
+  bottom: calc(24px + var(--kb)); display: grid; gap: 8px; width: min(420px, calc(100% - 24px));
+  pointer-events: none;
+}
+@media (max-width: 768px) { .toast-stack { bottom: calc(76px + env(safe-area-inset-bottom) + var(--kb)); } }
+.toast {
+  position: relative; overflow: hidden; pointer-events: auto;
+  display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 16px;
+  border-radius: 16px; color: #fff; background: rgba(28,28,30,.92);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: 14px;
+  animation: toastIn .45s var(--spring) both;
+}
+[data-theme="dark"] .toast { background: rgba(58,58,60,.92); }
+.toast-icon { opacity: .75; }
+.toast-text { flex: 1; min-width: 0; }
+.toast-action {
+  background: rgba(255,255,255,.14); color: #64d2ff; border: none; border-radius: 10px;
+  padding: 7px 12px; font-weight: 650; font-size: 13.5px;
+}
+.toast-action:active { transform: scale(.95); }
+.toast-timer {
+  position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: rgba(255,255,255,.35);
+  transform-origin: left; animation: toastTimer linear both;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(24px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes toastTimer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ── ODOMETER NUMBERS (AnimatedNumber) ─────────────────────────── */
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.odo { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.odo-digit { display: inline-block; height: 1.2em; line-height: 1.2em; overflow: hidden; vertical-align: bottom; }
+.odo-strip { display: block; transition: transform .95s var(--ease-out); will-change: transform; }
+.odo-strip > span { display: block; height: 1.2em; }
+
+/* ── BUTTON STATES ─────────────────────────────────────────────
+   .is-busy: icon swaps for a spinner while the action runs (the label
+   keeps its width, so nothing jumps). .is-done: a check pops in. */
+.btn.is-busy { pointer-events: none; }
+.btn.is-busy > i { display: none; }
+.btn.is-busy::before {
+  content: ''; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+.btn.is-done > i { animation: checkPop .5s var(--spring) both; }
+.btn-primary.is-done { background: var(--e5); box-shadow: none; }
+@keyframes checkPop { 0% { transform: scale(0) rotate(-45deg); } 100% { transform: scale(1) rotate(0); } }
+
+/* ── TEXT SIZE (Ajustes → Apariencia) ─────────────────────────────
+   Scales the whole interface, controls included, the way iOS Dynamic
+   Type does; set before first paint by index.html. */
+html[data-textsize="l"] body { zoom: 1.1; }
+html[data-textsize="xl"] body { zoom: 1.22; }
+
+/* ── HIGHER CONTRAST (system "Increase contrast") ───────────────── */
+@media (prefers-contrast: more) {
+  :root { --muted: #48484a; --sep: rgba(0,0,0,.28); --border: rgba(0,0,0,.3); --card-border: rgba(0,0,0,.18); }
+  [data-theme="dark"] { --muted: #c7c7cc; --sep: rgba(255,255,255,.35); --border: rgba(255,255,255,.35); --card-border: rgba(255,255,255,.22); }
+  .card { border: 1px solid var(--card-border); }
+  :focus-visible { outline-color: var(--i5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .odo-strip { transition: none; }
+  .toast, .alert-box { animation: none; }
+}
+.btn.is-busy:disabled { opacity: .85; cursor: progress; }

@@ -49,7 +49,7 @@ export default function AdjustPotBalanceModal({ category, onClose }) {
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <button className={`btn btn-primary ${saving ? 'is-busy' : ''}`} onClick={handleSave} disabled={saving}>
             <i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar'}
           </button>
         </div>

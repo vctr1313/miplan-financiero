@@ -330,7 +330,7 @@ export default function ExtraPaymentModal({ amount, date, description, notes, on
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
             <button
-              type="submit" className="btn btn-primary"
+              type="submit" className={`btn btn-primary ${saving ? 'is-busy' : ''}`}
               disabled={
                 saving || !matchesExactly || missingSavingTargets || eligible.length === 0 ||
                 (isWithdrawal && (!sourceId || (sourceBalance !== null && amount > sourceBalance)))

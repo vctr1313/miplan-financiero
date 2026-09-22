@@ -5,6 +5,7 @@ import { fmt, fmtShort } from '../lib/finance'
 import { burstConfetti } from '../lib/confetti'
 import EmptyState from '../components/EmptyState'
 import ColorSwatches from '../components/ColorSwatches'
+import { confirmDialog, alertDialog } from '../lib/dialog'
 
 const PRESET_ICONS = ['✈️', '🚗', '🛡️', '💍', '🎓', '🏖️', '👶', '💻', '🎯']
 
@@ -14,7 +15,13 @@ export default function SavingGoals() {
   const [editingGoal, setEditingGoal] = useState(null)
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Eliminar esta meta de ahorro?')) return
+    const goal = savingGoals.find(g => g.id === id)
+    const ok = await confirmDialog({
+      icon: 'fa-trash', destructive: true, confirmText: 'Eliminar',
+      title: `¿Eliminar la meta${goal ? ` "${goal.name}"` : ''}?`,
+      message: 'Se perderá el progreso registrado en ella.',
+    })
+    if (!ok) return
     await deleteSavingGoal(id)
     refresh()
   }
@@ -107,7 +114,7 @@ function GoalModal({ goal, onClose }) {
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
-    if (!name.trim() || !target) { alert('Nombre y objetivo son obligatorios'); return }
+    if (!name.trim() || !target) { alertDialog({ title: 'Faltan datos', message: 'La meta necesita un nombre y un objetivo.' }); return }
     setSaving(true)
     try {
       const newSaved = parseFloat(saved) || 0

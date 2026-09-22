@@ -4,6 +4,8 @@ import { updateProfile, addFixedExpense, deleteFixedExpense, linkPartner, unlink
 import { fmt, fixedTotal, fixedPct } from '../lib/finance'
 import PushSettingsCard from '../components/PushSettingsCard'
 import { buildBackup, downloadBackup } from '../lib/backup'
+import { confirmDialog } from '../lib/dialog'
+import { haptic, TEXT_SIZES, getTextSize, applyTextSize } from '../lib/ui'
 
 export default function Settings() {
   const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh, transactions, houseGoal, savingGoals, pctHistory, shared } = useApp()
@@ -18,6 +20,9 @@ export default function Settings() {
   const [name, setName] = useState(profile?.name || '')
   const [birthYear, setBirthYear] = useState(profile?.birth_year || '')
   const [saved, setSaved] = useState(false)
+  const [textSize, setTextSize] = useState(getTextSize)
+  const pickTextSize = (id) => { haptic('select'); applyTextSize(id); setTextSize(id) }
+  const [savingProfile, setSavingProfile] = useState(false)
 
   // Fixed expense form
   const [fxName, setFxName] = useState('')
@@ -54,7 +59,12 @@ export default function Settings() {
   }
 
   const handleUnlinkPartner = async () => {
-    if (!window.confirm('¿Desvincular a tu pareja? Dejaréis de ver el resumen del otro.')) return
+    const ok = await confirmDialog({
+      icon: 'fa-link-slash', destructive: true, confirmText: 'Desvincular',
+      title: '¿Desvincular a tu pareja?',
+      message: 'Dejaréis de ver el resumen del otro y los gastos compartidos.',
+    })
+    if (!ok) return
     setUnlinking(true)
     try {
       await unlinkPartner()
@@ -65,14 +75,20 @@ export default function Settings() {
   }
 
   const handleSaveProfile = async () => {
-    const updated = await updateProfile(profile.id, {
-      salary: parseFloat(salary) || 0,
-      name: name.trim(),
-      birth_year: parseInt(birthYear) || null
-    })
-    setProfile(updated)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setSavingProfile(true)
+    try {
+      const updated = await updateProfile(profile.id, {
+        salary: parseFloat(salary) || 0,
+        name: name.trim(),
+        birth_year: parseInt(birthYear) || null
+      })
+      setProfile(updated)
+      haptic('success')
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   const handleApiKeyChange = (val) => {
@@ -95,7 +111,13 @@ export default function Settings() {
   }
 
   const handleDeleteFixed = async (id) => {
-    if (!window.confirm('¿Eliminar?')) return
+    const fx = fixedExpenses.find(f => f.id === id)
+    const ok = await confirmDialog({
+      icon: 'fa-trash', destructive: true, confirmText: 'Eliminar',
+      title: `¿Eliminar${fx ? ` "${fx.name}"` : ' este gasto fijo'}?`,
+      message: 'Dejará de contar en tus gastos fijos mensuales.',
+    })
+    if (!ok) return
     await deleteFixedExpense(id)
     refresh()
   }
@@ -123,8 +145,8 @@ export default function Settings() {
             <label>Año de nacimiento</label>
             <input className="form-control" type="number" value={birthYear} onChange={e => setBirthYear(e.target.value)} placeholder="2000" />
           </div>
-          <button className="btn btn-primary w-full" onClick={handleSaveProfile}>
-            <i className="fa fa-floppy-disk" /> {saved ? '✅ Guardado' : 'Guardar'}
+          <button className={`btn btn-primary w-full ${savingProfile ? 'is-busy' : saved ? 'is-done' : ''}`} onClick={handleSaveProfile}>
+            <i className={`fa ${saved ? 'fa-check' : 'fa-floppy-disk'}`} /> {saved ? 'Guardado' : 'Guardar'}
           </button>
         </div>
 
@@ -254,6 +276,20 @@ export default function Settings() {
           </button>
           <span className="text-xs text-muted">{transactions.length} movimientos · {categories.length} categorías</span>
         </div>
+      </div>
+
+      <div className="card mb-4">
+        <div className="section-header"><h3><i className="fa fa-font" style={{ color: 'var(--i5)', marginRight: 8 }} />Apariencia</h3></div>
+        <label className="text-sm font-medium" id="textsize-label">Tamaño del texto</label>
+        <div className="tabs mt-2" role="radiogroup" aria-labelledby="textsize-label">
+          {TEXT_SIZES.map(t => (
+            <button key={t.id} type="button" role="radio" aria-checked={textSize === t.id}
+              className={`tab ${textSize === t.id ? 'active' : ''}`} onClick={() => pickTextSize(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted mt-2">Agranda toda la app, botones incluidos. Solo en este dispositivo.</p>
       </div>
 
       <PushSettingsCard />

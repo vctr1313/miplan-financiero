@@ -87,7 +87,7 @@ export default function BalanceReviewModal({ pots, onClose }) {
           <button className="btn btn-ghost" onClick={handleSkip} disabled={saving}>
             No, mantener así
           </button>
-          <button className="btn btn-primary" onClick={handleConfirm} disabled={saving}>
+          <button className={`btn btn-primary ${saving ? 'is-busy' : ''}`} onClick={handleConfirm} disabled={saving}>
             <i className="fa fa-check" /> {saving ? 'Guardando…' : 'Sí, ajustar'}
           </button>
         </div>

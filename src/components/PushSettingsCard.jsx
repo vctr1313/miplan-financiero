@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { haptic } from '../lib/ui'
 import { pushSupport, notificationPermission, currentPushSubscription, enablePush, disablePush, sendTestPush } from '../lib/push'
 
 // Settings card for the daily push alerts. The switch is per device:
@@ -30,9 +31,9 @@ export default function PushSettingsCard() {
     }
   }
 
-  const toggle = () => on
+  const toggle = () => { haptic('select'); return on
     ? run(async () => { await disablePush(); setOn(false) })
-    : run(async () => { await enablePush(); setOn(true) }, 'Listo. Te llegará un aviso a las 20:00 cuando haya algo que contar.')
+    : run(async () => { await enablePush(); setOn(true) }, 'Listo. Te llegará un aviso a las 20:00 cuando haya algo que contar.') }
 
   return (
     <div className="card mb-4">

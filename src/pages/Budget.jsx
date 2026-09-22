@@ -7,6 +7,7 @@ import AdjustPotBalanceModal from '../components/AdjustPotBalanceModal'
 import ColorSwatches from '../components/ColorSwatches'
 import Donut from '../components/Donut'
 import { nextCategoryColor } from '../lib/palette'
+import { confirmDialog, alertDialog } from '../lib/dialog'
 
 export default function Budget() {
   const { profile, categories, transactions, cycles, pctHistory, refresh } = useApp()
@@ -95,7 +96,12 @@ export default function Budget() {
         return
       }
     }
-    if (!window.confirm(`¿Eliminar la categoría "${cat.name}"? Los movimientos existentes quedarán sin categoría.`)) return
+    const ok = await confirmDialog({
+      icon: 'fa-trash', destructive: true, confirmText: 'Eliminar',
+      title: `¿Eliminar "${cat.name}"?`,
+      message: 'Sus movimientos se conservan, pero quedarán sin categoría.',
+    })
+    if (!ok) return
     await deleteCategory(cat.id)
     refresh()
   }
@@ -307,7 +313,7 @@ function CategoryModal({ category, onClose, salary }) {
   const displayPct = Math.round((parseFloat(pct) || 0) * 100) / 100
 
   const handleSave = async () => {
-    if (!name.trim()) { alert('El nombre es obligatorio'); return }
+    if (!name.trim()) { alertDialog({ title: 'Falta el nombre', message: 'Ponle un nombre a la categoría.' }); return }
     setSaving(true)
     try {
       await upsertCategory({

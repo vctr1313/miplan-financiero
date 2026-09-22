@@ -91,3 +91,38 @@ export function useKeyboardInset() {
     }
   }, [])
 }
+
+// ── HAPTICS ───────────────────────────────────────────────────
+// Short vibrations on Android (the Vibration API). iPhone doesn't
+// expose it to web apps, so there this is silently a no-op.
+const HAPTICS = {
+  light: 8,
+  select: 12,
+  success: [12, 60, 18],
+  warning: [22, 70, 22],
+  error: [30, 50, 30, 50, 30],
+}
+export function haptic(kind = 'light') {
+  try { navigator.vibrate?.(HAPTICS[kind] ?? HAPTICS.light) } catch { /* not allowed here */ }
+}
+
+// ── TEXT SIZE ─────────────────────────────────────────────────
+// 'm' (default) | 'l' | 'xl'. Applied as data-textsize on <html>, which
+// scales the whole interface (see global.css), and set before first
+// paint by the inline script in index.html -- same as the theme.
+const TEXT_KEY = 'fp_textsize'
+export const TEXT_SIZES = [
+  { id: 'm', label: 'Normal' },
+  { id: 'l', label: 'Grande' },
+  { id: 'xl', label: 'Muy grande' },
+]
+export const getTextSize = () => {
+  try { return localStorage.getItem(TEXT_KEY) || 'm' } catch { return 'm' }
+}
+export const applyTextSize = (size) => {
+  document.documentElement.setAttribute('data-textsize', size)
+  try {
+    if (size === 'm') localStorage.removeItem(TEXT_KEY)
+    else localStorage.setItem(TEXT_KEY, size)
+  } catch { /* private mode */ }
+}

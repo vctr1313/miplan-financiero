@@ -4,7 +4,7 @@ import { addTransaction, deleteTransaction, addSharedExpense } from '../lib/supa
 import { partnerShare } from '../lib/shared'
 import { fmt, toLocalISODate } from '../lib/finance'
 import { validateSplit, splitRemaining } from '../lib/split'
-import { autoFocusOnPointer } from '../lib/ui'
+import { autoFocusOnPointer, haptic } from '../lib/ui'
 import AmountPad, { formatAmountDisplay } from './AmountPad'
 import ExtraPaymentModal from './ExtraPaymentModal'
 
@@ -172,6 +172,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
           })
           created.push(row.id)
         }
+        haptic('success')
         await refresh()
         onSaved?.()
         onClose()
@@ -198,6 +199,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
           partnerId,
           partnerName,
         })
+        haptic('success')
         await refresh()
         onSaved?.()
         onClose()
@@ -222,6 +224,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
         linked_expense_id: type === 'transfer' ? (linkedExpenseId || null) : null,
       }
       await addTransaction(payload)
+      haptic('success')
       await refresh()
       onSaved?.()
       onClose()
@@ -487,7 +490,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
 
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            <button type="submit" className={`btn btn-primary ${saving ? 'is-busy' : ''}`} disabled={saving}>
               {type === 'income' && DISTRIBUTED_INCOME_TYPES.includes(incomeType)
                 ? <><i className="fa fa-arrow-right" /> Continuar al reparto</>
                 : <><i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar'}</>}

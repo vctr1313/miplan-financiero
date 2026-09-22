@@ -179,7 +179,7 @@ function SettleModal({ net, partnerName, categories, onClose, onDone }) {
         {error && <div className="alert alert-danger">{error}</div>}
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose} disabled={busy}>Cancelar</button>
-          <button className="btn btn-primary" onClick={confirm} disabled={busy || (record && iPay && !categoryId)}>
+          <button className={`btn btn-primary ${busy ? 'is-busy' : ''}`} onClick={confirm} disabled={busy || (record && iPay && !categoryId)}>
             <i className="fa fa-handshake" /> {busy ? 'Saldando…' : 'Saldar'}
           </button>
         </div>

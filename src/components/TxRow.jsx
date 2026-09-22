@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { fmt } from '../lib/finance'
+import { haptic } from '../lib/ui'
 
 // A movement row. On touch it swipes left (Mail-style) to reveal Edit
 // and Delete; tapping the row edits it. On a pointer device the same
@@ -55,7 +56,9 @@ export default function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, tx
     gesture.current = null
     if (!g || g.dir !== 'h') return
     setDragging(false)
-    setDx(d => (d < -actionsWidth * 0.45 ? -actionsWidth : 0))
+    const open = dx < -actionsWidth * 0.45
+    if (open) haptic('select')
+    setDx(open ? -actionsWidth : 0)
   }
   const onPointerCancel = () => {
     gesture.current = null

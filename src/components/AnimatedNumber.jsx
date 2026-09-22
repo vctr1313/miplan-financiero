@@ -1,54 +1,48 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-// Counts from the previous value to the new one instead of snapping.
-// Starts at 0 on mount, so a figure rolls up as the page appears, and
-// afterwards animates between real values -- e.g. after adding an
-// expense, the balance visibly travels to its new amount rather than
-// silently changing while you look elsewhere.
+const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+// An odometer: each digit is a vertical strip of 0-9 that rolls to
+// its new value, so a changing figure visibly ticks over (like an
+// iOS timer) instead of snapping. It first renders with every digit
+// at 0 and rolls up as the page appears.
 //
-// `format` receives the intermediate number, so the caller keeps full
-// control of currency/decimals (pass `fmt` from lib/finance).
-export default function AnimatedNumber({ value = 0, format = String, duration = 750 }) {
-  const target = Number(value) || 0
-  const reduced = prefersReducedMotion()
-  const [display, setDisplay] = useState(reduced ? target : 0)
-  // Mirrors `display` outside of React state. A new target mid-flight
-  // must continue from where the number visually IS -- reading the
-  // state variable inside the effect would give whatever it was when
-  // that effect was created, snapping the count backwards.
-  const displayRef = useRef(reduced ? target : 0)
-  const frameRef = useRef(null)
+// `format` turns the number into the displayed text (pass `fmt` from
+// lib/finance); only the digits roll, separators and symbols stay put.
+// Digits are keyed from the RIGHT, so 999 € -> 1.000 € keeps the units
+// column in place and just adds columns on the left.
+export default function AnimatedNumber({ value = 0, format = String }) {
+  const text = format(Number(value) || 0)
+  const [shown, setShown] = useState(() => prefersReducedMotion() ? text : text.replace(/\d/g, '0'))
 
   useEffect(() => {
-    const from = displayRef.current
-    if (from === target) return
+    // Next frame, so the zeroed first render is painted and the
+    // strips have somewhere to roll from.
+    const id = requestAnimationFrame(() => setShown(text))
+    return () => cancelAnimationFrame(id)
+  }, [text])
 
-    if (prefersReducedMotion()) {
-      displayRef.current = target
-      setDisplay(target)
-      return
-    }
-
-    const start = performance.now()
-    const tick = (now) => {
-      const t = Math.min(1, (now - start) / duration)
-      // easeOutQuart: fast off the mark, long soft landing
-      const eased = 1 - Math.pow(1 - t, 4)
-      const current = t < 1 ? from + (target - from) * eased : target
-      displayRef.current = current
-      setDisplay(current)
-      if (t < 1) frameRef.current = requestAnimationFrame(tick)
-    }
-    frameRef.current = requestAnimationFrame(tick)
-
-    return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current)
-    }
-  }, [target, duration])
-
-  return <>{format(display)}</>
+  const chars = shown.split('')
+  return (
+    <span className="odo">
+      <span className="sr-only">{text}</span>
+      <span aria-hidden="true">
+        {chars.map((c, i) => {
+          const pos = chars.length - i
+          if (!/\d/.test(c)) return <span key={`c${pos}`} className="odo-char">{c}</span>
+          return (
+            <span key={`d${pos}`} className="odo-digit">
+              <span className="odo-strip" style={{ transform: `translateY(${-Number(c) * 10}%)`, transitionDelay: `${pos * 25}ms` }}>
+                {DIGITS.map(d => <span key={d}>{d}</span>)}
+              </span>
+            </span>
+          )
+        })}
+      </span>
+    </span>
+  )
 }

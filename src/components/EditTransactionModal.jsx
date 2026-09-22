@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useApp } from '../App'
 import { updateTransaction } from '../lib/supabase'
 import { fmt } from '../lib/finance'
-import { autoFocusOnPointer } from '../lib/ui'
+import { autoFocusOnPointer, haptic } from '../lib/ui'
 
 const TYPE_LABELS = {
   expense: '💸 Gasto',
@@ -57,6 +57,7 @@ export default function EditTransactionModal({ tx, onClose, onSaved }) {
       if (tx.type === 'expense') patch.category_id = categoryId || null
       if (tx.type === 'transfer') patch.linked_expense_id = linkedExpenseId || null
       await updateTransaction(tx.id, patch)
+      haptic('success')
       await refresh()
       onSaved?.()
       onClose()
@@ -154,7 +155,7 @@ export default function EditTransactionModal({ tx, onClose, onSaved }) {
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <button className={`btn btn-primary ${saving ? 'is-busy' : ''}`} onClick={handleSave} disabled={saving}>
             <i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
