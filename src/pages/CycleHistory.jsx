@@ -79,6 +79,8 @@ export default function CycleHistory() {
 
       <div className="card">
         <div className="section-header"><h3>Todos los ciclos</h3><span className="text-xs text-muted">Toca un ciclo cerrado para ver su resumen</span></div>
+        {/* Scrolls sideways on its own on narrow phones instead of widening the page. */}
+        <div className="table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
@@ -113,6 +115,7 @@ export default function CycleHistory() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {recapFor && (

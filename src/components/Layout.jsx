@@ -200,6 +200,7 @@ export default function Layout() {
             )}
             <button
               className={`nav-item ${pathname === item.path ? 'active' : ''}`}
+              data-path={item.path}
               onClick={() => go(item.path)}
             >
               <i className={`fa ${item.icon}`} />
@@ -303,6 +304,7 @@ export default function Layout() {
             <button
               key={path}
               className={`bottom-nav-item ${pathname === path ? 'active' : ''}`}
+              data-path={path}
               aria-current={pathname === path ? 'page' : undefined}
               onClick={() => { if (pathname !== path) haptic('light'); go(path) }}
             >

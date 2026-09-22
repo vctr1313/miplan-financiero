@@ -3,9 +3,10 @@ import { useApp } from '../App'
 import { updateProfile, addFixedExpense, deleteFixedExpense, linkPartner, unlinkPartner } from '../lib/supabase'
 import { fmt, fixedTotal, fixedPct } from '../lib/finance'
 import PushSettingsCard from '../components/PushSettingsCard'
+import IconPicker from '../components/IconPicker'
 import { buildBackup, downloadBackup } from '../lib/backup'
 import { confirmDialog } from '../lib/dialog'
-import { haptic, TEXT_SIZES, getTextSize, applyTextSize } from '../lib/ui'
+import { haptic, TEXT_SIZES, getTextSize, applyTextSize, ACCENTS, getAccent, applyAccent, getOled, applyOled } from '../lib/ui'
 
 export default function Settings() {
   const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh, transactions, houseGoal, savingGoals, pctHistory, shared } = useApp()
@@ -22,6 +23,10 @@ export default function Settings() {
   const [saved, setSaved] = useState(false)
   const [textSize, setTextSize] = useState(getTextSize)
   const pickTextSize = (id) => { haptic('select'); applyTextSize(id); setTextSize(id) }
+  const [accent, setAccent] = useState(getAccent)
+  const pickAccent = (id) => { haptic('select'); applyAccent(id); setAccent(id) }
+  const [oled, setOled] = useState(getOled)
+  const toggleOled = () => { haptic('select'); applyOled(!oled); setOled(!oled) }
   const [savingProfile, setSavingProfile] = useState(false)
 
   // Fixed expense form
@@ -290,6 +295,23 @@ export default function Settings() {
           ))}
         </div>
         <p className="text-xs text-muted mt-2">Agranda toda la app, botones incluidos. Solo en este dispositivo.</p>
+
+        <label className="text-sm font-medium mt-3" style={{ display: 'block' }} id="accent-label">Color de acento</label>
+        <div className="accent-row mt-2" role="radiogroup" aria-labelledby="accent-label">
+          {ACCENTS.map(a => (
+            <button key={a.id} type="button" role="radio" aria-checked={accent === a.id} aria-label={a.label} title={a.label}
+              className={`accent-swatch ${accent === a.id ? 'on' : ''}`} style={{ '--sw': a.color }} onClick={() => pickAccent(a.id)}>
+              {accent === a.id && <i className="fa fa-check" />}
+            </button>
+          ))}
+        </div>
+
+        <div className="sb-row share-toggle push-toggle mt-3" onClick={toggleOled} role="switch" aria-checked={oled} tabIndex={0}
+          onKeyDown={e => (e.key === ' ' || e.key === 'Enter') && (e.preventDefault(), toggleOled())}>
+          <span className="sb-label"><i className="fa fa-circle-half-stroke" /> Negro puro (OLED) en modo oscuro</span>
+          <div className={`switch ${oled ? 'on' : ''}`}><div className="switch-knob" /></div>
+        </div>
+        <p className="text-xs text-muted mt-2">Fondo totalmente negro: gasta menos batería en pantallas OLED.</p>
       </div>
 
       <PushSettingsCard />
@@ -308,8 +330,8 @@ export default function Settings() {
                 <input className="form-control" type="number" step="0.01" value={fxAmount} onChange={e => setFxAmount(e.target.value)} placeholder="0.00" />
               </div>
               <div className="form-group">
-                <label>Emoji</label>
-                <input className="form-control" value={fxIcon} onChange={e => setFxIcon(e.target.value)} maxLength={2} placeholder="🚗" style={{ fontSize: 17 }} />
+                <label>Icono</label>
+                <IconPicker value={fxIcon} onChange={setFxIcon} />
               </div>
             </div>
             <div className="form-group">

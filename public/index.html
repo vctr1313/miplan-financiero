@@ -33,6 +33,9 @@
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
         var size = localStorage.getItem('fp_textsize')
         if (size) document.documentElement.setAttribute('data-textsize', size)
+        var accent = localStorage.getItem('fp_accent')
+        if (accent) document.documentElement.setAttribute('data-accent', accent)
+        if (localStorage.getItem('fp_oled') === '1') document.documentElement.setAttribute('data-oled', '')
       } catch (e) { /* private mode / storage blocked: stay on light */ }
     })()
   </script>

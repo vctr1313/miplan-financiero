@@ -3,6 +3,7 @@ import { useApp } from '../App'
 import { addTransaction, deleteTransaction, addSharedExpense } from '../lib/supabase'
 import { partnerShare } from '../lib/shared'
 import { fmt, toLocalISODate } from '../lib/finance'
+import { flyAmount } from '../lib/fly'
 import { validateSplit, splitRemaining } from '../lib/split'
 import { autoFocusOnPointer, haptic } from '../lib/ui'
 import AmountPad, { formatAmountDisplay } from './AmountPad'
@@ -53,6 +54,17 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
       const rest = splitRemaining(amount, others)
       return ls.map(l => (l.key === key ? { ...l, amount: rest > 0 ? rest.toFixed(2) : '' } : l))
     })
+  }
+  // Save button position, so the saved amount can fly from it.
+  const submitRef = useRef(null)
+  const finishSaved = async (amt, catId) => {
+    haptic('success')
+    const from = submitRef.current?.getBoundingClientRect()
+    await refresh()
+    onSaved?.()
+    onClose()
+    const income = type === 'income'
+    flyAmount({ text: `${income ? '+' : '−'}${fmt(amt)}`, from, color: income ? 'var(--e5)' : 'var(--r5)', categoryId: catId })
   }
   const [date, setDate] = useState(toLocalISODate(new Date()))
   const [description, setDescription] = useState('')
@@ -172,10 +184,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
           })
           created.push(row.id)
         }
-        haptic('success')
-        await refresh()
-        onSaved?.()
-        onClose()
+        await finishSaved(amt, splitLines[0]?.categoryId)
       } catch (err) {
         // All parts or none: undo the ones already saved.
         await Promise.all(created.map(id => deleteTransaction(id).catch(() => {})))
@@ -199,10 +208,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
           partnerId,
           partnerName,
         })
-        haptic('success')
-        await refresh()
-        onSaved?.()
-        onClose()
+        await finishSaved(amt, categoryId)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -224,10 +230,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
         linked_expense_id: type === 'transfer' ? (linkedExpenseId || null) : null,
       }
       await addTransaction(payload)
-      haptic('success')
-      await refresh()
-      onSaved?.()
-      onClose()
+      await finishSaved(amt, payload.category_id)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -490,7 +493,7 @@ export default function AddTransactionModal({ onClose, onSaved, startShared = fa
 
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className={`btn btn-primary ${saving ? 'is-busy' : ''}`} disabled={saving}>
+            <button type="submit" ref={submitRef} className={`btn btn-primary ${saving ? 'is-busy' : ''}`} disabled={saving}>
               {type === 'income' && DISTRIBUTED_INCOME_TYPES.includes(incomeType)
                 ? <><i className="fa fa-arrow-right" /> Continuar al reparto</>
                 : <><i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar'}</>}

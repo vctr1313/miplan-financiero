@@ -8,6 +8,7 @@ import AdjustPotBalanceModal from '../components/AdjustPotBalanceModal'
 import ColorSwatches from '../components/ColorSwatches'
 import Donut from '../components/Donut'
 import SalaryFlow from '../components/SalaryFlow'
+import IconPicker from '../components/IconPicker'
 import { salaryFlow } from '../lib/insights'
 import { nextCategoryColor } from '../lib/palette'
 import { confirmDialog, alertDialog } from '../lib/dialog'
@@ -355,8 +356,8 @@ function CategoryModal({ category, onClose, salary }) {
       <div className="modal" style={{ maxWidth: 420 }}>
         <h3 className="modal-title">{category ? 'Editar categoría' : 'Nueva categoría'}</h3>
         <div className="form-group">
-          <label>Emoji</label>
-          <input className="form-control" value={icon} onChange={e => setIcon(e.target.value)} maxLength={2} style={{ fontSize: 20, maxWidth: 80 }} />
+          <label>Icono</label>
+          <IconPicker value={icon} onChange={setIcon} />
         </div>
         <div className="form-group">
           <label>Nombre *</label>

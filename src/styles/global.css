@@ -1547,3 +1547,138 @@ kbd {
   .pot-liquid .wave { animation: none; }
   .projection-actual { animation: none; stroke-dashoffset: 0; }
 }
+
+
+/* ── ACCENT COLOUR (Ajustes → Apariencia) ────────────────────────
+   Blue is the default (no attribute). Any other accent sets --acc and
+   every accent token is derived from it, so all the var(--i5)-style
+   references across the app follow along. */
+html[data-accent="indigo"] { --acc: #5856d6; }
+html[data-accent="purple"] { --acc: #af52de; }
+html[data-accent="pink"] { --acc: #ff2d55; }
+html[data-accent="orange"] { --acc: #f08400; }
+html[data-accent="green"] { --acc: #28a745; }
+html[data-accent="teal"] { --acc: #2a9fb4; }
+html[data-accent="graphite"] { --acc: #636366; }
+html[data-accent="indigo"][data-theme="dark"] { --acc: #5e5ce6; }
+html[data-accent="purple"][data-theme="dark"] { --acc: #bf5af2; }
+html[data-accent="pink"][data-theme="dark"] { --acc: #ff375f; }
+html[data-accent="orange"][data-theme="dark"] { --acc: #ff9f0a; }
+html[data-accent="green"][data-theme="dark"] { --acc: #30d158; }
+html[data-accent="teal"][data-theme="dark"] { --acc: #40c8e0; }
+html[data-accent="graphite"][data-theme="dark"] { --acc: #aeaeb2; }
+html[data-accent] {
+  --i5: var(--acc);
+  --i6: color-mix(in srgb, var(--acc) 90%, black);
+  --i7: color-mix(in srgb, var(--acc) 78%, black);
+  --i9: color-mix(in srgb, var(--acc) 50%, black);
+  --i50: color-mix(in srgb, var(--acc) 9%, white);
+  --i100: color-mix(in srgb, var(--acc) 17%, white);
+  --i200: color-mix(in srgb, var(--acc) 32%, white);
+  --accent-tint: color-mix(in srgb, var(--acc) 13%, transparent);
+  --accent-glow: 0 1px 2px color-mix(in srgb, var(--acc) 24%, transparent), 0 5px 14px color-mix(in srgb, var(--acc) 22%, transparent);
+  --accent-glow-strong: 0 2px 4px color-mix(in srgb, var(--acc) 28%, transparent), 0 10px 24px color-mix(in srgb, var(--acc) 30%, transparent);
+}
+html[data-accent][data-theme="dark"] {
+  --i6: var(--acc);
+  --i7: color-mix(in srgb, var(--acc) 70%, white);
+  --i9: var(--acc);
+  --i50: color-mix(in srgb, var(--acc) 14%, transparent);
+  --i100: color-mix(in srgb, var(--acc) 22%, transparent);
+  --i200: color-mix(in srgb, var(--acc) 38%, transparent);
+  --accent-tint: color-mix(in srgb, var(--acc) 22%, transparent);
+  --accent-glow: 0 2px 10px color-mix(in srgb, var(--acc) 38%, transparent);
+  --accent-glow-strong: 0 4px 18px color-mix(in srgb, var(--acc) 50%, transparent);
+}
+.accent-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.accent-swatch {
+  width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--sw); color: #fff;
+  display: grid; place-items: center; font-size: 13px;
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 2px transparent;
+  transition: transform .35s var(--spring), box-shadow .2s;
+}
+.accent-swatch.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--sw); transform: scale(1.06); }
+.accent-swatch:active { transform: scale(.9); }
+
+/* ── OLED BLACK ─────────────────────────────────────────────────
+   Dark mode only: cards go black too and are told apart by a hairline
+   instead of a lighter fill. */
+html[data-oled][data-theme="dark"] {
+  --bg: #000; --card: #000; --inp: #111113; --g50: #0b0b0c; --g100: #151517;
+  --fill: rgba(120,120,128,.2); --sidebar: rgba(0,0,0,.82); --glass: rgba(18,18,20,.72);
+  --card-border: rgba(255,255,255,.13);
+}
+html[data-oled][data-theme="dark"] .card,
+html[data-oled][data-theme="dark"] .stat-card,
+html[data-oled][data-theme="dark"] .modal,
+html[data-oled][data-theme="dark"] .spot,
+html[data-oled][data-theme="dark"] .alert-box { border: .5px solid var(--card-border); }
+html[data-oled][data-theme="dark"] .alert-box { background: #0b0b0c; }
+
+/* ── ICON PICKER ─────────────────────────────────────────────────── */
+.icon-picker { position: relative; display: inline-block; }
+.ip-trigger {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 12px;
+  border: none; background: var(--inp); color: var(--muted); font-size: 12px;
+}
+.ip-current { font-size: 24px; width: 34px; height: 34px; display: grid; place-items: center; }
+.ip-panel {
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: min(320px, calc(100vw - 48px));
+  background: var(--card); border-radius: 16px; box-shadow: var(--shadow-md); border: .5px solid var(--border);
+  animation: spotIn .28s var(--spring) both; overflow: hidden;
+}
+.ip-search { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: .5px solid var(--sep); color: var(--muted); }
+.ip-search input { flex: 1; min-width: 0; border: none; outline: none; background: none; color: var(--text); font-size: 16px; }
+.ip-grid-wrap { max-height: 260px; overflow-y: auto; padding: 4px 8px 10px; overscroll-behavior: contain; }
+.ip-group { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 8px 4px 4px; }
+.ip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 2px; }
+.ip-emoji { font-size: 22px; height: 40px; border: none; border-radius: 10px; background: none; transition: transform .25s var(--spring), background .15s; }
+.ip-emoji:hover { background: var(--fill); }
+.ip-emoji:active { transform: scale(.85); }
+.ip-emoji.on { background: var(--accent-tint); }
+.ip-typed { width: 100%; margin: 6px 0; padding: 8px; border: none; border-radius: 10px; background: var(--accent-tint); color: var(--i5); font-weight: 600; }
+.ip-empty { padding: 18px 8px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* ── CONTEXT MENU (long press / right click on a movement) ──────── */
+.tx-row { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.cm-overlay { position: fixed; inset: 0; z-index: 1050; }
+.cm-overlay.sheet {
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
+  padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+  background: rgba(0,0,0,.3); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  animation: overlayIn .2s var(--ease) both;
+}
+.cm-preview {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px;
+  background: var(--card); box-shadow: var(--shadow-md); animation: cmPop .35s var(--spring) both;
+}
+.cm-preview-icon { font-size: 22px; }
+.cm-preview-text { flex: 1; min-width: 0; display: grid; }
+.cm-preview-text strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cm-preview-text small { color: var(--muted); font-size: 12px; }
+.cm-menu {
+  position: fixed; min-width: 230px; max-width: calc(100vw - 16px); padding: 5px; border-radius: 14px;
+  background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
+  border: .5px solid var(--glass-edge); box-shadow: var(--shadow-md);
+  animation: cmPop .28s var(--spring) both; transform-origin: top left;
+}
+.cm-overlay.sheet .cm-menu { position: static; width: 100%; background: var(--card); border-radius: 16px; transform-origin: bottom; }
+.cm-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%;
+  padding: 11px 12px; border: none; border-radius: 9px; background: none; color: var(--text); font-size: 15px; text-align: left;
+}
+.cm-item i { color: var(--muted); width: 18px; text-align: center; font-size: 14px; }
+.cm-item:hover, .cm-item:focus-visible { background: var(--fill); }
+.cm-item.danger, .cm-item.danger i { color: var(--r5); }
+.cm-overlay.sheet .cm-item { padding: 14px 12px; font-size: 16px; }
+.cm-overlay.sheet .cm-item + .cm-item { border-top: .5px solid var(--sep); border-radius: 0; }
+.cm-scroll { max-height: 50vh; overflow-y: auto; }
+@keyframes cmPop { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+
+/* ── FLYING AMOUNT (lib/fly.js) ──────────────────────────────────── */
+.fly-chip {
+  position: fixed; left: 0; top: 0; z-index: 1300; pointer-events: none;
+  padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums;
+  color: #fff; background: var(--fly-c); box-shadow: 0 8px 20px rgba(0,0,0,.25);
+}
+.table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }

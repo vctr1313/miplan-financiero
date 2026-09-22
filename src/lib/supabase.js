@@ -399,6 +399,37 @@ export const addSharedExpense = async ({ expense, partnerShare, partnerId, partn
   }
 }
 
+// Marks an expense that's already recorded as shared: adds the
+// partner's-part transfer and the shared record, same shape as
+// addSharedExpense. The transfer is removed again if the record fails.
+export const shareExistingExpense = async ({ tx, partnerShare, partnerId, partnerName }) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  const share = await addTransaction({
+    type: 'transfer',
+    amount: partnerShare,
+    date: tx.date,
+    description: `Parte de ${partnerName || 'tu pareja'}: ${tx.description}`,
+    notes: 'Gasto compartido',
+    linked_expense_id: tx.id,
+    is_salary: false,
+  })
+  const { error } = await supabase.from('shared_expenses').insert({
+    payer_id: user.id,
+    debtor_id: partnerId,
+    expense_tx_id: tx.id,
+    share_tx_id: share.id,
+    description: tx.description,
+    date: tx.date,
+    total: tx.amount,
+    debtor_share: partnerShare,
+  })
+  if (error) {
+    await supabase.from('transactions').delete().eq('id', share.id)
+    throw error
+  }
+  markDirty('transactions', 'shared')
+}
+
 // Deletes a shared expense the caller paid: its partner's-part transfer
 // and the expense itself (the shared record goes with it via cascade).
 export const deleteSharedExpense = async (shared) => {

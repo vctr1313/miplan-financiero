@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { fmt } from '../lib/finance'
 import { haptic } from '../lib/ui'
+import TxMenu from './TxMenu'
 
 // A movement row. On touch it swipes left (Mail-style) to reveal Edit
 // and Delete; tapping the row edits it. On a pointer device the same
@@ -11,6 +12,7 @@ import { haptic } from '../lib/ui'
 // scrolling to the browser, which fires pointercancel the moment it
 // takes over -- so a scroll that starts on a row never gets hijacked
 // into a half-swipe. Direction is locked after the first ~8px.
+// Holding a row (or right-clicking it) opens its context menu, TxMenu.
 // `onSelect`/`selected`: on wide screens a click picks the row for the
 // detail panel beside the list instead of opening a dialog.
 export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUser, reimburseMap, txById, splitInfo }) {
@@ -29,11 +31,35 @@ export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUs
   const [dragging, setDragging] = useState(false)
   const gesture = useRef(null)
   const moved = useRef(false)
+  // Context menu: { at: {x, y} } at the pointer, or { at: null } as a sheet.
+  const [menu, setMenu] = useState(null)
+  const holdTimer = useRef(null)
+  const heldOpen = useRef(false)
+  const lastTouch = useRef(0)
+  const cancelHold = () => { clearTimeout(holdTimer.current); holdTimer.current = null }
 
   const onPointerDown = (e) => {
     if (e.pointerType !== 'touch') return
     gesture.current = { x: e.clientX, y: e.clientY, base: dx, dir: null }
     moved.current = false
+    lastTouch.current = Date.now()
+    cancelHold()
+    // Held still for ~half a second: open the menu instead of a tap.
+    holdTimer.current = setTimeout(() => {
+      holdTimer.current = null
+      if (gesture.current && !gesture.current.dir && dx === 0) {
+        gesture.current = null
+        heldOpen.current = true
+        haptic('select')
+        setMenu({ at: null })
+      }
+    }, 480)
+  }
+  const onContextMenu = (e) => {
+    e.preventDefault()
+    // Android also fires contextmenu on a long touch; the timer handles that.
+    if (Date.now() - lastTouch.current < 1500) return
+    setMenu({ at: { x: e.clientX, y: e.clientY } })
   }
   const onPointerMove = (e) => {
     const g = gesture.current
@@ -43,6 +69,7 @@ export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUs
     if (!g.dir) {
       if (Math.abs(mx) < 8 && Math.abs(my) < 8) return
       g.dir = Math.abs(mx) > Math.abs(my) ? 'h' : 'v'
+      cancelHold()
     }
     if (g.dir !== 'h') { gesture.current = null; return }
     moved.current = true
@@ -54,6 +81,7 @@ export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUs
     setDx(next)
   }
   const settle = () => {
+    cancelHold()
     const g = gesture.current
     gesture.current = null
     if (!g || g.dir !== 'h') return
@@ -63,12 +91,14 @@ export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUs
     setDx(open ? -actionsWidth : 0)
   }
   const onPointerCancel = () => {
+    cancelHold()
     gesture.current = null
     setDragging(false)
     setDx(d => (d < -actionsWidth * 0.45 ? -actionsWidth : 0))
   }
 
   const onRowClick = () => {
+    if (heldOpen.current) { heldOpen.current = false; return }
     if (moved.current) { moved.current = false; return }
     if (dx !== 0) { setDx(0); return }
     if (onSelect) { onSelect(); return }
@@ -99,6 +129,7 @@ export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUs
         onPointerMove={onPointerMove}
         onPointerUp={settle}
         onPointerCancel={onPointerCancel}
+        onContextMenu={onContextMenu}
         onClick={onRowClick}
       >
         <div className="tx-icon" style={{ background: color + '22', color }}>{icon}</div>
@@ -128,6 +159,7 @@ export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUs
           <i className="fa fa-xmark" />
         </button>
       </div>
+      {menu && <TxMenu tx={tx} at={menu.at} onClose={() => setMenu(null)} onEdit={onEdit} onDelete={onDelete} />}
     </div>
   )
 }

@@ -6,8 +6,8 @@ import { burstConfetti } from '../lib/confetti'
 import EmptyState from '../components/EmptyState'
 import ColorSwatches from '../components/ColorSwatches'
 import { confirmDialog, alertDialog } from '../lib/dialog'
+import IconPicker from '../components/IconPicker'
 
-const PRESET_ICONS = ['✈️', '🚗', '🛡️', '💍', '🎓', '🏖️', '👶', '💻', '🎯']
 
 export default function SavingGoals() {
   const { savingGoals, refresh } = useApp()
@@ -144,17 +144,7 @@ function GoalModal({ goal, onClose }) {
 
         <div className="form-group">
           <label>Icono</label>
-          <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
-            {PRESET_ICONS.map(ic => (
-              <button
-                key={ic} type="button"
-                onClick={() => setIcon(ic)}
-                className={`icon-pick ${icon === ic ? 'selected' : ''}`}
-              >
-                {ic}
-              </button>
-            ))}
-          </div>
+          <IconPicker value={icon} onChange={setIcon} />
         </div>
 
         <div className="form-group">

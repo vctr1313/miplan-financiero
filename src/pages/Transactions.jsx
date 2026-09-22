@@ -114,7 +114,7 @@ export default function Transactions() {
       <div className="page-header">
         <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
           <div><h2>Movimientos</h2><p>Historial completo de ingresos y gastos del hogar</p></div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
             <button className={`btn ${showCal ? 'btn-primary' : 'btn-outline'}`} onClick={() => setShowCal(v => !v)} aria-pressed={showCal}>
               <i className="fa fa-calendar-days" /> Calendario
             </button>

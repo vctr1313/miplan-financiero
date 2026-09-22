@@ -244,7 +244,7 @@ export default function Dashboard() {
             const prevSpent = prevSameDay(c.id)
             const ghost = prevSpent && barTotal > 0 ? prevSpent / barTotal * 100 : 0
             return (
-              <div key={c.id} className="flex items-center gap-2" style={{ padding: '9px 0', borderBottom: '.5px solid var(--sep)' }}>
+              <div key={c.id} data-cat-row={c.id} className="flex items-center gap-2" style={{ padding: '9px 0', borderBottom: '.5px solid var(--sep)' }}>
                 <div style={{ width: 33, height: 33, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: c.color + '22', color: c.color, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>{c.name}</div>

@@ -158,3 +158,34 @@ export function useElementWidth() {
   }, [el])
   return [setEl, width]
 }
+
+// ── ACCENT COLOUR & OLED BLACK ────────────────────────────────
+// Per-device looks, set as data-accent / data-oled on <html> (before
+// first paint, by index.html) -- global.css re-derives every accent
+// token from the chosen colour.
+export const ACCENTS = [
+  { id: 'blue', label: 'Azul', color: '#007aff' },
+  { id: 'indigo', label: 'Índigo', color: '#5856d6' },
+  { id: 'purple', label: 'Morado', color: '#af52de' },
+  { id: 'pink', label: 'Rosa', color: '#ff2d55' },
+  { id: 'orange', label: 'Naranja', color: '#ff9500' },
+  { id: 'green', label: 'Verde', color: '#34c759' },
+  { id: 'teal', label: 'Turquesa', color: '#30b0c7' },
+  { id: 'graphite', label: 'Grafito', color: '#8e8e93' },
+]
+const pref = (key, fallback) => { try { return localStorage.getItem(key) || fallback } catch { return fallback } }
+const setPref = (key, value, isDefault) => {
+  try { if (isDefault) localStorage.removeItem(key); else localStorage.setItem(key, value) } catch { /* private mode */ }
+}
+export const getAccent = () => pref('fp_accent', 'blue')
+export const applyAccent = (id) => {
+  if (id === 'blue') document.documentElement.removeAttribute('data-accent')
+  else document.documentElement.setAttribute('data-accent', id)
+  setPref('fp_accent', id, id === 'blue')
+}
+export const getOled = () => pref('fp_oled', '') === '1'
+export const applyOled = (on) => {
+  if (on) document.documentElement.setAttribute('data-oled', '')
+  else document.documentElement.removeAttribute('data-oled')
+  setPref('fp_oled', '1', !on)
+}
