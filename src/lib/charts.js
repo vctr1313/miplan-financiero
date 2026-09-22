@@ -1,6 +1,7 @@
 import {
   Chart, ArcElement, BarElement, LineElement, PointElement,
   LinearScale, CategoryScale, Tooltip, Legend, Filler,
+  BarController, LineController, DoughnutController,
 } from 'chart.js'
 
 // One place that makes every Chart.js chart in the app look like it
@@ -13,9 +14,13 @@ export function applyChartTheme() {
   // elements.<type> only exists once that element is registered, and
   // pages register only what they draw -- so theming an unregistered
   // element (the arc, once no page used Chart.js doughnuts any more)
-  // threw at startup and left the whole app blank.
+  // threw at startup and left the whole app blank. Same for
+  // Chart.defaults.datasets.<type>, which needs the CONTROLLER: that
+  // used to arrive as a side effect of importing react-chartjs-2, until
+  // a production build tree-shook it away and blanked the app again.
   Chart.register(ArcElement, BarElement, LineElement, PointElement,
-    LinearScale, CategoryScale, Tooltip, Legend, Filler)
+    LinearScale, CategoryScale, Tooltip, Legend, Filler,
+    BarController, LineController, DoughnutController)
   const d = Chart.defaults
   d.font.family = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif"
   d.font.size = 11.5
