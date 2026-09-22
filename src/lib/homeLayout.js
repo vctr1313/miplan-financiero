@@ -8,6 +8,7 @@ export const HOME_SECTIONS = [
   { id: 'recurring', label: 'Gastos fijos pendientes', icon: 'fa-repeat' },
   { id: 'shared', label: 'Saldo con tu pareja', icon: 'fa-user-group' },
   { id: 'hero', label: 'Ritmo del ciclo y anillos', icon: 'fa-gauge-high' },
+  { id: 'projection', label: 'Proyección del ciclo', icon: 'fa-chart-line' },
   { id: 'kpis', label: 'Ingresos, gastos y balance', icon: 'fa-coins' },
   { id: 'budget', label: 'Presupuesto del ciclo', icon: 'fa-sliders', half: true },
   { id: 'recent', label: 'Últimos movimientos', icon: 'fa-list', half: true },

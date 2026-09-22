@@ -7,6 +7,7 @@ import TxRow from '../components/TxRow'
 import useDeleteMovement from '../lib/useDeleteMovement'
 import { splitGroups } from '../lib/split'
 import EmptyState from '../components/EmptyState'
+import MonthCalendar from '../components/MonthCalendar'
 import { toLocalISODate } from '../lib/finance'
 import { useMediaQuery } from '../lib/ui'
 
@@ -43,7 +44,7 @@ function exportCSV(transactions) {
 }
 
 export default function Transactions() {
-  const { transactions, categories, profile } = useApp()
+  const { transactions, categories, profile, fixedExpenses } = useApp()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
@@ -56,6 +57,9 @@ export default function Transactions() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   // Wide screens show the selected movement beside the list.
   const wide = useMediaQuery('(min-width: 1100px)')
+  const [showCal, setShowCal] = useState(false)
+  // A day picked on the calendar is just a one-day date filter.
+  const pickDay = (iso) => { setDateFrom(iso || ''); setDateTo(iso || ''); resetPage() }
 
   const filtered = useMemo(() => {
     return transactions
@@ -111,6 +115,9 @@ export default function Transactions() {
         <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
           <div><h2>Movimientos</h2><p>Historial completo de ingresos y gastos del hogar</p></div>
           <div className="flex items-center gap-2">
+            <button className={`btn ${showCal ? 'btn-primary' : 'btn-outline'}`} onClick={() => setShowCal(v => !v)} aria-pressed={showCal}>
+              <i className="fa fa-calendar-days" /> Calendario
+            </button>
             <button className="btn btn-outline" onClick={() => setShowImport(true)} title="Importar extracto del banco (CSV o Excel)">
               <i className="fa fa-file-import" /> Importar
             </button>
@@ -125,6 +132,13 @@ export default function Transactions() {
       </div>
 
       <div className={wide ? 'tx-split' : undefined}>
+      <div>
+      {showCal && (
+        <div className="card mb-4">
+          <MonthCalendar transactions={transactions} fixedExpenses={fixedExpenses}
+            selected={dateFrom && dateFrom === dateTo ? dateFrom : null} onPickDay={pickDay} />
+        </div>
+      )}
       <div className="card">
         <div className="flex items-center gap-2 mb-3" style={{ flexWrap: 'wrap' }}>
           <input
@@ -200,6 +214,7 @@ export default function Transactions() {
         )}
       </div>
 
+      </div>
       {wide && (
         editingTx && transactions.some(t => t.id === editingTx.id)
           ? <EditTransactionModal inline key={editingTx.id} tx={editingTx} onClose={() => setEditingTx(null)} />

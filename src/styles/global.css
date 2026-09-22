@@ -1444,3 +1444,106 @@ kbd {
 .hc-move { width: 30px; height: 30px; border-radius: 8px; border: none; background: var(--fill); color: var(--g700); font-size: 12px; }
 .hc-move:disabled { opacity: .3; }
 .hc-row .switch { cursor: pointer; }
+
+
+/* ── LIQUID POTS ───────────────────────────────────────────────────
+   The pot fills with a translucent liquid whose surface waves; its
+   level is --level (0-1). Two wave layers drift at different speeds. */
+.pot-liquid {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: -1; pointer-events: none;
+  height: calc(var(--level) * 100%);
+  background: rgba(255,255,255,.16);
+  transition: height 1.4s var(--ease-out);
+  animation: liquidRise 1.6s var(--ease-out) both;
+}
+.pot-liquid .wave { position: absolute; left: 0; bottom: 100%; width: 200%; height: 12px; fill: rgba(255,255,255,.16); }
+.pot-liquid .wave.back { opacity: .6; animation: waveDrift 7s linear infinite reverse; bottom: calc(100% - 2px); }
+.pot-liquid .wave.front { animation: waveDrift 4.5s linear infinite; }
+@keyframes waveDrift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes liquidRise { from { height: 0; } }
+
+/* ── SPARKLINES & GHOST BARS ─────────────────────────────────────── */
+.sparkline { flex-shrink: 0; overflow: visible; }
+.progress-bar { position: relative; }
+.progress-fill { position: relative; }
+.progress-ghost {
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 10px;
+  background: repeating-linear-gradient(-45deg, var(--g300) 0 3px, transparent 3px 6px);
+  opacity: .7;
+}
+
+/* ── PROJECTION ─────────────────────────────────────────────────── */
+.projection-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.projection-kicker { font-size: 12.5px; color: var(--muted); }
+.projection-value { font-size: 28px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.projection-badge { font-size: 12.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px; display: inline-flex; gap: 6px; align-items: center; }
+.projection-badge.under { background: var(--e50); color: var(--e6); }
+.projection-badge.over { background: var(--r50); color: var(--danger-text); }
+.projection-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.projection-label { font-size: 11px; fill: var(--muted); }
+.projection-label.strong { fill: var(--i5); font-weight: 600; }
+.projection-actual { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: drawLine 1.4s var(--ease-out) .1s forwards; }
+@keyframes drawLine { to { stroke-dashoffset: 0; } }
+.projection-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.lg-line { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 4px; border-top: 3px solid var(--i5); }
+.lg-line.dashed { border-top: 2px dashed var(--g500); }
+.lg-line.dotted { border-top: 3px dotted currentColor; }
+
+/* ── SALARY FLOW (sankey) ─────────────────────────────────────────── */
+.sf-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; font-size: 13.5px; flex-wrap: wrap; }
+.sf-svg { display: block; overflow: visible; }
+.sf-band { opacity: .32; transition: opacity .2s; animation: bandIn .7s var(--ease-out) both; transform-origin: left; }
+.sf-band:hover { opacity: .5; }
+@keyframes bandIn { from { opacity: 0; transform: scaleX(.3); } to { opacity: .32; transform: none; } }
+.sf-label { font-size: 12.5px; fill: var(--text); font-weight: 500; }
+.sf-value { fill: var(--muted); font-weight: 400; }
+.sf-chev { fill: var(--i5); font-weight: 700; }
+.sf-node.click { cursor: pointer; }
+.sf-node.click:hover .sf-label { fill: var(--i5); }
+
+/* ── TREEMAP ───────────────────────────────────────────────────── */
+.treemap { position: relative; width: 100%; }
+.tm-cell { position: absolute; padding: 2px; animation: tmIn .5s var(--spring) both; }
+.tm-inner {
+  width: 100%; height: 100%; border-radius: 10px; padding: 8px 10px; overflow: hidden;
+  background: var(--c); color: #fff; display: flex; flex-direction: column; justify-content: flex-end;
+  background-image: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
+}
+.tm-cell.small .tm-inner { justify-content: center; align-items: center; padding: 2px; }
+.tm-icon { font-size: 16px; line-height: 1; }
+.tm-label { font-size: 12.5px; font-weight: 650; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-value { font-size: 11px; opacity: .85; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@keyframes tmIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+
+/* ── MONTH CALENDAR ─────────────────────────────────────────────── */
+.mcal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mcal-title { text-align: center; display: grid; }
+.mcal-title span { font-size: 12px; color: var(--muted); }
+.mcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.mcal-wd { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding-bottom: 2px; }
+.mcal-cell {
+  position: relative; min-height: 54px; border-radius: 10px; border: none; padding: 5px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: color-mix(in srgb, var(--r5) calc(var(--heat) * 55%), var(--fill));
+  color: var(--text); font: inherit; transition: transform .2s var(--spring), box-shadow .2s;
+}
+.mcal-cell.empty { background: none; }
+.mcal-cell.future { opacity: .55; }
+.mcal-cell.today { box-shadow: inset 0 0 0 2px var(--i5); }
+.mcal-cell.selected { box-shadow: inset 0 0 0 2px var(--text); }
+.mcal-cell:not(.empty):active { transform: scale(.94); }
+.mcal-day { font-size: 12.5px; font-weight: 600; }
+.mcal-amt { font-size: 10px; font-variant-numeric: tabular-nums; opacity: .9; }
+.mcal-dots { display: flex; gap: 3px; margin-top: auto; }
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.dot.in { background: var(--e5); }
+.dot.fx { background: var(--s5); }
+.mcal-legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+.mcal-legend .dot { margin-right: 4px; }
+.mcal-upcoming { margin-top: 14px; padding-top: 12px; border-top: .5px solid var(--sep); }
+.mcal-up-row { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 5px 0; }
+.mcal-up-row span:first-child { flex: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .pot-liquid .wave { animation: none; }
+  .projection-actual { animation: none; stroke-dashoffset: 0; }
+}

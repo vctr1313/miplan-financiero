@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { parseISO, isAfter, isBefore } from 'date-fns'
 import { useApp } from '../App'
 import Donut from '../components/Donut'
+import Treemap from '../components/Treemap'
 import EmptyState from '../components/EmptyState'
 import SpendingHeatmap from '../components/SpendingHeatmap'
 import { fmt, fmtShort, catBudget, calcSavingsRate, cap, toLocalISODate } from '../lib/finance'
@@ -244,6 +245,12 @@ function CategoriesTab({ categories, transactions, salary, pctHistory, period, u
 
   return (
     <>
+      {donutItems.length > 0 && (
+        <div className="card mb-4">
+          <div className="section-header"><h3>En qué se fue el dinero</h3></div>
+          <Treemap items={donutItems} />
+        </div>
+      )}
       <div className="card mb-4">
         <div className="section-header"><h3>Gasto por día</h3></div>
         <SpendingHeatmap transactions={transactions} start={period.start} end={period.end} />

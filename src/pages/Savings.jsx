@@ -94,6 +94,10 @@ function MovePotModal({ pots, salary, cycles, transactions, pctHistory, refresh,
   )
 }
 
+// Two identical wave periods side by side, so sliding the strip by
+// half its width loops seamlessly.
+const WAVE = 'M0 10 Q50 0 100 10 T200 10 T300 10 T400 10 V20 H0 Z'
+
 export default function Savings() {
   const { profile, categories, transactions, cycles, pctHistory, refresh } = useApp()
   const salary = profile?.salary || 0
@@ -170,6 +174,9 @@ export default function Savings() {
           const isNegative = isPot && bal < 0
           const monthly = salary * c.user_pct / 100
           const bucket = c.saving_bucket || (c.name.toLowerCase().includes('casa') ? 'house' : 'invest')
+          // How full the pot looks: three cycles' worth of its allocation
+          // fills it to the brim; an empty or negative pot is dry.
+          const level = isPot && monthly > 0 ? Math.max(0, Math.min(1, bal / (monthly * 3))) : 0
           return (
             <button
               key={c.id}
@@ -178,6 +185,12 @@ export default function Savings() {
               style={{ '--c': isNegative ? '#ff3b30' : (c.color || '#007aff') }}
               onClick={() => setDetailCat(c)}
             >
+              {isPot && (
+                <div className="pot-liquid" style={{ '--level': level }} aria-hidden="true">
+                  <svg className="wave back" viewBox="0 0 400 20" preserveAspectRatio="none"><path d={WAVE} /></svg>
+                  <svg className="wave front" viewBox="0 0 400 20" preserveAspectRatio="none"><path d={WAVE} /></svg>
+                </div>
+              )}
               <div className="pot-card-top">
                 <span className="pot-card-icon">{c.icon}</span>
                 <span className="pot-card-kind">{isPot ? 'Bote' : 'Ahorro'}</span>

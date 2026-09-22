@@ -141,3 +141,20 @@ export function useMediaQuery(query) {
   }, [query])
   return matches
 }
+
+// Width of an element, kept current as it resizes -- for charts drawn
+// at their real pixel size, so their text never gets scaled down.
+export function useElementWidth() {
+  const [el, setEl] = useState(null)
+  const [width, setWidth] = useState(0)
+  useEffect(() => {
+    if (!el) return
+    const measure = () => setWidth(el.clientWidth)
+    measure()
+    if (!('ResizeObserver' in window)) return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [el])
+  return [setEl, width]
+}

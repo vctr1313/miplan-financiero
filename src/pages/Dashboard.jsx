@@ -16,6 +16,9 @@ import { splitGroups } from '../lib/split'
 import { sharedBalance, balanceHeadline } from '../lib/shared'
 import { loadLayout, saveLayout, layoutRows } from '../lib/homeLayout'
 import HomeCustomizeSheet from '../components/HomeCustomizeSheet'
+import ProjectionChart from '../components/ProjectionChart'
+import Sparkline from '../components/Sparkline'
+import { cycleProjection, dailySpend, cumulative, ASSUMED_CYCLE_DAYS } from '../lib/insights'
 
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, loading, shared } = useApp()
@@ -78,6 +81,19 @@ export default function Dashboard() {
   const prevStats = prevCycle ? calcCycleStats({ transactions, cycle: prevCycle, categories, salary, fixedExpenses }) : null
   const expenseDelta = prevStats ? stats.netExpenses - prevStats.netExpenses : null
   const expenseDeltaPct = prevStats && prevStats.netExpenses > 0 ? (expenseDelta / prevStats.netExpenses * 100) : null
+
+  // Per-category day-by-day spend this cycle (sparklines), and what the
+  // previous cycle had spent by the same day (the ghost bar behind each
+  // progress bar) -- "same point last month", not last month's total.
+  const dayOfCycle = cycle ? Math.max(0, Math.floor((Date.now() - cycle.start.getTime()) / 86400000)) : 0
+  const sparkDays = Math.min(ASSUMED_CYCLE_DAYS, dayOfCycle + 1)
+  const catSpark = (id) => cumulative(dailySpend(transactions, cycle, { categoryId: id, days: sparkDays }))
+  const prevSameDay = (id) => {
+    if (!prevCycle) return null
+    const series = cumulative(dailySpend(transactions, prevCycle, { categoryId: id, days: sparkDays }))
+    return series[series.length - 1] || 0
+  }
+  const projection = cycleProjection({ transactions, cycle, budget: spendableBudget })
 
   const recentTx = [...transactions]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -170,6 +186,12 @@ export default function Dashboard() {
         </div>
       </div>
     ),
+    projection: projection && (
+      <div className="card mb-4">
+        <div className="section-header"><h3>Proyección del ciclo</h3></div>
+        <ProjectionChart projection={projection} />
+      </div>
+    ),
     kpis: (
       <div className="grid-4 mb-4">
         <div className="stat-card green">
@@ -219,12 +241,17 @@ export default function Dashboard() {
             const barTotal = isPot && potBal !== null ? Math.max(0, potBal + spent) : budget
             const pct = barTotal > 0 ? Math.min(100, spent / barTotal * 100) : (potNeg ? 100 : 0)
             const over = isPot ? potNeg : (spent > budget && budget > 0)
+            const prevSpent = prevSameDay(c.id)
+            const ghost = prevSpent && barTotal > 0 ? prevSpent / barTotal * 100 : 0
             return (
               <div key={c.id} className="flex items-center gap-2" style={{ padding: '9px 0', borderBottom: '.5px solid var(--sep)' }}>
                 <div style={{ width: 33, height: 33, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: c.color + '22', color: c.color, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>{c.name}</div>
-                  <div className="progress-bar"><div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} /></div>
+                  <div className="progress-bar">
+                    {ghost > 0 && <div className="progress-ghost" style={{ width: Math.min(100, ghost) + '%' }} title={`Ciclo anterior a estas alturas: ${fmt(prevSpent)}`} />}
+                    <div className="progress-fill" style={{ width: pct + '%', background: over ? 'var(--r5)' : c.color }} />
+                  </div>
                   {isPot ? (
                     <div style={{ fontSize: 11, color: potNeg ? 'var(--r5)' : 'var(--muted)' }}>
                       {potNeg ? '⚠️ ' : '🪣 '}{fmt(spent)} gastado · {potNeg ? fmt(Math.abs(potBal)) + ' deuda' : fmt(potBal) + ' disponible'}
@@ -233,6 +260,8 @@ export default function Dashboard() {
                     <div style={{ fontSize: 11, color: over ? 'var(--r5)' : 'var(--muted)' }}>{over ? '⚠️ ' : ''}{fmt(spent)} / {fmt(budget)}</div>
                   )}
                 </div>
+                <Sparkline values={catSpark(c.id)} color={over ? 'var(--r5)' : c.color} max={barTotal}
+                  label={`${c.name}: evolución del gasto este ciclo`} />
               </div>
             )
           })}

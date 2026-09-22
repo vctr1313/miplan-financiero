@@ -7,11 +7,13 @@ import CategoryDetailModal from '../components/CategoryDetailModal'
 import AdjustPotBalanceModal from '../components/AdjustPotBalanceModal'
 import ColorSwatches from '../components/ColorSwatches'
 import Donut from '../components/Donut'
+import SalaryFlow from '../components/SalaryFlow'
+import { salaryFlow } from '../lib/insights'
 import { nextCategoryColor } from '../lib/palette'
 import { confirmDialog, alertDialog } from '../lib/dialog'
 
 export default function Budget() {
-  const { profile, categories, transactions, cycles, pctHistory, refresh } = useApp()
+  const { profile, categories, transactions, cycles, pctHistory, fixedExpenses, refresh } = useApp()
   const [showCatModal, setShowCatModal] = useState(false)
   const [editingCat, setEditingCat] = useState(null)
   const [reassignFrom, setReassignFrom] = useState(null)
@@ -126,6 +128,13 @@ export default function Budget() {
       {!salary && (
         <div className="alert alert-warning">
           <i className="fa fa-triangle-exclamation" /> Configura tu sueldo en <strong>Ajustes</strong>.
+        </div>
+      )}
+
+      {salary > 0 && (
+        <div className="card mb-4">
+          <div className="section-header"><h3>¿A dónde va tu nómina?</h3></div>
+          <SalaryFlow flow={salaryFlow({ salary, categories, fixedExpenses })} />
         </div>
       )}
 
