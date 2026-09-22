@@ -166,3 +166,28 @@ export function monthCalendar({ year, month, transactions, fixedExpenses = [], t
   const maxSpent = Math.max(0, ...cells.filter(Boolean).map(c => c.spent))
   return { weeks, maxSpent }
 }
+
+// One sentence for the top of the home screen: how the cycle is going
+// and what that means per day from here. Uses the pace dial's rules
+// (30-day cycle, time elapsed) so it agrees with everything below it.
+export function statusLine({ cycle, spent, budget, now = new Date() }) {
+  if (!cycle) return { tone: 'info', icon: 'fa-flag', text: 'Registra tu nómina para empezar el ciclo.' }
+  if (!(budget > 0)) return { tone: 'info', icon: 'fa-sliders', text: 'Reparte tu sueldo en categorías para ver cómo vas.' }
+  const days = ASSUMED_CYCLE_DAYS
+  const elapsedDays = Math.max(0, (now - cycle.start) / DAY)
+  // Counted exactly like the dial: today is day N, the rest are left.
+  const daysLeft = Math.max(1, days - (Math.floor(elapsedDays) + 1))
+  const left = budget - spent
+  const fmtE = (n) => `${Math.round(n).toLocaleString('es-ES')} €`
+  if (left < 0) {
+    return { tone: 'bad', icon: 'fa-circle-exclamation', text: `Te has pasado ${fmtE(-left)} este ciclo. Mejor no gastar más hasta la nómina.` }
+  }
+  const perDay = left / daysLeft
+  const elapsed = Math.min(1, elapsedDays / days)
+  const projected = elapsed > 0.02 ? spent / elapsed : spent
+  const dayWord = daysLeft === 1 ? 'día' : 'días'
+  if (projected > budget * 1.02) {
+    return { tone: 'warn', icon: 'fa-triangle-exclamation', text: `Cuidado: a este ritmo te pasarás ${fmtE(projected - budget)}. Para llegar, unos ${fmtE(perDay)} al día durante ${daysLeft} ${dayWord}.` }
+  }
+  return { tone: 'good', icon: 'fa-circle-check', text: `Vas bien: puedes gastar ${fmtE(perDay)} al día durante ${daysLeft} ${dayWord}.` }
+}

@@ -25,5 +25,58 @@
   "display": "standalone",
   "theme_color": "#f5f5f7",
   "background_color": "#f5f5f7",
-  "orientation": "portrait-primary"
+  "orientation": "portrait-primary",
+  "shortcuts": [
+    {
+      "name": "Añadir gasto",
+      "short_name": "Gasto",
+      "description": "Apuntar un gasto nuevo",
+      "url": "/?action=expense",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Añadir ingreso",
+      "short_name": "Ingreso",
+      "description": "Apuntar un ingreso o la nómina",
+      "url": "/?action=income",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Buscar",
+      "short_name": "Buscar",
+      "description": "Buscar movimientos y categorías",
+      "url": "/?action=search",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Movimientos",
+      "short_name": "Movimientos",
+      "url": "/transactions",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

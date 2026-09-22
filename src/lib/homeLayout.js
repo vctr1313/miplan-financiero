@@ -4,11 +4,13 @@
 // `half` cards sit two-by-two on wide screens when they end up next to
 // each other; alone, they take the full width.
 export const HOME_SECTIONS = [
+  { id: 'status', label: 'Cómo vas (frase del día)', icon: 'fa-comment' },
   { id: 'cycle', label: 'Nómina del ciclo', icon: 'fa-rotate' },
   { id: 'recurring', label: 'Gastos fijos pendientes', icon: 'fa-repeat' },
   { id: 'shared', label: 'Saldo con tu pareja', icon: 'fa-user-group' },
   { id: 'hero', label: 'Ritmo del ciclo y anillos', icon: 'fa-gauge-high' },
   { id: 'projection', label: 'Proyección del ciclo', icon: 'fa-chart-line' },
+  { id: 'streak', label: 'Racha y logros', icon: 'fa-trophy' },
   { id: 'kpis', label: 'Ingresos, gastos y balance', icon: 'fa-coins' },
   { id: 'budget', label: 'Presupuesto del ciclo', icon: 'fa-sliders', half: true },
   { id: 'recent', label: 'Últimos movimientos', icon: 'fa-list', half: true },
@@ -30,10 +32,11 @@ export function resolveLayout(saved) {
   })
   HOME_SECTIONS.forEach((s, i) => {
     if (seen.has(s.id)) return
-    // Slot a new section in after its default predecessor.
+    // Slot a new section in after its default predecessor (or at the
+    // top if it's first by default); unknown predecessor -> the end.
     const prev = HOME_SECTIONS[i - 1]?.id
     const at = prev ? out.findIndex(e => e.id === prev) + 1 : 0
-    out.splice(at > 0 ? at : out.length, 0, { id: s.id, hidden: false })
+    out.splice(at > 0 || !prev ? at : out.length, 0, { id: s.id, hidden: false })
   })
   return out
 }

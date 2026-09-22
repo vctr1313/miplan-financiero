@@ -1,4 +1,4 @@
-import { dailySpend, cumulative, cycleProjection, salaryFlow, squarify, monthCalendar } from './insights'
+import { dailySpend, cumulative, cycleProjection, salaryFlow, squarify, monthCalendar, statusLine } from './insights'
 
 const cycle = { start: new Date(2026, 8, 1), end: new Date(2026, 8, 20) }
 const tx = (id, type, date, amount, category_id, extra = {}) => ({ id, type, date, amount, category_id, ...extra })
@@ -75,4 +75,28 @@ test('calendar: Monday-first weeks, daily totals, and upcoming fixed charges', (
   expect(day(2).fixed).toEqual([])
   expect(day(5).fixed).toEqual([])
   expect(cal.weeks.every(w => w.length === 7)).toBe(true)
+})
+
+describe('status line', () => {
+  const cycle = { start: new Date(2026, 8, 1) }
+  const at = (d) => new Date(2026, 8, d, 12)
+  test('no cycle or no budget asks for setup', () => {
+    expect(statusLine({ cycle: null, spent: 0, budget: 100 }).tone).toBe('info')
+    expect(statusLine({ cycle, spent: 0, budget: 0 }).tone).toBe('info')
+  })
+  test('on track: what is left, spread over the days left', () => {
+    // day 10 at noon: 9.5 of 30 days gone, 300 of 900 spent -> on pace
+    const s = statusLine({ cycle, spent: 250, budget: 900, now: at(10) })
+    expect(s.tone).toBe('good')
+    // day 10 of 30 -> 20 days left, like the dial; 650 left
+    expect(s.text).toBe('Vas bien: puedes gastar 33 € al día durante 20 días.')
+  })
+  test('ahead of pace warns with the overshoot', () => {
+    const s = statusLine({ cycle, spent: 600, budget: 900, now: at(10) })
+    expect(s.tone).toBe('warn')
+    expect(s.text).toContain('te pasarás')
+  })
+  test('already over budget', () => {
+    expect(statusLine({ cycle, spent: 950, budget: 900, now: at(20) })).toMatchObject({ tone: 'bad' })
+  })
 })

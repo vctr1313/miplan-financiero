@@ -1,7 +1,10 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../App'
 import { fmt, calcCycleStats, calcSavingsRate } from '../lib/finance'
 import CycleRecap from '../components/CycleRecap'
+import StoryViewer from '../components/StoryViewer'
+import { buildStory } from '../lib/story'
 
 export default function CycleHistory() {
   const { profile, categories, transactions, fixedExpenses, cycles } = useApp()
@@ -9,6 +12,35 @@ export default function CycleHistory() {
   const [compareA, setCompareA] = useState(null)
   const [compareB, setCompareB] = useState(null)
   const [recapFor, setRecapFor] = useState(null)
+  const [story, setStory] = useState(null)
+
+  // The last CLOSED cycle (the open one isn't over yet), or the only one.
+  const storyCycle = cycles.length >= 2 ? cycles[cycles.length - 2] : cycles[0]
+  const storyPrev = cycles.length >= 3 ? cycles[cycles.length - 3] : null
+  const year = new Date().getFullYear()
+  const openStory = (kind) => {
+    if (kind === 'year') {
+      setStory(buildStory({
+        transactions, categories, salary, title: `Tu ${year}`,
+        start: new Date(year, 0, 1), end: new Date(),
+        prev: { start: new Date(year - 1, 0, 1), end: new Date(year - 1, new Date().getMonth(), new Date().getDate(), 23, 59) },
+      }))
+    } else if (storyCycle) {
+      setStory(buildStory({
+        transactions, categories, salary: storyCycle.salary || salary, title: 'Tu ciclo',
+        start: storyCycle.start, end: storyCycle.end, prev: storyPrev,
+      }))
+    }
+  }
+  // /history?story=cycle|year (from the search) opens it directly.
+  const [params, setParams] = useSearchParams()
+  useEffect(() => {
+    const kind = params.get('story')
+    if (!kind) return
+    setParams({}, { replace: true })
+    openStory(kind)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params])
 
   const cycleStats = useMemo(() => {
     return [...cycles].reverse().map(cycle => {
@@ -37,6 +69,18 @@ export default function CycleHistory() {
         <h2>Historial de ciclos</h2>
         <p>{cycles.length} ciclo{cycles.length !== 1 ? 's' : ''} registrado{cycles.length !== 1 ? 's' : ''} desde tu primera nómina</p>
       </div>
+
+      <div className="story-launchers mb-4">
+        <button type="button" className="story-launch cycle" onClick={() => openStory('cycle')}>
+          <i className="fa fa-play" />
+          <span><strong>Tu ciclo en historias</strong><small>{storyCycle && cycleLabel(storyCycle)}</small></span>
+        </button>
+        <button type="button" className="story-launch year" onClick={() => openStory('year')}>
+          <i className="fa fa-play" />
+          <span><strong>Tu {year}</strong><small>Del 1 de enero a hoy</small></span>
+        </button>
+      </div>
+      {story && <StoryViewer slides={story} onClose={() => setStory(null)} />}
 
       {b && (
         <div className="card mb-4">

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useApp } from '../App'
 import { signOut } from '../lib/supabase'
 import { fmt } from '../lib/finance'
@@ -11,6 +11,7 @@ import ImportStatementModal from './ImportStatementModal'
 import EditTransactionModal from './EditTransactionModal'
 import Spotlight from './Spotlight'
 import QuickActions from './QuickActions'
+import Onboarding, { isOnboarded } from './Onboarding'
 import '../styles/global.css'
 
 const NAV = [
@@ -49,6 +50,9 @@ export default function Layout() {
   // rather than prompting pointlessly on day one.
   const potsWithHistory = categories.filter(c => c.type === 'pot' && transactions.some(t => t.category_id === c.id))
   const showBalanceReview = !loading && profile && !profile.balances_reviewed_at && potsWithHistory.length > 0
+  // First-run walkthrough: a new account with nothing recorded yet.
+  const [onboarding, setOnboarding] = useState(() => !isOnboarded())
+  const showOnboarding = onboarding && !loading && profile && transactions.length === 0 && !showBalanceReview
 
   // Follow the system until the user picks a side explicitly.
   useSystemThemeSync(setDark)
@@ -80,6 +84,8 @@ export default function Layout() {
     else if (id === 'import') setSheet({ kind: 'import' })
     else if (id === 'theme') toggleTheme()
     else if (id === 'customize') go('/?customize=1')
+    else if (id === 'story-cycle') go('/history?story=cycle')
+    else if (id === 'story-year') go('/history?story=year')
   }
   const visibleNav = NAV.filter(item => !item.partnerOnly || profile?.partner_id)
   const searchPages = visibleNav.map(n => ({ id: n.path, label: n.label, icon: n.icon, keywords: n.keywords }))
@@ -87,7 +93,21 @@ export default function Layout() {
     ...quickActions.map(a => ({ ...a, label: a.id === 'import' ? a.label : `Añadir ${a.label.toLowerCase()}` })),
     { id: 'theme', label: dark ? 'Modo claro' : 'Modo oscuro', icon: dark ? 'fa-sun' : 'fa-moon', keywords: 'tema apariencia' },
     { id: 'customize', label: 'Personalizar inicio', icon: 'fa-sliders', keywords: 'ordenar ocultar tarjetas dashboard' },
+    { id: 'story-cycle', label: 'Ver mi ciclo en historias', icon: 'fa-play', keywords: 'resumen wrapped' },
+    { id: 'story-year', label: 'Ver mi año en historias', icon: 'fa-play', keywords: 'resumen wrapped anual' },
   ]
+  // ?action=… from the home-screen icon shortcuts (manifest.json).
+  const [params, setParams] = useSearchParams()
+  const runActionRef = useRef(runAction)
+  runActionRef.current = runAction
+  useEffect(() => {
+    const action = params.get('action')
+    if (!action) return
+    if (action === 'search') setSearchOpen(true)
+    else runActionRef.current(action)
+    setParams({}, { replace: true })
+  }, [params, setParams])
+
   const pickResult = (item) => {
     setSearchOpen(false)
     if (item.kind === 'page') go(item.id)
@@ -327,6 +347,13 @@ export default function Layout() {
       {sheet?.kind === 'edit' && <EditTransactionModal tx={sheet.tx} onClose={() => setSheet(null)} />}
 
       {showBalanceReview && <BalanceReviewModal pots={potsWithHistory} onClose={() => {}} />}
+      {showOnboarding && (
+        <Onboarding onFinish={(next) => {
+          setOnboarding(false)
+          if (next === 'income') runAction('income')
+          else if (next === 'budget') go('/budget')
+        }} />
+      )}
     </div>
   )
 }

@@ -10,7 +10,6 @@ test('no saved layout means the default order, all visible', () => {
 
 test('a saved order is kept; unknown and duplicate ids are dropped', () => {
   const l = resolveLayout([{ id: 'house' }, { id: 'nope' }, { id: 'house' }, { id: 'hero', hidden: true }])
-  expect(ids(l)[0]).toBe('house')
   expect(ids(l).indexOf('house')).toBeLessThan(ids(l).indexOf('hero'))
   expect(l.find(e => e.id === 'hero').hidden).toBe(true)
   expect(ids(l)).toHaveLength(HOME_SECTIONS.length)
@@ -37,4 +36,9 @@ test('adjacent half cards pair up; hidden ones leave their partner alone', () =>
   expect(rows.find(r => r.half).ids).toEqual(['budget', 'recent'])
   const alone = layoutRows(toggleSection(resolveLayout(null), 'recent'))
   expect(alone.find(r => r.ids.includes('budget')).ids).toEqual(['budget'])
+})
+
+test('a new section that is first by default goes to the top of a saved layout', () => {
+  const saved = HOME_SECTIONS.slice(1).reverse().map(s => ({ id: s.id }))
+  expect(ids(resolveLayout(saved))[0]).toBe(HOME_SECTIONS[0].id)
 })

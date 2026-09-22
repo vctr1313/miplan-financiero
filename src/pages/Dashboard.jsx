@@ -18,7 +18,9 @@ import { loadLayout, saveLayout, layoutRows } from '../lib/homeLayout'
 import HomeCustomizeSheet from '../components/HomeCustomizeSheet'
 import ProjectionChart from '../components/ProjectionChart'
 import Sparkline from '../components/Sparkline'
-import { cycleProjection, dailySpend, cumulative, ASSUMED_CYCLE_DAYS } from '../lib/insights'
+import { cycleProjection, dailySpend, cumulative, statusLine, ASSUMED_CYCLE_DAYS } from '../lib/insights'
+import { paceStreak } from '../lib/achievements'
+import AchievementsCard from '../components/AchievementsCard'
 
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, loading, shared } = useApp()
@@ -94,6 +96,12 @@ export default function Dashboard() {
     return series[series.length - 1] || 0
   }
   const projection = cycleProjection({ transactions, cycle, budget: spendableBudget })
+  const status = statusLine({ cycle, spent: stats.netExpenses, budget: spendableBudget })
+  const streak = paceStreak({ transactions, cycle, budget: spendableBudget })
+  const achievementData = useMemo(
+    () => ({ transactions, categories, cycles, salary, pctHistory, shared }),
+    [transactions, categories, cycles, salary, pctHistory, shared]
+  )
 
   const recentTx = [...transactions]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -150,6 +158,13 @@ export default function Dashboard() {
   // Every card of the home screen, by id; the saved layout (see
   // lib/homeLayout.js) decides which show and in what order.
   const sections = {
+    status: (
+      <div className={`status-line ${status.tone} mb-4`} role="status">
+        <i className={`fa ${status.icon}`} />
+        <span>{status.text}</span>
+      </div>
+    ),
+    streak: cycle && <AchievementsCard streak={streak} data={achievementData} />,
     cycle: cycle ? (
         <div className="alert alert-info mb-3" style={{ display: 'inline-flex' }}>
           <i className="fa fa-rotate" /> Nómina del {cycle.start.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} · {fmtShort(cycle.salary)}
