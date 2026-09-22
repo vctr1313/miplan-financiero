@@ -6,11 +6,11 @@ import { requestNotificationPermission, getNotificationPermission } from '../lib
 import { buildBackup, downloadBackup } from '../lib/backup'
 
 export default function Settings() {
-  const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh, transactions, houseGoal, savingGoals, pctHistory } = useApp()
+  const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh, transactions, houseGoal, savingGoals, pctHistory, shared } = useApp()
   const [backupDone, setBackupDone] = useState(false)
 
   const handleBackup = () => {
-    downloadBackup(buildBackup({ profile, categories, transactions, fixedExpenses, houseGoal, savingGoals, pctHistory }))
+    downloadBackup(buildBackup({ profile, categories, transactions, fixedExpenses, houseGoal, savingGoals, pctHistory, shared }))
     setBackupDone(true)
     setTimeout(() => setBackupDone(false), 2500)
   }

@@ -12,6 +12,7 @@ const NAV = [
   { path: '/',            icon: 'fa-chart-pie',    label: 'Resumen',      section: 'Principal' },
   { path: '/transactions',icon: 'fa-list',          label: 'Movimientos',  section: null },
   { path: '/budget',      icon: 'fa-sliders',       label: 'Presupuesto',  section: null },
+  { path: '/shared',      icon: 'fa-user-group',    label: 'Compartidos',  section: null, partnerOnly: true },
   { path: '/savings',     icon: 'fa-piggy-bank',    label: 'Botes',        section: 'Ahorro' },
   { path: '/goals',       icon: 'fa-bullseye',      label: 'Metas',        section: null },
   { path: '/house',       icon: 'fa-house',         label: 'Mi Casa',      section: null },
@@ -136,7 +137,7 @@ export default function Layout() {
       </div>
 
       <nav style={{ flex: '1 0 auto', padding: '8px 0' }}>
-        {NAV.map((item, i) => (
+        {NAV.filter(item => !item.partnerOnly || profile?.partner_id).map((item, i) => (
           <React.Fragment key={item.path}>
             {item.section && (
               <div className="nav-section">{item.section}</div>

@@ -9,7 +9,7 @@ import { toLocalISODate } from './finance'
 // and would go stale in the file. What's kept is the raw rows.
 const stripJoins = ({ categories, profiles, ...row }) => row
 
-export function buildBackup({ profile, categories, transactions, fixedExpenses, houseGoal, savingGoals, pctHistory }) {
+export function buildBackup({ profile, categories, transactions, fixedExpenses, houseGoal, savingGoals, pctHistory, shared }) {
   return {
     app: 'Mi Plan Financiero',
     format: 1,
@@ -27,6 +27,8 @@ export function buildBackup({ profile, categories, transactions, fixedExpenses, 
     fixedExpenses: fixedExpenses.map(({ categories: _c, ...f }) => f),
     houseGoal: houseGoal ? { ...houseGoal } : null,
     savingGoals: savingGoals.map(g => ({ ...g })),
+    sharedExpenses: (shared?.expenses || []).map(e => ({ ...e })),
+    sharedSettlements: (shared?.settlements || []).map(e => ({ ...e })),
     counts: {
       categories: categories.length,
       transactions: transactions.length,

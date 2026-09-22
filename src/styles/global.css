@@ -1156,3 +1156,56 @@ tr.tappable:active { transform: none; }
   .import-row .import-cat { grid-column: 2 / span 2; }
   .import-row .import-amount { grid-row: 1; grid-column: 3; }
 }
+
+/* ── SHARED EXPENSES ──────────────────────────────────────────── */
+.share-box { border-radius: 14px; background: var(--fill); margin-bottom: 14px; overflow: hidden; transition: background .25s; }
+.share-box.on { background: var(--accent-tint); }
+.share-toggle { padding: 11px 12px; }
+.share-body { padding: 0 12px 12px; animation: riseIn .3s var(--ease-out) both; }
+.share-split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+.share-split > div { background: var(--card); border-radius: 10px; padding: 8px 10px; display: grid; }
+.share-split span { font-size: 11px; color: var(--muted); }
+.share-split strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+
+.balance-hero { text-align: center; padding: 28px 22px; }
+.balance-kicker { font-size: 14px; color: var(--muted); font-weight: 500; }
+.balance-amount { font-size: 46px; font-weight: 800; letter-spacing: -.04em; line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.balance-hero.owed .balance-amount { color: var(--e6); }
+.balance-hero.owe .balance-amount { color: var(--r5); }
+.balance-hero.even .balance-amount { color: var(--g500); }
+.balance-parts { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.balance-parts strong { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.shared-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: .5px solid var(--sep); animation: riseIn .4s var(--ease-out) both; }
+.shared-row:last-child { border-bottom: none; }
+.shared-who {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  font-size: 12.5px; font-weight: 700; color: #fff;
+}
+.shared-who.me { background: var(--i5); }
+.shared-who.them { background: #af52de; }
+.shared-who.done { background: var(--e5); }
+.shared-info { flex: 1; min-width: 0; }
+.shared-desc { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shared-meta { font-size: 12px; color: var(--muted); }
+.shared-amt { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.shared-amt.pos { color: var(--e6); }
+.shared-amt.neg { color: var(--r5); }
+.shared-row.settled { opacity: .75; }
+.settle-summary { font-size: 17px; text-align: center; padding: 14px; border-radius: 14px; background: var(--fill); margin-bottom: 12px; }
+.settle-summary strong { font-size: 22px; letter-spacing: -.02em; }
+
+.shared-chip {
+  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+  padding: 13px 16px; border: none; border-radius: var(--radius); font: inherit; color: var(--text);
+  background: var(--card); box-shadow: var(--shadow-sm); cursor: pointer;
+  animation: riseIn .5s var(--ease-out) both;
+  transition: transform .4s var(--spring), box-shadow .3s;
+}
+.shared-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.shared-chip:active { transform: scale(.99); transition-duration: .08s; }
+.shared-chip > i:first-child { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #af52de22; color: #af52de; }
+.shared-chip span { flex: 1; font-size: 14px; }
+.shared-chip small { color: var(--muted); font-size: 12px; }
+.shared-chip > i:last-child { color: var(--g300); }
+@media (max-width: 768px) { .shared-chip small { display: none; } }

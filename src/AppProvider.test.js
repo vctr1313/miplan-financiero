@@ -28,6 +28,8 @@ jest.mock('./lib/supabase', () => {
     getSavingGoals: track('savingGoals', []),
     getCategoryPctHistory: track('pctHistory', []),
     getPartnerSummary: track('partnerSummary', null),
+    getShared: track('shared', { expenses: [], settlements: [] }),
+    subscribeToShared: () => () => {},
     subscribeToHousehold: () => () => {},
     markDirty: (...k) => k.forEach(x => global.mockDirty.add(x)),
     takeDirty: () => { const k = [...global.mockDirty]; global.mockDirty = new Set(); return k },
@@ -64,7 +66,7 @@ const diff = (before) => Object.fromEntries(
 it('loads every dataset once on start', () => {
   expect(global.mockCalls).toEqual({
     profile: 1, categories: 1, transactions: 1, fixedExpenses: 1,
-    houseGoal: 1, savingGoals: 1, pctHistory: 1,
+    houseGoal: 1, savingGoals: 1, pctHistory: 1, shared: 1,
   })
   expect(api.loading).toBe(false)
 })
@@ -87,7 +89,7 @@ it('with nothing recorded (pull to refresh) reloads everything', async () => {
   const before = snapshot()
   await act(async () => { await api.refresh() })
   expect(Object.keys(diff(before)).sort()).toEqual(
-    ['categories', 'fixedExpenses', 'houseGoal', 'pctHistory', 'profile', 'savingGoals', 'transactions']
+    ['categories', 'fixedExpenses', 'houseGoal', 'pctHistory', 'profile', 'savingGoals', 'shared', 'transactions']
   )
 })
 

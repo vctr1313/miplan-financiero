@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
-import { deleteTransaction, deleteSplitGroup } from '../lib/supabase'
 import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution, calcPotBalance, toLocalISODate } from '../lib/finance'
 import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
@@ -13,10 +12,12 @@ import { pendingRecap, markRecapSeen } from '../lib/recap'
 import ActivityRings from '../components/ActivityRings'
 import EmptyState from '../components/EmptyState'
 import TxRow from '../components/TxRow'
+import useDeleteMovement from '../lib/useDeleteMovement'
 import { splitGroups } from '../lib/split'
+import { sharedBalance, balanceHeadline } from '../lib/shared'
 
 export default function Dashboard() {
-  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, refresh, removeTransactionLocally, loading } = useApp()
+  const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, loading, shared } = useApp()
   const navigate = useNavigate()
   const [showAddModal, setShowAddModal] = useState(false)
   // One-time "how did the last cycle go" sheet after a new nómina.
@@ -95,27 +96,8 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cycle?.start, stats.expenses])
 
-  const handleDelete = async (id) => {
-    const tx = transactions.find(t => t.id === id)
-    const group = tx?.split_group ? transactions.filter(t => t.split_group === tx.split_group) : null
-    // A split purchase goes as a whole: deleting one part alone would
-    // leave the ticket's other categories orphaned and the total wrong.
-    const question = group && group.length > 1
-      ? `Esta compra está repartida en ${group.length} categorías. ¿Eliminar las ${group.length} partes?`
-      : '¿Eliminar este movimiento?'
-    if (!window.confirm(question)) return
-    // Optimistic: the rows go immediately; put them back if the server
-    // refuses.
-    const restores = (group || [tx || { id }]).map(t => removeTransactionLocally(t.id))
-    try {
-      if (group) await deleteSplitGroup(tx.split_group)
-      else await deleteTransaction(id)
-    } catch (err) {
-      restores.forEach(r => r())
-      alert('No se pudo eliminar: ' + err.message)
-    }
-    refresh()
-  }
+  const handleDelete = useDeleteMovement()
+
 
   const alerts = []
   categories.forEach(c => {
@@ -185,6 +167,20 @@ export default function Dashboard() {
       )}
 
       <RecurringExpensesBanner />
+
+      {profile?.partner_id && (() => {
+        const { net, open } = sharedBalance(shared.expenses, profile.id)
+        if (!open.length) return null
+        const name = partnerSummary?.partner_name || 'Tu pareja'
+        return (
+          <button type="button" className="shared-chip mb-4" onClick={() => navigate('/shared')}>
+            <i className="fa fa-user-group" />
+            <span>{balanceHeadline(net, name)} <strong>{fmt(Math.abs(net))}</strong></span>
+            <small>{open.length} compartido{open.length !== 1 ? 's' : ''} sin saldar</small>
+            <i className="fa fa-chevron-right" />
+          </button>
+        )
+      })()}
 
       <div className="card mb-4">
         <div className="hero-split">

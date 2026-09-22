@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, getPartnerSummary, getCategoryPctHistory, subscribeToHousehold, takeDirty } from './lib/supabase'
+import { supabase, getProfile, getCategories, getTransactions, getFixedExpenses, getHouseGoal, getSavingGoals, getPartnerSummary, getCategoryPctHistory, subscribeToHousehold, takeDirty, getShared, subscribeToShared } from './lib/supabase'
 import { buildCycles } from './lib/finance'
 import { useKeyboardInset } from './lib/ui'
 import { applyChartTheme } from './lib/charts'
@@ -18,6 +18,7 @@ import CycleHistory from './pages/CycleHistory'
 import Reports from './pages/Reports'
 import AIChat from './pages/AIChat'
 import Settings from './pages/Settings'
+import Shared from './pages/Shared'
 import Layout from './components/Layout'
 
 // Once, before any chart mounts: every Chart.js chart inherits the
@@ -38,6 +39,8 @@ export function AppProvider({ children }) {
   const [savingGoals, setSavingGoals] = useState([])
   const [pctHistory, setPctHistory] = useState([])
   const [partnerSummary, setPartnerSummary] = useState(null)
+  // Expenses shared with the linked partner and past settlements.
+  const [shared, setShared] = useState({ expenses: [], settlements: [] })
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
 
@@ -65,6 +68,7 @@ export function AppProvider({ children }) {
     houseGoal: async () => setHouseGoal(await getHouseGoal()),
     savingGoals: async () => setSavingGoals((await getSavingGoals()) || []),
     pctHistory: async () => setPctHistory((await getCategoryPctHistory()) || []),
+    shared: async () => setShared(await getShared()),
   }), [])
   const ALL_KEYS = useMemo(() => Object.keys(loaders), [loaders])
 
@@ -137,6 +141,19 @@ export function AppProvider({ children }) {
     return () => { clearTimeout(timer); unsub() }
   }, [profile?.household_id, session, load])
 
+  // Shared expenses live outside the household (the partner writes
+  // them too), so they get their own subscription.
+  useEffect(() => {
+    if (!session?.user?.id || !profile?.partner_id) return
+    let timer = null
+    const unsub = subscribeToShared(session.user.id, () => {
+      if (Date.now() - (lastLoadedAt.current.shared || 0) < 2000) return
+      clearTimeout(timer)
+      timer = setTimeout(() => load(session.user.id, ['shared']), 350)
+    })
+    return () => { clearTimeout(timer); unsub() }
+  }, [session, profile?.partner_id, load])
+
   // refresh() with no argument refetches whatever the writes since the
   // last refresh touched; with nothing recorded (e.g. pull-to-refresh)
   // it reloads everything. Pass keys explicitly to override.
@@ -166,6 +183,7 @@ export function AppProvider({ children }) {
     savingGoals, setSavingGoals,
     pctHistory,
     partnerSummary,
+    shared,
     cycles, loading, syncing, refresh, removeTransactionLocally
   }
 
@@ -196,6 +214,7 @@ export default function App() {
             <Route path="history" element={<CycleHistory />} />
             <Route path="reports" element={<Reports />} />
             <Route path="chat" element={<AIChat />} />
+            <Route path="shared" element={<Shared />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

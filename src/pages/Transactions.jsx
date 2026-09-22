@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import { useApp } from '../App'
-import { deleteTransaction, deleteSplitGroup } from '../lib/supabase'
 import AddTransactionModal from '../components/AddTransactionModal'
 import ImportStatementModal from '../components/ImportStatementModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import TxRow from '../components/TxRow'
+import useDeleteMovement from '../lib/useDeleteMovement'
 import { splitGroups } from '../lib/split'
 import EmptyState from '../components/EmptyState'
 import { toLocalISODate } from '../lib/finance'
@@ -42,7 +42,7 @@ function exportCSV(transactions) {
 }
 
 export default function Transactions() {
-  const { transactions, categories, profile, refresh, removeTransactionLocally } = useApp()
+  const { transactions, categories, profile } = useApp()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
@@ -89,27 +89,8 @@ export default function Transactions() {
 
   const splitInfo = useMemo(() => splitGroups(transactions), [transactions])
 
-  const handleDelete = async (id) => {
-    const tx = transactions.find(t => t.id === id)
-    const group = tx?.split_group ? transactions.filter(t => t.split_group === tx.split_group) : null
-    // A split purchase goes as a whole: deleting one part alone would
-    // leave the ticket's other categories orphaned and the total wrong.
-    const question = group && group.length > 1
-      ? `Esta compra está repartida en ${group.length} categorías. ¿Eliminar las ${group.length} partes?`
-      : '¿Eliminar?'
-    if (!window.confirm(question)) return
-    // Optimistic: the rows go immediately; put them back if the server
-    // refuses.
-    const restores = (group || [tx || { id }]).map(t => removeTransactionLocally(t.id))
-    try {
-      if (group) await deleteSplitGroup(tx.split_group)
-      else await deleteTransaction(id)
-    } catch (err) {
-      restores.forEach(r => r())
-      alert('No se pudo eliminar: ' + err.message)
-    }
-    refresh()
-  }
+  const handleDelete = useDeleteMovement()
+
 
   const visible = filtered.slice(0, visibleCount)
   const hasMore = filtered.length > visibleCount

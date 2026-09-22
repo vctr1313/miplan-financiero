@@ -343,6 +343,93 @@ export const incrementHouseGoalSavings = async ({ mySavedDelta = 0, investSavedD
   return data
 }
 
+// ── SHARED EXPENSES (with the linked partner) ─────────────────
+// See supabase_patch_shared_expenses.sql. RLS only ever returns rows
+// where the caller is the payer or the debtor.
+export const getShared = async () => {
+  const [exp, set] = await Promise.all([
+    supabase.from('shared_expenses').select('*').order('date', { ascending: false }).order('created_at', { ascending: false }),
+    supabase.from('shared_settlements').select('*').order('created_at', { ascending: false }).limit(50),
+  ])
+  if (exp.error) throw exp.error
+  if (set.error) throw set.error
+  return { expenses: exp.data || [], settlements: set.data || [] }
+}
+
+// Records an expense the caller paid in full, of which `partnerShare`
+// is the partner's part. Three writes that must stand or fall together:
+// the full expense, the linked "partner's part" transfer that nets it
+// out of the caller's budget (same shape as a Bizum reimbursement), and
+// the shared record the partner can see. Undone on any failure.
+export const addSharedExpense = async ({ expense, partnerShare, partnerId, partnerName }) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  const created = []
+  try {
+    const exp = await addTransaction({ ...expense, type: 'expense' })
+    created.push(exp.id)
+    const share = await addTransaction({
+      type: 'transfer',
+      amount: partnerShare,
+      date: expense.date,
+      description: `Parte de ${partnerName || 'tu pareja'}: ${expense.description}`,
+      notes: 'Gasto compartido',
+      linked_expense_id: exp.id,
+      is_salary: false,
+    })
+    created.push(share.id)
+    const { error } = await supabase.from('shared_expenses').insert({
+      payer_id: user.id,
+      debtor_id: partnerId,
+      expense_tx_id: exp.id,
+      share_tx_id: share.id,
+      description: expense.description,
+      date: expense.date,
+      total: expense.amount,
+      debtor_share: partnerShare,
+    })
+    if (error) throw error
+    markDirty('transactions', 'shared')
+    return exp
+  } catch (err) {
+    // Remove the partner's-part transfer first (it references the expense).
+    for (const id of created.reverse()) {
+      await supabase.from('transactions').delete().eq('id', id)
+    }
+    throw err
+  }
+}
+
+// Deletes a shared expense the caller paid: its partner's-part transfer
+// and the expense itself (the shared record goes with it via cascade).
+export const deleteSharedExpense = async (shared) => {
+  if (shared.share_tx_id) {
+    const { error } = await supabase.from('transactions').delete().eq('id', shared.share_tx_id)
+    if (error) throw error
+  }
+  const { error } = await supabase.from('transactions').delete().eq('id', shared.expense_tx_id)
+  if (error) throw error
+  markDirty('transactions', 'shared')
+}
+
+export const settleSharedBalance = async () => {
+  const { data, error } = await supabase.rpc('settle_shared_balance')
+  if (error) throw error
+  markDirty('shared')
+  return data
+}
+
+export const subscribeToShared = (userId, onEvent) => {
+  const channel = supabase.channel(`shared_${userId}`)
+  ;['payer_id', 'debtor_id'].forEach(col => {
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'shared_expenses', filter: `${col}=eq.${userId}` }, onEvent)
+  })
+  ;['from_id', 'to_id'].forEach(col => {
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'shared_settlements', filter: `${col}=eq.${userId}` }, onEvent)
+  })
+  channel.subscribe()
+  return () => supabase.removeChannel(channel)
+}
+
 // ── SAVING GOALS ──────────────────────────────────────────────
 export const getSavingGoals = async () => {
   const { data, error } = await supabase

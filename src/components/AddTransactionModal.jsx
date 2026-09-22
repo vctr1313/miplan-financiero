@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useApp } from '../App'
-import { addTransaction, deleteTransaction } from '../lib/supabase'
+import { addTransaction, deleteTransaction, addSharedExpense } from '../lib/supabase'
+import { partnerShare } from '../lib/shared'
+import { fmt, toLocalISODate } from '../lib/finance'
 import { validateSplit, splitRemaining } from '../lib/split'
 import { autoFocusOnPointer } from '../lib/ui'
 import AmountPad, { formatAmountDisplay } from './AmountPad'
 import ExtraPaymentModal from './ExtraPaymentModal'
-import { toLocalISODate } from '../lib/finance'
 
 const INCOME_TYPES = [
   { id: 'salary', label: '💼 Sueldo mensual', isSalary: true },
@@ -22,13 +23,20 @@ const INCOME_TYPES = [
 // confirms how to split it across pots/saving categories.
 const DISTRIBUTED_INCOME_TYPES = ['extra-payment', 'from-savings']
 
-export default function AddTransactionModal({ onClose, onSaved }) {
-  const { categories, transactions, refresh } = useApp()
+export default function AddTransactionModal({ onClose, onSaved, startShared = false }) {
+  const { categories, transactions, refresh, profile, partnerSummary } = useApp()
   const [type, setType] = useState('expense')
   const [amount, setAmount] = useState('')
   // Touch devices get the in-sheet keypad instead of the system keyboard.
   const [usePad] = useState(() => !autoFocusOnPointer())
   const [padOpen, setPadOpen] = useState(true)
+  // Sharing an expense with the linked partner (expenses only).
+  const partnerId = profile?.partner_id || null
+  const partnerName = partnerSummary?.partner_name || 'tu pareja'
+  const [shareOn, setShareOn] = useState(startShared)
+  const [shareMode, setShareMode] = useState('half')
+  const [shareCustom, setShareCustom] = useState('')
+  const theirPart = partnerShare(shareMode, amount, shareCustom)
   // Splitting one purchase across categories (expenses only).
   const [splitMode, setSplitMode] = useState(false)
   const [splitLines, setSplitLines] = useState([])
@@ -177,6 +185,30 @@ export default function AddTransactionModal({ onClose, onSaved }) {
       return
     }
 
+    if (type === 'expense' && shareOn && partnerId) {
+      if (theirPart == null) { setError(`Indica la parte de ${partnerName} (entre 0 y el total)`); return }
+      setSaving(true)
+      try {
+        await addSharedExpense({
+          expense: {
+            amount: amt, date, description: description.trim(),
+            notes: notes.trim() || null, category_id: categoryId, is_salary: false,
+          },
+          partnerShare: theirPart,
+          partnerId,
+          partnerName,
+        })
+        await refresh()
+        onSaved?.()
+        onClose()
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
@@ -315,9 +347,11 @@ export default function AddTransactionModal({ onClose, onSaved }) {
             <div className="form-group">
               <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
                 <label style={{ margin: 0 }}>Categoría *</label>
-                <button type="button" className="btn btn-sm btn-ghost" onClick={startSplit}>
-                  <i className="fa fa-code-branch" /> Repartir
-                </button>
+                {!shareOn && (
+                  <button type="button" className="btn btn-sm btn-ghost" onClick={startSplit}>
+                    <i className="fa fa-code-branch" /> Repartir
+                  </button>
+                )}
               </div>
               <select className="form-control" value={categoryId} onChange={e => { setCategoryId(e.target.value); setAiSuggestion(null) }} aria-label="Categoría">
                 <optgroup label="Gastos">
@@ -339,6 +373,33 @@ export default function AddTransactionModal({ onClose, onSaved }) {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {type === 'expense' && !splitMode && partnerId && (
+            <div className={`share-box ${shareOn ? 'on' : ''}`}>
+              <div className="sb-row share-toggle" onClick={() => setShareOn(o => !o)} role="switch" aria-checked={shareOn}>
+                <span className="sb-label"><i className="fa fa-user-group" /> Compartido con {partnerName}</span>
+                <div className={`switch ${shareOn ? 'on' : ''}`}><div className="switch-knob" /></div>
+              </div>
+              {shareOn && (
+                <div className="share-body">
+                  <div className="tabs" style={{ marginBottom: 10 }}>
+                    <button type="button" className={`tab ${shareMode === 'half' ? 'active' : ''}`} onClick={() => setShareMode('half')}>A medias</button>
+                    <button type="button" className={`tab ${shareMode === 'custom' ? 'active' : ''}`} onClick={() => setShareMode('custom')}>Otra parte</button>
+                    <button type="button" className={`tab ${shareMode === 'all' ? 'active' : ''}`} onClick={() => setShareMode('all')}>Todo suyo</button>
+                  </div>
+                  {shareMode === 'custom' && (
+                    <input className="form-control mb-2" type="number" inputMode="decimal" step="0.01" min="0"
+                      placeholder={`Parte de ${partnerName} (€)`} value={shareCustom} onChange={e => setShareCustom(e.target.value)} />
+                  )}
+                  <div className="share-split">
+                    <div><span>Tu parte</span><strong>{theirPart != null && amount ? fmt(Math.max(0, parseFloat(amount) - theirPart)) : '—'}</strong></div>
+                    <div><span>{partnerName}</span><strong>{theirPart != null ? fmt(theirPart) : '—'}</strong></div>
+                  </div>
+                  <p className="form-hint">Pagas tú el total; a tu presupuesto solo cuenta tu parte y la de {partnerName} queda pendiente hasta que saldéis.</p>
                 </div>
               )}
             </div>
