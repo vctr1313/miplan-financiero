@@ -1209,3 +1209,10 @@ tr.tappable:active { transform: none; }
 .shared-chip small { color: var(--muted); font-size: 12px; }
 .shared-chip > i:last-child { color: var(--g300); }
 @media (max-width: 768px) { .shared-chip small { display: none; } }
+
+/* ── Push alerts card ─────────────────────────────────────── */
+.push-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px; }
+.push-list li { font-size: 13.5px; color: var(--g700); display: flex; align-items: center; gap: 10px; }
+.push-list i { width: 18px; text-align: center; color: var(--a5); }
+.push-toggle { border: 1px solid var(--border); border-radius: 12px; }
+.push-toggle[aria-disabled="true"] { opacity: .6; cursor: default; }

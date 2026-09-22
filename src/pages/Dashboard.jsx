@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
 import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution, calcPotBalance, toLocalISODate } from '../lib/finance'
-import { checkBudgetAlerts } from '../lib/notifications'
 import AddTransactionModal from '../components/AddTransactionModal'
 import RecurringExpensesBanner from '../components/RecurringExpensesBanner'
 import AnimatedNumber from '../components/AnimatedNumber'
@@ -83,18 +82,6 @@ export default function Dashboard() {
       reimburseMap[t.linked_expense_id] = (reimburseMap[t.linked_expense_id] || 0) + t.amount
     }
   })
-
-  useEffect(() => {
-    if (!cycle || !salary) return
-    checkBudgetAlerts({
-      categories,
-      spendByCat: stats.spendByCat,
-      catBudgetFn: catBudget,
-      salary,
-      cycleStartISO: toLocalISODate(cycle.start)
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cycle?.start, stats.expenses])
 
   const handleDelete = useDeleteMovement()
 

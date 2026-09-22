@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useApp } from '../App'
 import { updateProfile, addFixedExpense, deleteFixedExpense, linkPartner, unlinkPartner } from '../lib/supabase'
 import { fmt, fixedTotal, fixedPct } from '../lib/finance'
-import { requestNotificationPermission, getNotificationPermission } from '../lib/notifications'
+import PushSettingsCard from '../components/PushSettingsCard'
 import { buildBackup, downloadBackup } from '../lib/backup'
 
 export default function Settings() {
@@ -28,14 +28,6 @@ export default function Settings() {
   // API key
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('fp_apikey') || '')
   const [showKey, setShowKey] = useState(false)
-
-  // Notifications
-  const [notifPermission, setNotifPermission] = useState(() => getNotificationPermission())
-
-  const handleEnableNotifications = async () => {
-    const result = await requestNotificationPermission()
-    setNotifPermission(result)
-  }
 
   // Link partner (read-only summary, no shared data)
   const [joinCode, setJoinCode] = useState('')
@@ -264,29 +256,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="card mb-4">
-        <div className="section-header"><h3><i className="fa fa-bell" style={{ color: 'var(--a5)', marginRight: 8 }} />Notificaciones</h3></div>
-        <p className="text-xs text-muted mb-3">
-          Recibe un aviso cuando superes el 80% o el 100% del presupuesto en alguna categoría. Funciona mientras la app esté abierta o instalada en tu móvil.
-        </p>
-        {notifPermission === 'granted' ? (
-          <div className="alert alert-success" style={{ marginBottom: 0 }}>
-            <i className="fa fa-check" /> Notificaciones activadas
-          </div>
-        ) : notifPermission === 'denied' ? (
-          <div className="alert alert-warning" style={{ marginBottom: 0 }}>
-            <i className="fa fa-triangle-exclamation" /> Bloqueadas por el navegador. Actívalas manualmente en los ajustes del sitio.
-          </div>
-        ) : notifPermission === 'unsupported' ? (
-          <div className="alert alert-info" style={{ marginBottom: 0 }}>
-            <i className="fa fa-circle-info" /> Tu navegador no soporta notificaciones.
-          </div>
-        ) : (
-          <button className="btn btn-primary" onClick={handleEnableNotifications}>
-            <i className="fa fa-bell" /> Activar notificaciones
-          </button>
-        )}
-      </div>
+      <PushSettingsCard />
 
       <div className="grid-2 mb-4">
         <div className="card">
