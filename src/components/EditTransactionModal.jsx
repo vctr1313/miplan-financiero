@@ -12,7 +12,9 @@ const TYPE_LABELS = {
   'pot-withdrawal': '🪣 Retirada de bote',
 }
 
-export default function EditTransactionModal({ tx, onClose, onSaved }) {
+// `inline` renders the same form as a panel beside the list (wide
+// screens, see Transactions.jsx) instead of a dialog over it.
+export default function EditTransactionModal({ tx, onClose, onSaved, inline = false }) {
   const { categories, transactions, refresh } = useApp()
   const [amount, setAmount] = useState(String(tx.amount))
   const [date, setDate] = useState(tx.date)
@@ -68,9 +70,8 @@ export default function EditTransactionModal({ tx, onClose, onSaved }) {
     }
   }
 
-  return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 490 }}>
+  const content = (
+    <>
         <h3 className="modal-title">Editar movimiento</h3>
         <div className="alert alert-info" style={{ marginBottom: 12 }}>
           <i className="fa fa-circle-info" />
@@ -159,7 +160,13 @@ export default function EditTransactionModal({ tx, onClose, onSaved }) {
             <i className="fa fa-check" /> {saving ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
-      </div>
+    </>
+  )
+
+  if (inline) return <div className="card tx-detail-panel">{content}</div>
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 490 }}>{content}</div>
     </div>
   )
 }

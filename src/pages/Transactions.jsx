@@ -8,6 +8,7 @@ import useDeleteMovement from '../lib/useDeleteMovement'
 import { splitGroups } from '../lib/split'
 import EmptyState from '../components/EmptyState'
 import { toLocalISODate } from '../lib/finance'
+import { useMediaQuery } from '../lib/ui'
 
 const PAGE_SIZE = 15
 
@@ -53,6 +54,8 @@ export default function Transactions() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  // Wide screens show the selected movement beside the list.
+  const wide = useMediaQuery('(min-width: 1100px)')
 
   const filtered = useMemo(() => {
     return transactions
@@ -121,6 +124,7 @@ export default function Transactions() {
         </div>
       </div>
 
+      <div className={wide ? 'tx-split' : undefined}>
       <div className="card">
         <div className="flex items-center gap-2 mb-3" style={{ flexWrap: 'wrap' }}>
           <input
@@ -177,6 +181,8 @@ export default function Transactions() {
                 key={t.id} tx={t}
                 onDelete={() => handleDelete(t.id)}
                 onEdit={() => setEditingTx(t)}
+                onSelect={wide ? () => setEditingTx(t) : undefined}
+                selected={wide && editingTx?.id === t.id}
                 showUser={uniqueUsers.length > 1}
                 reimburseMap={reimburseMap}
                 txById={txById}
@@ -194,9 +200,21 @@ export default function Transactions() {
         )}
       </div>
 
+      {wide && (
+        editingTx && transactions.some(t => t.id === editingTx.id)
+          ? <EditTransactionModal inline key={editingTx.id} tx={editingTx} onClose={() => setEditingTx(null)} />
+          : (
+            <div className="card tx-detail-panel tx-detail-empty">
+              <i className="fa fa-hand-pointer" />
+              Selecciona un movimiento para ver y editar su detalle aquí.
+            </div>
+          )
+      )}
+      </div>
+
       {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} />}
       {showImport && <ImportStatementModal onClose={() => setShowImport(false)} />}
-      {editingTx && <EditTransactionModal tx={editingTx} onClose={() => setEditingTx(null)} />}
+      {editingTx && !wide && <EditTransactionModal tx={editingTx} onClose={() => setEditingTx(null)} />}
     </div>
   )
 }

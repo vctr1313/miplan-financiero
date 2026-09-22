@@ -11,7 +11,9 @@ import { haptic } from '../lib/ui'
 // scrolling to the browser, which fires pointercancel the moment it
 // takes over -- so a scroll that starts on a row never gets hijacked
 // into a half-swipe. Direction is locked after the first ~8px.
-export default function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, txById, splitInfo }) {
+// `onSelect`/`selected`: on wide screens a click picks the row for the
+// detail panel beside the list instead of opening a dialog.
+export default function TxRow({ tx, onDelete, onEdit, onSelect, selected, showUser, reimburseMap, txById, splitInfo }) {
   const cat = tx.categories
   const isNeg = tx.type === 'expense' || tx.type === 'pot-withdrawal'
   const icon = tx.type === 'income' ? '💰' : tx.type === 'transfer' ? '↩️' : cat?.icon || '💸'
@@ -69,6 +71,7 @@ export default function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, tx
   const onRowClick = () => {
     if (moved.current) { moved.current = false; return }
     if (dx !== 0) { setDx(0); return }
+    if (onSelect) { onSelect(); return }
     // A plain tap edits on touch devices, where there's no hover button.
     if (onEdit && window.matchMedia?.('(hover: none)').matches) onEdit()
   }
@@ -89,7 +92,8 @@ export default function TxRow({ tx, onDelete, onEdit, showUser, reimburseMap, tx
       </div>
 
       <div
-        className="tx-row"
+        className={`tx-row ${selected ? 'selected' : ''}`}
+        aria-current={selected || undefined}
         style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: dragging ? 'none' : undefined }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

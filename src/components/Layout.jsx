@@ -6,25 +6,36 @@ import { signOut } from '../lib/supabase'
 import { fmt } from '../lib/finance'
 import { isDarkActive, applyTheme, useSystemThemeSync, haptic } from '../lib/ui'
 import BalanceReviewModal from './BalanceReviewModal'
+import AddTransactionModal from './AddTransactionModal'
+import ImportStatementModal from './ImportStatementModal'
+import EditTransactionModal from './EditTransactionModal'
+import Spotlight from './Spotlight'
+import QuickActions from './QuickActions'
 import '../styles/global.css'
 
 const NAV = [
-  { path: '/',            icon: 'fa-chart-pie',    label: 'Resumen',      section: 'Principal' },
-  { path: '/transactions',icon: 'fa-list',          label: 'Movimientos',  section: null },
-  { path: '/budget',      icon: 'fa-sliders',       label: 'Presupuesto',  section: null },
-  { path: '/shared',      icon: 'fa-user-group',    label: 'Compartidos',  section: null, partnerOnly: true },
-  { path: '/savings',     icon: 'fa-piggy-bank',    label: 'Botes',        section: 'Ahorro' },
-  { path: '/goals',       icon: 'fa-bullseye',      label: 'Metas',        section: null },
-  { path: '/house',       icon: 'fa-house',         label: 'Mi Casa',      section: null },
-  { path: '/history',     icon: 'fa-clock-rotate-left', label: 'Historial de ciclos', section: 'Análisis' },
-  { path: '/reports',     icon: 'fa-chart-line',    label: 'Reportes',     section: null },
-  { path: '/chat',        icon: 'fa-robot',         label: 'Consejero IA', section: null },
-  { path: '/settings',    icon: 'fa-gear',          label: 'Ajustes',      section: 'Config.' },
+  { path: '/',            icon: 'fa-chart-pie',    label: 'Resumen',      section: 'Principal', keywords: 'inicio ciclo panel' },
+  { path: '/transactions',icon: 'fa-list',          label: 'Movimientos',  section: null, keywords: 'gastos ingresos historial exportar' },
+  { path: '/budget',      icon: 'fa-sliders',       label: 'Presupuesto',  section: null, keywords: 'categorias porcentajes' },
+  { path: '/shared',      icon: 'fa-user-group',    label: 'Compartidos',  section: null, partnerOnly: true, keywords: 'pareja deudas saldar' },
+  { path: '/savings',     icon: 'fa-piggy-bank',    label: 'Botes',        section: 'Ahorro', keywords: 'saldo huchas' },
+  { path: '/goals',       icon: 'fa-bullseye',      label: 'Metas',        section: null, keywords: 'objetivos ahorro' },
+  { path: '/house',       icon: 'fa-house',         label: 'Mi Casa',      section: null, keywords: 'hipoteca entrada vivienda' },
+  { path: '/history',     icon: 'fa-clock-rotate-left', label: 'Historial de ciclos', section: 'Análisis', keywords: 'nominas meses' },
+  { path: '/reports',     icon: 'fa-chart-line',    label: 'Reportes',     section: null, keywords: 'graficos informes pdf' },
+  { path: '/chat',        icon: 'fa-robot',         label: 'Consejero IA', section: null, keywords: 'chat ayuda' },
+  { path: '/settings',    icon: 'fa-gear',          label: 'Ajustes',      section: 'Config.', keywords: 'sueldo pareja avisos notificaciones tema texto' },
 ]
-const BOTTOM_NAV = ['/', '/transactions', '/budget', '/savings', '/house']
+// The floating tab bar keeps four destinations; everything else is in
+// the menu, the search and the + button.
+const BOTTOM_NAV = ['/', '/transactions', '/budget', '/savings']
 
 export default function Layout() {
   const { profile, categories, transactions, loading, syncing, refresh } = useApp()
+  // A dialog opened from anywhere (the + button or the search):
+  // { kind: 'add', type, shared } | { kind: 'import' } | { kind: 'edit', tx }
+  const [sheet, setSheet] = useState(null)
+  const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -43,6 +54,47 @@ export default function Layout() {
   useSystemThemeSync(setDark)
 
   const toggleTheme = () => { haptic('select'); setDark(applyTheme(dark ? 'light' : 'dark')) }
+
+  // ⌘K / Ctrl+K opens the search from anywhere.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(o => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const quickActions = [
+    { id: 'expense', label: 'Gasto', icon: 'fa-minus', color: '#ff3b30', keywords: 'añadir nuevo compra' },
+    { id: 'income', label: 'Ingreso', icon: 'fa-plus', color: '#34c759', keywords: 'añadir nomina sueldo cobro' },
+    ...(profile?.partner_id ? [{ id: 'shared', label: 'Gasto compartido', icon: 'fa-user-group', color: '#af52de', keywords: 'pareja medias' }] : []),
+    { id: 'import', label: 'Importar extracto', icon: 'fa-file-import', color: '#007aff', keywords: 'banco csv excel' },
+  ]
+  const runAction = (id) => {
+    if (id === 'expense') setSheet({ kind: 'add', type: 'expense' })
+    else if (id === 'income') setSheet({ kind: 'add', type: 'income' })
+    else if (id === 'shared') setSheet({ kind: 'add', type: 'expense', shared: true })
+    else if (id === 'import') setSheet({ kind: 'import' })
+    else if (id === 'theme') toggleTheme()
+    else if (id === 'customize') go('/?customize=1')
+  }
+  const visibleNav = NAV.filter(item => !item.partnerOnly || profile?.partner_id)
+  const searchPages = visibleNav.map(n => ({ id: n.path, label: n.label, icon: n.icon, keywords: n.keywords }))
+  const searchActions = [
+    ...quickActions.map(a => ({ ...a, label: a.id === 'import' ? a.label : `Añadir ${a.label.toLowerCase()}` })),
+    { id: 'theme', label: dark ? 'Modo claro' : 'Modo oscuro', icon: dark ? 'fa-sun' : 'fa-moon', keywords: 'tema apariencia' },
+    { id: 'customize', label: 'Personalizar inicio', icon: 'fa-sliders', keywords: 'ordenar ocultar tarjetas dashboard' },
+  ]
+  const pickResult = (item) => {
+    setSearchOpen(false)
+    if (item.kind === 'page') go(item.id)
+    else if (item.kind === 'action') runAction(item.id)
+    else if (item.kind === 'category') go(`/budget?cat=${item.id}`)
+    else if (item.kind === 'movement') setSheet({ kind: 'edit', tx: item.tx })
+  }
 
   // Section changes go through the View Transitions API where it
   // exists, so the old page cross-fades out instead of vanishing.
@@ -91,7 +143,7 @@ export default function Layout() {
     let startY = null
     const set = v => { pullRef.current = v; setPull(v) }
     const onStart = (e) => {
-      if (window.scrollY > 0 || document.querySelector('.modal-overlay, .sidebar.open')) return
+      if (window.scrollY > 0 || document.querySelector('.modal-overlay, .sidebar.open, .spot-overlay, .qa-backdrop, .alert-overlay')) return
       startY = e.touches[0].clientY
     }
     const onMove = (e) => {
@@ -137,7 +189,11 @@ export default function Layout() {
       </div>
 
       <nav style={{ flex: '1 0 auto', padding: '8px 0' }}>
-        {NAV.filter(item => !item.partnerOnly || profile?.partner_id).map((item, i) => (
+        <button type="button" className="sb-search" onClick={() => { setSidebarOpen(false); setSearchOpen(true) }}>
+          <i className="fa fa-magnifying-glass" /> Buscar
+          <kbd>{/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'} K</kbd>
+        </button>
+        {visibleNav.map((item, i) => (
           <React.Fragment key={item.path}>
             {item.section && (
               <div className="nav-section">{item.section}</div>
@@ -193,7 +249,7 @@ export default function Layout() {
     <div className="app-layout">
       {/* Mobile header */}
       <header className="mobile-header">
-        <button className="hamburger" onClick={() => setSidebarOpen(true)}>
+        <button className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="Menú">
           <i className="fa fa-bars" />
         </button>
         <span className="mobile-title-stack">
@@ -204,8 +260,11 @@ export default function Layout() {
             {compactTitle}
           </span>
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div className={`sync-dot ${syncing ? 'syncing' : ''}`} />
+          <button type="button" className="hamburger" onClick={() => setSearchOpen(true)} aria-label="Buscar">
+            <i className="fa fa-magnifying-glass" />
+          </button>
         </div>
       </header>
 
@@ -234,16 +293,18 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Bottom nav (mobile only) */}
-      <nav className="bottom-nav">
+      {/* Floating glass tab bar (mobile only). The highlight pill slides
+          to the active tab; off-bar pages (Mi Casa, Ajustes…) hide it. */}
+      <nav className="bottom-nav" style={{ '--i': BOTTOM_NAV.indexOf(pathname), '--n': BOTTOM_NAV.length }} aria-label="Secciones">
+        <span className={`tab-pill ${BOTTOM_NAV.includes(pathname) ? '' : 'off'}`} aria-hidden="true" />
         {BOTTOM_NAV.map(path => {
           const item = NAV.find(n => n.path === path)
-          if (!item) return null
           return (
             <button
               key={path}
               className={`bottom-nav-item ${pathname === path ? 'active' : ''}`}
-              onClick={() => go(path)}
+              aria-current={pathname === path ? 'page' : undefined}
+              onClick={() => { if (pathname !== path) haptic('light'); go(path) }}
             >
               <i className={`fa ${item.icon}`} />
               {item.label}
@@ -251,6 +312,17 @@ export default function Layout() {
           )
         })}
       </nav>
+      <QuickActions actions={quickActions} onPick={a => runAction(a.id)} />
+
+      {searchOpen && (
+        <Spotlight pages={searchPages} actions={searchActions} categories={categories} transactions={transactions}
+          onPick={pickResult} onClose={() => setSearchOpen(false)} />
+      )}
+      {sheet?.kind === 'add' && (
+        <AddTransactionModal startType={sheet.type} startShared={!!sheet.shared} onClose={() => setSheet(null)} />
+      )}
+      {sheet?.kind === 'import' && <ImportStatementModal onClose={() => setSheet(null)} />}
+      {sheet?.kind === 'edit' && <EditTransactionModal tx={sheet.tx} onClose={() => setSheet(null)} />}
 
       {showBalanceReview && <BalanceReviewModal pots={potsWithHistory} onClose={() => {}} />}
     </div>

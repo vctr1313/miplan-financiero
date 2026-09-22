@@ -28,6 +28,8 @@
   --card-border: rgba(0,0,0,.04);
   --accent-tint: rgba(0,122,255,.12);
   --sidebar: rgba(247,247,249,.82);
+  --glass: rgba(255,255,255,.72);
+  --glass-edge: rgba(255,255,255,.7);
 
   --info-text: #0a58a8;
   --warn-text: #8a4b00;
@@ -85,6 +87,8 @@
   --card-border: rgba(255,255,255,.07);
   --accent-tint: rgba(10,132,255,.22);
   --sidebar: rgba(28,28,30,.8);
+  --glass: rgba(44,44,46,.7);
+  --glass-edge: rgba(255,255,255,.12);
 
   --info-text: #64d2ff;
   --warn-text: #ffd60a;
@@ -677,31 +681,38 @@ body:has(.modal-overlay) { overflow: hidden; }
      -- which on a bottom sheet shoves half of it off-screen. */
   .form-control { font-size: 16px; }
 
-  /* Bottom nav for mobile */
+  /* Floating "liquid glass" tab bar (iOS 26): a capsule that hovers
+     above the content with the round + button beside it. The pill
+     behind the active tab slides between positions (--i of --n). */
   .bottom-nav {
-    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--sidebar);
-    -webkit-backdrop-filter: saturate(180%) blur(28px);
-    backdrop-filter: saturate(180%) blur(28px);
-    border-top: .5px solid var(--sep);
-    /* Height now EXPANDS by the safe area instead of cramming the
-       gesture-bar padding inside a fixed 64px -- this is what was
-       squeezing the icons/labels and making them overflow visually. */
-    height: calc(64px + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
-    box-sizing: border-box;
-    z-index: 200;
+    display: flex; position: fixed; z-index: 200;
+    left: 12px; right: 80px; bottom: calc(10px + env(safe-area-inset-bottom));
+    height: 60px; padding: 4px; border-radius: 30px;
+    background: var(--glass);
+    -webkit-backdrop-filter: saturate(190%) blur(24px);
+    backdrop-filter: saturate(190%) blur(24px);
+    border: .5px solid var(--glass-edge);
+    box-shadow: 0 8px 30px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.35);
   }
+  .tab-pill {
+    position: absolute; top: 4px; bottom: 4px; left: 4px;
+    width: calc((100% - 8px) / var(--n));
+    border-radius: 26px; background: var(--fill);
+    transform: translateX(calc(var(--i) * 100%));
+    transition: transform .5s var(--spring), opacity .25s;
+  }
+  .tab-pill.off { opacity: 0; }
   .bottom-nav-item {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 3px;
-    background: none; border: none; color: var(--g500); font-size: 10px; font-weight: 500;
-    min-height: 44px; transition: color .2s;
+    position: relative; flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; border-radius: 26px;
+    background: none; border: none; color: var(--g700); font-size: 10px; font-weight: 600;
+    min-height: 44px; transition: color .25s;
   }
   .bottom-nav-item.active { color: var(--i5); }
-  .bottom-nav-item i { font-size: 19px; transition: transform .45s var(--spring); }
-  .bottom-nav-item.active i { transform: translateY(-2px) scale(1.12); }
-  .bottom-nav-item:active i { transform: scale(.88); transition-duration: .09s; }
+  .bottom-nav-item i { font-size: 18px; transition: transform .45s var(--spring); }
+  .bottom-nav-item.active i { transform: scale(1.08); }
+  .bottom-nav-item:active i { transform: scale(.86); transition-duration: .09s; }
+  .main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
 @media (min-width: 769px) {
   .bottom-nav { display: none; }
@@ -1254,7 +1265,7 @@ tr.tappable:active { transform: none; }
   bottom: calc(24px + var(--kb)); display: grid; gap: 8px; width: min(420px, calc(100% - 24px));
   pointer-events: none;
 }
-@media (max-width: 768px) { .toast-stack { bottom: calc(76px + env(safe-area-inset-bottom) + var(--kb)); } }
+@media (max-width: 768px) { .toast-stack { bottom: calc(82px + env(safe-area-inset-bottom) + var(--kb)); } }
 .toast {
   position: relative; overflow: hidden; pointer-events: auto;
   display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 16px;
@@ -1320,3 +1331,116 @@ html[data-textsize="xl"] body { zoom: 1.22; }
   .toast, .alert-box { animation: none; }
 }
 .btn.is-busy:disabled { opacity: .85; cursor: progress; }
+
+
+/* ── QUICK ACTIONS (+) ─────────────────────────────────────────── */
+.qa-fab {
+  position: fixed; z-index: 210; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom));
+  width: 60px; height: 60px; border-radius: 50%; border: none;
+  background: var(--i5); color: #fff; font-size: 22px;
+  box-shadow: var(--accent-glow-strong);
+  transition: transform .45s var(--spring), background .25s;
+}
+.qa-fab i { transition: transform .45s var(--spring); }
+.qa-fab.open { background: var(--g800); }
+.qa-fab.open i { transform: rotate(135deg); }
+.qa-fab:active { transform: scale(.9); transition-duration: .09s; }
+@media (min-width: 769px) { .qa-fab { right: 28px; bottom: 28px; } }
+.qa-backdrop {
+  position: fixed; inset: 0; z-index: 205; background: rgba(0,0,0,.28);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  animation: overlayIn .25s var(--ease) both;
+}
+.qa-menu {
+  position: fixed; z-index: 210; right: 12px; bottom: calc(82px + env(safe-area-inset-bottom));
+  display: grid; gap: 10px; justify-items: end;
+}
+@media (min-width: 769px) { .qa-menu { right: 28px; bottom: 100px; } }
+.qa-item {
+  display: flex; align-items: center; gap: 10px; background: none; border: none; padding: 0;
+  animation: qaIn .42s var(--spring) both;
+}
+.qa-label {
+  background: var(--card); color: var(--text); font-size: 14px; font-weight: 600;
+  padding: 8px 14px; border-radius: 12px; box-shadow: var(--shadow);
+}
+.qa-icon {
+  width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+  color: #fff; font-size: 17px; box-shadow: 0 6px 16px rgba(0,0,0,.2);
+  margin-right: 7px;
+}
+.qa-item:active .qa-icon { transform: scale(.9); }
+@keyframes qaIn { from { opacity: 0; transform: translateY(18px) scale(.8); } to { opacity: 1; transform: none; } }
+
+/* ── SEARCH (Spotlight) ────────────────────────────────────────── */
+.sb-search {
+  display: flex; align-items: center; gap: 10px; width: calc(100% - 20px); margin: 4px 10px 8px;
+  padding: 9px 12px; border-radius: 10px; border: none; background: var(--fill);
+  color: var(--muted); font-size: 13.5px; text-align: left;
+}
+.sb-search kbd { margin-left: auto; }
+kbd {
+  font-family: inherit; font-size: 11px; color: var(--muted); background: var(--card);
+  border: .5px solid var(--border); border-radius: 5px; padding: 1px 5px;
+}
+.spot-overlay {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.3);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px;
+  animation: overlayIn .2s var(--ease) both;
+}
+.spot {
+  width: min(620px, 100%); max-height: 70vh; display: flex; flex-direction: column;
+  background: var(--card); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-md);
+  animation: spotIn .32s var(--spring) both;
+}
+@keyframes spotIn { from { opacity: 0; transform: translateY(-10px) scale(.97); } to { opacity: 1; transform: none; } }
+.spot-input { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: .5px solid var(--sep); }
+.spot-input i { color: var(--muted); }
+.spot-input input { flex: 1; min-width: 0; border: none; outline: none; background: none; color: var(--text); font-size: 17px; }
+.spot-cancel { display: none; background: none; border: none; color: var(--i5); font-size: 15px; }
+.spot-list { overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
+.spot-group-title { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 10px 10px 4px; }
+.spot-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border: none; border-radius: 10px;
+  background: none; color: var(--text); text-align: left;
+}
+.spot-item.active { background: var(--accent-tint); }
+.spot-icon {
+  width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--fill); color: var(--i5); font-size: 15px;
+}
+.spot-text { flex: 1; min-width: 0; display: grid; }
+.spot-label { font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spot-sub { font-size: 12px; color: var(--muted); }
+.spot-amount { font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.spot-amount.expense, .spot-amount.pot-withdrawal { color: var(--r5); }
+.spot-amount.income { color: var(--e6); }
+.spot-chevron { color: var(--g300); font-size: 12px; }
+.spot-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 14px; }
+.spot-foot { padding: 8px 14px; border-top: .5px solid var(--sep); font-size: 11.5px; color: var(--muted); }
+@media (max-width: 768px) {
+  .spot-overlay { padding: calc(8px + env(safe-area-inset-top)) 8px calc(8px + var(--kb)); }
+  .spot { max-height: 100%; }
+  .spot-cancel { display: block; }
+  .spot-foot { display: none; }
+  .spot-input input { font-size: 16px; }
+}
+
+/* ── WIDE SCREENS: list + detail side by side ──────────────────── */
+.tx-detail-panel { position: sticky; top: 24px; }
+.tx-detail-panel .modal-footer { margin-top: 14px; }
+.tx-split { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+.tx-detail-empty { text-align: center; color: var(--muted); padding: 48px 20px; }
+.tx-detail-empty i { font-size: 28px; margin-bottom: 10px; color: var(--g300); display: block; }
+.tx-row.selected { background: var(--accent-tint); border-radius: 12px; }
+
+/* ── HOME CUSTOMISATION SHEET ───────────────────────────────────── */
+.hc-list { display: grid; gap: 2px; margin-bottom: 6px; }
+.hc-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: .5px solid var(--sep); transition: opacity .2s; }
+.hc-row.off .hc-icon, .hc-row.off .hc-label { opacity: .45; }
+.hc-icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--accent-tint); color: var(--i5); font-size: 13px; flex-shrink: 0; }
+.hc-label { flex: 1; min-width: 0; font-size: 14px; }
+.hc-move { width: 30px; height: 30px; border-radius: 8px; border: none; background: var(--fill); color: var(--g700); font-size: 12px; }
+.hc-move:disabled { opacity: .3; }
+.hc-row .switch { cursor: pointer; }

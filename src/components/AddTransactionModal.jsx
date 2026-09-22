@@ -23,9 +23,9 @@ const INCOME_TYPES = [
 // confirms how to split it across pots/saving categories.
 const DISTRIBUTED_INCOME_TYPES = ['extra-payment', 'from-savings']
 
-export default function AddTransactionModal({ onClose, onSaved, startShared = false }) {
+export default function AddTransactionModal({ onClose, onSaved, startShared = false, startType = 'expense' }) {
   const { categories, transactions, refresh, profile, partnerSummary } = useApp()
-  const [type, setType] = useState('expense')
+  const [type, setType] = useState(startType)
   const [amount, setAmount] = useState('')
   // Touch devices get the in-sheet keypad instead of the system keyboard.
   const [usePad] = useState(() => !autoFocusOnPointer())

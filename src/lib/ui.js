@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 // ── THEME ─────────────────────────────────────────────────────
 // Stored in localStorage rather than the profile, because the theme
@@ -125,4 +125,19 @@ export const applyTextSize = (size) => {
     if (size === 'm') localStorage.removeItem(TEXT_KEY)
     else localStorage.setItem(TEXT_KEY, size)
   } catch { /* private mode */ }
+}
+
+// Live boolean for a CSS media query, e.g. useMediaQuery('(min-width: 1100px)').
+export function useMediaQuery(query) {
+  const get = () => typeof window !== 'undefined' && !!window.matchMedia?.(query).matches
+  const [matches, setMatches] = useState(get)
+  useEffect(() => {
+    const mq = window.matchMedia?.(query)
+    if (!mq) return
+    const onChange = () => setMatches(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [query])
+  return matches
 }

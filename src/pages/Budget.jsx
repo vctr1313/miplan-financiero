@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../App'
 import { upsertCategory, deleteCategory, updateCategoryPct, supabase } from '../lib/supabase'
 import { fmt, catBudget, calcPotBalance, getCurrentCycle } from '../lib/finance'
@@ -15,6 +16,15 @@ export default function Budget() {
   const [editingCat, setEditingCat] = useState(null)
   const [reassignFrom, setReassignFrom] = useState(null)
   const [detailCat, setDetailCat] = useState(null)
+  // /budget?cat=<id> (from the search) opens that category directly.
+  const [params, setParams] = useSearchParams()
+  useEffect(() => {
+    const id = params.get('cat')
+    const cat = id && categories.find(c => c.id === id)
+    if (!cat) return
+    setDetailCat(cat)
+    setParams({}, { replace: true })
+  }, [params, categories, setParams])
   const [adjustingCat, setAdjustingCat] = useState(null)
   const [showRebalance, setShowRebalance] = useState(false)
   // Local draft values for the euro-amount inputs, keyed by category id.

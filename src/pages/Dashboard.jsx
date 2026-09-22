@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../App'
 import { fmt, fmtShort, getCurrentCycle, calcCycleStats, calcHouseProgress, catBudget, fixedPct, getPartnerContribution, calcPotBalance, toLocalISODate } from '../lib/finance'
 import AddTransactionModal from '../components/AddTransactionModal'
@@ -14,6 +14,8 @@ import TxRow from '../components/TxRow'
 import useDeleteMovement from '../lib/useDeleteMovement'
 import { splitGroups } from '../lib/split'
 import { sharedBalance, balanceHeadline } from '../lib/shared'
+import { loadLayout, saveLayout, layoutRows } from '../lib/homeLayout'
+import HomeCustomizeSheet from '../components/HomeCustomizeSheet'
 
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, loading, shared } = useApp()
@@ -26,6 +28,14 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, cycles.length])
   const closeRecap = () => { if (recap) markRecapSeen(recap.cycle); setRecap(null) }
+  const [layout, setLayout] = useState(loadLayout)
+  const updateLayout = (next) => { setLayout(next); saveLayout(next) }
+  // /?customize=1 (from the search) opens the sheet straight away.
+  const [params, setParams] = useSearchParams()
+  const [customizing, setCustomizing] = useState(false)
+  useEffect(() => {
+    if (params.get('customize') === '1') { setCustomizing(true); setParams({}, { replace: true }) }
+  }, [params, setParams])
 
   const salary = profile?.salary || 0
   const cycle = getCurrentCycle(cycles)
@@ -120,25 +130,11 @@ export default function Dashboard() {
     </div>
   )
 
-  return (
-    <div>
-      <div className="page-header">
-        <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <h2>{cycle ? 'Ciclo actual' : 'Sin nómina registrada'}</h2>
-            <p>
-              {cycle
-                ? `Del ${cycle.start.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} al ${cycle.end.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}`
-                : 'Basado en tu última nómina'}
-            </p>
-          </div>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <i className="fa fa-plus" /> Añadir movimiento
-          </button>
-        </div>
-      </div>
 
-      {cycle ? (
+  // Every card of the home screen, by id; the saved layout (see
+  // lib/homeLayout.js) decides which show and in what order.
+  const sections = {
+    cycle: cycle ? (
         <div className="alert alert-info mb-3" style={{ display: 'inline-flex' }}>
           <i className="fa fa-rotate" /> Nómina del {cycle.start.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} · {fmtShort(cycle.salary)}
           {cycle.userName && <span style={{ marginLeft: 6, opacity: .7 }}>({cycle.userName})</span>}
@@ -151,11 +147,9 @@ export default function Dashboard() {
             Desde ese momento empezarán a contar los ciclos y los botes de ahorro.
           </div>
         </div>
-      )}
-
-      <RecurringExpensesBanner />
-
-      {profile?.partner_id && (() => {
+      ),
+    recurring: <RecurringExpensesBanner />,
+    shared: profile?.partner_id && (() => {
         const { net, open } = sharedBalance(shared.expenses, profile.id)
         if (!open.length) return null
         const name = partnerSummary?.partner_name || 'Tu pareja'
@@ -167,15 +161,16 @@ export default function Dashboard() {
             <i className="fa fa-chevron-right" />
           </button>
         )
-      })()}
-
+      })(),
+    hero: (
       <div className="card mb-4">
         <div className="hero-split">
           <CyclePace cycle={cycle} spent={stats.netExpenses} budget={spendableBudget} />
           <ActivityRings rings={rings} />
         </div>
       </div>
-
+    ),
+    kpis: (
       <div className="grid-4 mb-4">
         <div className="stat-card green">
           <div className="label"><i className="fa fa-arrow-down" style={{ color: 'var(--e5)' }} /> Ingresos</div>
@@ -205,8 +200,8 @@ export default function Dashboard() {
           <div className="sub">Tras fijos ({fmtShort(stats.fxTotal)}) y ahorro ({fmtShort(stats.savingAmt)})</div>
         </div>
       </div>
-
-      <div className="grid-2 mb-4">
+    ),
+    budget: (
         <div className="card">
           <div className="section-header">
             <h3>Presupuesto del ciclo</h3>
@@ -242,7 +237,8 @@ export default function Dashboard() {
             )
           })}
         </div>
-
+    ),
+    recent: (
         <div className="card">
           <div className="section-header">
             <h3>Últimos movimientos</h3>
@@ -252,8 +248,8 @@ export default function Dashboard() {
             <EmptyState art="receipt" title="Aún no hay movimientos" text="Añade tu primer gasto o tu nómina y empezará a llenarse." />
           ) : recentTx.map(t => <TxRow key={t.id} tx={t} onDelete={() => handleDelete(t.id)} showUser reimburseMap={reimburseMap} txById={txById} splitInfo={splitInfo} />)}
         </div>
-      </div>
-
+    ),
+    house: (
       <div className="house-card mb-4" onClick={() => navigate('/house')} style={{ cursor: 'pointer' }}>
         <h3>🏠 Meta: Mi Primera Casa</h3>
         <div className="flex items-center gap-3 mt-2" style={{ flexWrap: 'wrap' }}>
@@ -271,10 +267,42 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+    ),
+    alerts: alerts.length ? <>{alerts}</> : null,
+  }
 
-      {alerts}
+  return (
+    <div>
+      <div className="page-header">
+        <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <h2>{cycle ? 'Ciclo actual' : 'Sin nómina registrada'}</h2>
+            <p>
+              {cycle
+                ? `Del ${cycle.start.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} al ${cycle.end.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                : 'Basado en tu última nómina'}
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <i className="fa fa-plus" /> Añadir movimiento
+          </button>
+        </div>
+      </div>
+
+      {layoutRows(layout).map(row => (
+        row.ids.length === 2
+          ? <div key={row.ids.join('+')} className="grid-2 mb-4">{row.ids.map(id => <React.Fragment key={id}>{sections[id]}</React.Fragment>)}</div>
+          : <React.Fragment key={row.ids[0]}>{row.half ? <div className="mb-4">{sections[row.ids[0]]}</div> : sections[row.ids[0]]}</React.Fragment>
+      ))}
+
+      <div className="text-center mb-4">
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCustomizing(true)}>
+          <i className="fa fa-sliders" /> Personalizar inicio
+        </button>
+      </div>
 
       {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} />}
+      {customizing && <HomeCustomizeSheet layout={layout} onChange={updateLayout} onClose={() => setCustomizing(false)} />}
       {recap && !showAddModal && <CycleRecap cycle={recap.cycle} prevCycle={recap.prevCycle} onClose={closeRecap} celebrate />}
     </div>
   )
