@@ -4,9 +4,10 @@ import { computeAlerts, bundleAlerts } from '../src/lib/alerts'
 // Daily budget alerts, pushed at 20:00 Spanish time.
 //
 // Vercel cron runs in UTC and Spain moves between UTC+2 (summer) and
-// UTC+1 (winter), so vercel.json schedules this at both 18:00 and 19:00
-// UTC and whichever run lands in the 20:00 Madrid hour does the work;
-// the other one exits. push_log makes a second run harmless anyway.
+// UTC+1 (winter), so vercel.json schedules this at 18:00 UTC and, via
+// cron-alerts-winter.js, at 19:00 UTC. Whichever run lands in the
+// 20:00 Madrid hour does the work and the other one exits; push_log
+// makes a second run harmless anyway.
 //
 // ?force=1 skips the hour check (manual runs; still needs CRON_SECRET).
 export default async function handler(req, res) {
