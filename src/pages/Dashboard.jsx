@@ -52,20 +52,29 @@ export default function Dashboard() {
     .filter(c => c.type !== 'saving')
     .reduce((sum, c) => sum + catBudget(c, salary), 0)
 
-  // Three streams of the cycle for the activity rings.
+  // The activity rings: each one starts full and empties as its money
+  // is used, so they're built as "what's left" of each stream. A stream
+  // with nothing budgeted is left out entirely rather than drawn as a
+  // ring that can never move (e.g. no day-to-day categories at all).
   const sumBy = (type, fn) => categories.filter(c => c.type === type).reduce((sum, c) => sum + fn(c), 0)
   const cycleStartISO = cycle ? toLocalISODate(cycle.start) : null
+  const dailyBudget = sumBy('normal', c => catBudget(c, salary))
+  const dailySpent = sumBy('normal', c => stats.spendByCat[c.id] || 0)
+  // Pots carry over, so their ring is the real balance against what
+  // was available this cycle (that balance plus what's been spent).
+  const potsLeft = sumBy('pot', c => calcPotBalance({ category: c, salary, cycles, transactions, pctHistory }))
+  const potsSpent = sumBy('pot', c => stats.spendByCat[c.id] || 0)
+  const fixedPaid = fixedExpenses
+    .filter(f => cycleStartISO && f.last_charged_date && f.last_charged_date >= cycleStartISO)
+    .reduce((sum, f) => sum + f.amount, 0)
+  const fixedAll = fixedExpenses.reduce((sum, f) => sum + f.amount, 0)
   const rings = [
-    { label: 'Día a día', color: '#ff2d55',
-      value: sumBy('normal', c => stats.spendByCat[c.id] || 0), max: sumBy('normal', c => catBudget(c, salary)) },
-    { label: 'Botes', color: '#ff9500',
-      value: sumBy('pot', c => stats.spendByCat[c.id] || 0), max: sumBy('pot', c => catBudget(c, salary)) },
-    { label: 'Fijos', color: '#32ade6',
-      value: fixedExpenses
-        .filter(f => cycleStartISO && f.last_charged_date && f.last_charged_date >= cycleStartISO)
-        .reduce((sum, f) => sum + f.amount, 0),
-      max: fixedExpenses.reduce((sum, f) => sum + f.amount, 0) },
-  ]
+    { label: 'Día a día', color: '#ff2d55', left: dailyBudget - dailySpent, total: dailyBudget,
+      hint: 'pasado del presupuesto' },
+    { label: 'Botes', color: '#ff9500', left: potsLeft, total: potsLeft + potsSpent,
+      hint: 'botes en negativo' },
+    { label: 'Fijos por pagar', color: '#32ade6', left: fixedAll - fixedPaid, total: fixedAll },
+  ].filter(r => r.total > 0)
 
   const mySavingPerCycle = salary * categories.filter(c => c.type === 'saving').reduce((s, c) => s + c.user_pct, 0) / 100
   // Mirror House.jsx's calculation exactly (via the shared

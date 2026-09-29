@@ -1,4 +1,4 @@
-import { dailySpend, cumulative, cycleProjection, salaryFlow, squarify, monthCalendar, statusLine } from './insights'
+import { dailySpend, cumulative, cycleProjection, salaryFlow, squarify, monthCalendar, statusLine, ringState } from './insights'
 
 const cycle = { start: new Date(2026, 8, 1), end: new Date(2026, 8, 20) }
 const tx = (id, type, date, amount, category_id, extra = {}) => ({ id, type, date, amount, category_id, ...extra })
@@ -98,5 +98,20 @@ describe('status line', () => {
   })
   test('already over budget', () => {
     expect(statusLine({ cycle, spent: 950, budget: 900, now: at(20) })).toMatchObject({ tone: 'bad' })
+  })
+})
+
+describe('activity rings', () => {
+  test('a ring starts full and empties as the money is used', () => {
+    expect(ringState({ left: 100, total: 100 })).toEqual({ ratio: 1, overRatio: 0, over: false })
+    expect(ringState({ left: 25, total: 100 })).toEqual({ ratio: 0.25, overRatio: 0, over: false })
+    expect(ringState({ left: 0, total: 100 })).toEqual({ ratio: 0, overRatio: 0, over: false })
+  })
+  test('overspending empties it and reports the overshoot', () => {
+    expect(ringState({ left: -30, total: 100 })).toEqual({ ratio: 0, overRatio: 0.3, over: true })
+    expect(ringState({ left: -300, total: 100 }).overRatio).toBe(1)
+  })
+  test('nothing budgeted means nothing to draw', () => {
+    expect(ringState({ left: 0, total: 0 })).toEqual({ ratio: 0, overRatio: 0, over: false })
   })
 })

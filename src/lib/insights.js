@@ -191,3 +191,13 @@ export function statusLine({ cycle, spent, budget, now = new Date() }) {
   }
   return { tone: 'good', icon: 'fa-circle-check', text: `Vas bien: puedes gastar ${fmtE(perDay)} al día durante ${daysLeft} ${dayWord}.` }
 }
+
+// One activity ring: it starts full and empties as the money is used,
+// so "full" is untouched and "empty" is spent. `left` may go negative
+// (overspent), which comes back as a separate overshoot share to draw
+// on top in a warning colour.
+export function ringState({ left, total }) {
+  if (!(total > 0)) return { ratio: 0, overRatio: 0, over: false }
+  if (left < 0) return { ratio: 0, overRatio: Math.min(1, -left / total), over: true }
+  return { ratio: Math.min(1, left / total), overRatio: 0, over: false }
+}

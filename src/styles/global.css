@@ -1829,3 +1829,4 @@ html[data-oled][data-theme="dark"] .alert-box { background: #0b0b0c; }
 @media (prefers-reduced-motion: reduce) {
   .story::before, .story-body > * { animation: none; }
 }
+.ring-over { opacity: .95; }
