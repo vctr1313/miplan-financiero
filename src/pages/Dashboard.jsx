@@ -25,6 +25,7 @@ import AchievementsCard from '../components/AchievementsCard'
 export default function Dashboard() {
   const { profile, categories, transactions, fixedExpenses, houseGoal, cycles, pctHistory, partnerSummary, loading, shared } = useApp()
   const navigate = useNavigate()
+  const pendingReview = transactions.filter(t => t.type === 'expense' && t.needs_review).length
   const [showAddModal, setShowAddModal] = useState(false)
   // One-time "how did the last cycle go" sheet after a new nómina.
   const [recap, setRecap] = useState(null)
@@ -341,6 +342,14 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {pendingReview > 0 && (
+        <button type="button" className="shared-chip pending mb-4" onClick={() => navigate('/shortcuts#pendientes')}>
+          <i className="fa fa-inbox" />
+          <span><strong>{pendingReview}</strong> gasto{pendingReview !== 1 ? 's' : ''} sin categoría</span>
+          <small>Revisar</small>
+        </button>
+      )}
 
       {layoutRows(layout).map(row => (
         row.ids.length === 2

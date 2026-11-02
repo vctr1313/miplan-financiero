@@ -26,6 +26,7 @@ const NAV = [
   { path: '/reports',     icon: 'fa-chart-line',    label: 'Reportes',     section: null, keywords: 'graficos informes pdf' },
   { path: '/chat',        icon: 'fa-robot',         label: 'Consejero IA', section: null, keywords: 'chat ayuda' },
   { path: '/settings',    icon: 'fa-gear',          label: 'Ajustes',      section: 'Config.', keywords: 'sueldo pareja avisos notificaciones tema texto' },
+  { path: '/shortcuts',   icon: 'fa-wand-magic-sparkles', label: 'Atajos de iPhone', section: null, keywords: 'siri apple pay automatizacion widget toque trasero bizum pendientes token' },
 ]
 // The floating tab bar keeps four destinations; everything else is in
 // the menu, the search and the + button.

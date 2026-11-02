@@ -534,3 +534,57 @@ export const subscribeToHousehold = (householdId, onEvent) => {
 
   return () => supabase.removeChannel(channel)
 }
+
+// ── IPHONE SHORTCUTS ──────────────────────────────────────────
+// The personal token iOS Shortcuts send to /api/shortcut. It's made
+// here in the browser and only its SHA-256 goes to the database, so
+// the token itself is shown once and never stored anywhere readable.
+const toHex = (buf) => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('')
+
+export const getShortcutToken = async () => {
+  const { data, error } = await supabase.from('shortcut_tokens').select('token_hint, created_at, last_used_at').maybeSingle()
+  if (error) throw error
+  return data
+}
+
+// Creates the token, or replaces the existing one (the old one stops
+// working at once). Returns the token in clear, for showing once.
+export const createShortcutToken = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  const token = 'mp_' + toHex(crypto.getRandomValues(new Uint8Array(24)))
+  const tokenHash = toHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)))
+  const { error } = await supabase.from('shortcut_tokens').upsert({
+    user_id: user.id, token_hash: tokenHash, token_hint: token.slice(-4),
+    created_at: new Date().toISOString(), last_used_at: null,
+  })
+  if (error) throw error
+  return token
+}
+
+export const revokeShortcutToken = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  const { error } = await supabase.from('shortcut_tokens').delete().eq('user_id', user.id)
+  if (error) throw error
+}
+
+// Shop → category rules the shortcuts learnt (see src/lib/shortcuts.js).
+export const getMerchantRules = async () => {
+  const { data, error } = await supabase.from('merchant_rules').select('*').order('merchant_label')
+  if (error) throw error
+  return data
+}
+
+export const saveMerchantRule = async ({ merchantKey, merchantLabel, categoryId }) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  const profile = await getProfile(user.id)
+  const { error } = await supabase.from('merchant_rules').upsert({
+    household_id: profile.household_id, merchant_key: merchantKey, merchant_label: merchantLabel,
+    category_id: categoryId, updated_at: new Date().toISOString(),
+  })
+  if (error) throw error
+}
+
+export const deleteMerchantRule = async (merchantKey) => {
+  const { error } = await supabase.from('merchant_rules').delete().eq('merchant_key', merchantKey)
+  if (error) throw error
+}
