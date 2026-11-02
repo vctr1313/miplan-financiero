@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App'
 import { updateProfile, addFixedExpense, deleteFixedExpense, linkPartner, unlinkPartner } from '../lib/supabase'
 import { fmt, fixedTotal, fixedPct } from '../lib/finance'
@@ -11,6 +12,7 @@ import { haptic, TEXT_SIZES, getTextSize, applyTextSize, ACCENTS, getAccent, app
 export default function Settings() {
   const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh, transactions, houseGoal, savingGoals, pctHistory, shared } = useApp()
   const [backupDone, setBackupDone] = useState(false)
+  const navigate = useNavigate()
 
   const handleBackup = () => {
     downloadBackup(buildBackup({ profile, categories, transactions, fixedExpenses, houseGoal, savingGoals, pctHistory, shared }))
@@ -315,6 +317,15 @@ export default function Settings() {
       </div>
 
       <PushSettingsCard />
+
+      <button type="button" className="card mb-4 tappable sc-link" onClick={() => navigate('/shortcuts')}>
+        <span className="sc-guide-icon"><i className="fa fa-wand-magic-sparkles" /></span>
+        <span className="sc-guide-text">
+          <strong>Atajos de iPhone</strong>
+          <small>Apunta gastos al pagar con Apple Pay, con toque trasero o con Siri</small>
+        </span>
+        <i className="fa fa-chevron-right text-muted" />
+      </button>
 
       <div className="grid-2 mb-4">
         <div className="card">

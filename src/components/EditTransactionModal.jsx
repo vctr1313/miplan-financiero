@@ -57,6 +57,9 @@ export default function EditTransactionModal({ tx, onClose, onSaved, inline = fa
         notes: notes.trim() || null,
       }
       if (tx.type === 'expense') patch.category_id = categoryId || null
+      // A shortcut expense that came in without a category stops being
+      // "pendiente de revisar" once it gets one.
+      if (tx.type === 'expense' && tx.needs_review && categoryId) patch.needs_review = false
       if (tx.type === 'transfer') patch.linked_expense_id = linkedExpenseId || null
       await updateTransaction(tx.id, patch)
       haptic('success')

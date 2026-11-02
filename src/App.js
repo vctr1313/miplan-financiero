@@ -19,6 +19,7 @@ import Reports from './pages/Reports'
 import AIChat from './pages/AIChat'
 import Settings from './pages/Settings'
 import Shared from './pages/Shared'
+import Shortcuts from './pages/Shortcuts'
 import Layout from './components/Layout'
 import DialogHost from './components/DialogHost'
 
@@ -227,6 +228,7 @@ export default function App() {
             <Route path="chat" element={<AIChat />} />
             <Route path="shared" element={<Shared />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="shortcuts" element={<Shortcuts />} />
           </Route>
         </Routes>
         <DialogHost />

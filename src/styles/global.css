@@ -1830,3 +1830,39 @@ html[data-oled][data-theme="dark"] .alert-box { background: #0b0b0c; }
   .story::before, .story-body > * { animation: none; }
 }
 .ring-over { opacity: .95; }
+
+/* ── iPhone shortcuts page ────────────────────────────────── */
+.shared-chip.pending > i:first-child { background: #ff950022; color: #ff9500; }
+.sc-link { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; color: var(--text); cursor: pointer; }
+.sc-guide { border: 1px solid var(--border); border-radius: 12px; margin-top: 10px; overflow: hidden; }
+.sc-guide summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; }
+.sc-guide summary::-webkit-details-marker { display: none; }
+.sc-guide-icon { width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-items: center; background: var(--accent-tint); color: var(--i5); }
+.sc-guide-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.sc-guide-text strong { font-size: 14.5px; }
+.sc-guide-text small { font-size: 12.5px; color: var(--muted); }
+.sc-chev { color: var(--g300); transition: transform .3s var(--ease); }
+.sc-guide[open] .sc-chev { transform: rotate(180deg); }
+.sc-steps { margin: 0; padding: 4px 16px 14px 34px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 13.5px; line-height: 1.55; color: var(--g700); }
+.sc-steps > li::marker { color: var(--i5); font-weight: 600; }
+.sc-steps .sc-note { list-style: none; margin-left: -18px; padding: 10px 12px; border-radius: 10px; background: var(--fill); font-size: 12.5px; color: var(--muted); }
+.sc-fields { margin: 6px 0 0; padding-left: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.sc-steps li { min-width: 0; overflow-wrap: anywhere; }
+.sc-action { color: var(--text); font-weight: 600; }
+.sc-key { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 1px 6px; border-radius: 6px; background: var(--fill); color: var(--text); }
+.sc-field { display: flex; align-items: center; gap: 8px; margin: 8px 0; padding: 6px 6px 6px 12px; border-radius: 10px; background: var(--fill); }
+.sc-field-label { font-size: 11.5px; color: var(--muted); flex: none; }
+.sc-field-value { flex: 1; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.sc-token { display: flex; align-items: center; gap: 8px; }
+.sc-token code { flex: 1; min-width: 0; font-size: 12px; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.sc-token-info { display: grid; gap: 4px; font-size: 14px; }
+.sc-pending { padding: 12px 0; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+.sc-pending:first-of-type { border-top: none; }
+.sc-pending-head { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.sc-pending-actions { display: flex; gap: 8px; }
+.sc-pending-actions .form-control { flex: 1; }
+.sc-learn { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.sc-rule { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
+.sc-rule:first-of-type { border-top: none; }
+.sc-rule-name { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-rule .form-control { width: 52%; flex: none; }

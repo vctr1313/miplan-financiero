@@ -10,9 +10,11 @@ import pg from 'pg'
 //                        public half is also in src/lib/push.js
 //   CRON_SECRET          Vercel sends it to cron routes as a bearer token
 
-export async function withDb(fn) {
+// Connects as push_worker by default; api/shortcut.js passes its own
+// role's URL (SHORTCUTS_DATABASE_URL).
+export async function withDb(fn, connectionString = process.env.ALERTS_DATABASE_URL) {
   const client = new pg.Client({
-    connectionString: process.env.ALERTS_DATABASE_URL,
+    connectionString,
     ssl: { rejectUnauthorized: false },
   })
   await client.connect()

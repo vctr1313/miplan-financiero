@@ -123,6 +123,16 @@ Si tu proyecto de Supabase es anterior a alguno de estos cambios, ejecuta el pat
 |---|---|
 | `supabase_patch_search_path.sql` | Funciones `security definer` sin `search_path` fijado, que rompían el alta de usuarios nuevos (Google/email se quedaba colgado en el login) |
 | `supabase_patch_partner_linking.sql` | Sustituye "unirse a un hogar" (que fusionaba todos los datos) por la vinculación de pareja actual: cada cuenta sigue siendo privada, solo se comparte un resumen agregado |
+| `supabase_patch_shortcuts.sql` | Atajos de iPhone: token personal, comercios aprendidos, gastos «pendientes de revisar» y el rol `shortcut_worker` del endpoint `/api/shortcut` (no está en `supabase_schema.sql`: ejecútalo también en instalaciones nuevas) |
+
+## Atajos de iPhone
+
+`/api/shortcut` deja que la app Atajos apunte gastos (al pagar con Apple Pay, con toque trasero o Siri), consulte lo que queda y registre Bizums sin abrir la app. Puesta en marcha:
+
+1. Ejecuta `supabase_patch_shortcuts.sql` en el SQL Editor.
+2. Dale contraseña al rol: `alter role shortcut_worker password 'una-contraseña-larga';`
+3. En Vercel → Settings → Environment Variables añade `SHORTCUTS_DATABASE_URL` con la URL del pooler (la misma que `ALERTS_DATABASE_URL`, cambiando usuario `push_worker` por `shortcut_worker` y su contraseña) y redespliega.
+4. En la app: Ajustes → Atajos de iPhone → Generar token, y sigue las guías de esa pantalla.
 
 ## Notas importantes
 
