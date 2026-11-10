@@ -24,11 +24,11 @@ const copy = async (text, what = 'Copiado') => {
   }
 }
 
-function CopyField({ label, value, secret }) {
+function CopyField({ label, value, masked }) {
   return (
     <div className="sc-field">
       <span className="sc-field-label">{label}</span>
-      <code className="sc-field-value">{secret ? value.replace(/^(Bearer mp_).+(.{4})$/, '$1••••$2') : value}</code>
+      <code className="sc-field-value">{masked ? value.split(masked[0]).join(masked[1]) : value}</code>
       <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(value, `${label} copiado`)} aria-label={`Copiar ${label}`}>
         <i className="fa fa-copy" />
       </button>
@@ -82,7 +82,24 @@ export default function Shortcuts() {
   }, [hash])
 
   const base = `${window.location.origin}/api/shortcut`
-  const auth = fresh ? `Bearer ${fresh}` : null
+  // Ready-made links for the simple mode: token in the URL, plain-text
+  // answers. Shown in full only right after generating the token (it's
+  // never stored readable), masked on screen, copied whole.
+  const link = (q) => `${base}?${q}&token=${fresh || 'TU_TOKEN'}`
+  const masked = fresh ? [fresh, `mp_••••${fresh.slice(-4)}`] : null
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState(null)
+  const test = async () => {
+    setTesting(true)
+    try {
+      const r = await fetch(link('action=summary'))
+      setTestResult({ ok: r.ok, text: await r.text() })
+    } catch {
+      setTestResult({ ok: false, text: 'No se ha podido conectar. Revisa tu conexión.' })
+    } finally {
+      setTesting(false)
+    }
+  }
   const cats = useMemo(() => expenseCategories(categories), [categories])
   const catName = (id) => categories.find(c => c.id === id)
   const pending = useMemo(
@@ -166,76 +183,54 @@ export default function Shortcuts() {
       <div className="card mb-4">
         <div className="section-header"><h3><i className="fa fa-list-check" style={{ color: 'var(--a5)', marginRight: 8 }} />Crea tus atajos</h3></div>
         <p className="text-sm text-muted mb-3">
-          Se montan una vez en la app <strong>Atajos</strong> del iPhone. En cada <A>Obtener contenido de URL</A> despliega las opciones y añade la cabecera
-          {' '}<K>Authorization</K> con el valor de abajo.
+          Cada atajo es una sola <A>Obtener contenido de URL</A> con uno de estos enlaces, sin cabeceras ni JSON: el token va dentro del enlace y la respuesta es el texto
+          que ves en la notificación.
         </p>
-        <CopyField label="Cabecera" value={auth || 'Bearer TU_TOKEN'} secret={!!auth} />
-        {!auth && <p className="text-xs text-muted mt-1 mb-2">Genera un token arriba para copiar la cabecera completa (el valor es «Bearer», un espacio y el token).</p>}
+        {fresh ? (
+          <div className="sc-test mb-3">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={test} disabled={testing}>
+              {testing ? <i className="fa fa-spinner fa-spin" /> : <i className="fa fa-plug" />} Probar conexión
+            </button>
+            {testResult && <pre className={`sc-test-out ${testResult.ok ? '' : 'bad'}`}>{testResult.text}</pre>}
+          </div>
+        ) : (
+          <div className="alert alert-warning mb-3" style={{ display: 'block' }}>
+            Los enlaces llevan tu token. Pulsa <strong>Generar uno nuevo</strong> arriba y aparecerán aquí listos para copiar (el anterior deja de funcionar).
+          </div>
+        )}
 
         <Guide icon="fa-credit-card" title="Apuntar al pagar" sub="Automático con Apple Pay" open>
-          <li>En Atajos ve a <strong>Automatización</strong> → <strong>+</strong> → <strong>Transacción</strong>. Elige tus tarjetas, marca <strong>Ejecutar inmediatamente</strong> y crea un <strong>Nuevo atajo en blanco</strong>.</li>
-          <li>Añade <A>Obtener contenido de URL</A> con esta URL:<CopyField label="URL" value={`${base}?action=expense`} />
-            Método <K>POST</K>, la cabecera <K>Authorization</K> y en <strong>Cuerpo de la solicitud</strong> → <strong>JSON</strong>:
-            <ul className="sc-fields">
-              <li><K>amount</K> (Texto) → variable <strong>Importe</strong></li>
-              <li><K>merchant</K> (Texto) → variable <strong>Comercio</strong></li>
-              <li><K>source</K> (Texto) → <K>pay</K></li>
-              <li><K>ask</K> (Booleano) → Verdadero</li>
-            </ul>
-          </li>
-          <li>Añade <A>Obtener valor del diccionario</A>: valor de <K>status</K> en <strong>Contenido de URL</strong>.</li>
-          <li>Añade <A>Si</A>: <strong>Valor del diccionario</strong> <em>es</em> <K>ask</K>. Así sabrás que es un comercio nuevo.</li>
-          <li>Dentro del <strong>Si</strong>:
-            <ul className="sc-fields">
-              <li><A>Obtener valor del diccionario</A>: <K>categories</K> del primer Contenido de URL</li>
-              <li><A>Elegir de la lista</A> con el mensaje «¿Categoría?»</li>
-              <li>Duplica la acción del paso 2, borra <K>ask</K> y añade <K>category</K> (Texto) → <strong>Elemento elegido</strong></li>
-              <li><A>Obtener valor del diccionario</A>: <K>message</K> de ese último Contenido de URL → <A>Mostrar notificación</A></li>
-            </ul>
-          </li>
-          <li>En <strong>De lo contrario</strong>: <A>Obtener valor del diccionario</A> <K>message</K> del primer Contenido de URL → <A>Mostrar notificación</A>.</li>
-          <li className="sc-note">Solo salta con Apple Pay (iPhone o Watch), no con la tarjeta física. La primera vez en cada comercio te pregunta la categoría; luego se acuerda. Si el menú aparece como notificación, tócala para elegir.</li>
+          <li>En Atajos: <strong>Automatización → + → Transacción</strong>, elige tus tarjetas, marca <strong>Ejecutar inmediatamente</strong> y <strong>Nuevo atajo en blanco</strong>.</li>
+          <li><A>Codificar URL</A> con la variable <strong>Importe</strong>, y otra <A>Codificar URL</A> con <strong>Comercio</strong>.</li>
+          <li><A>Obtener contenido de URL</A> con este enlace:
+            <CopyField label="URL" value={link('action=expense&source=pay')} masked={masked} />
+            Detrás añade <K>&amount=</K> + la primera <strong>URL codificada</strong> y <K>&merchant=</K> + la segunda.</li>
+          <li><A>Mostrar notificación</A> con <strong>Contenido de URL</strong>.</li>
+          <li className="sc-note">Solo salta con Apple Pay. Un comercio nuevo entra en Pendientes de revisar: ponle la categoría aquí una vez y desde entonces se apunta solo.</li>
         </Guide>
 
         <Guide icon="fa-bolt" title="Gasto rápido" sub="Toque trasero, botón de Acción o Centro de control">
-          <li>Crea un atajo nuevo llamado <strong>Gasto rápido</strong>.</li>
-          <li><A>Pedir entrada</A> de tipo <strong>Número</strong>: «¿Cuánto?».</li>
-          <li><A>Obtener contenido de URL</A> (método GET, con la cabecera):<CopyField label="URL" value={`${base}?action=categories`} /></li>
-          <li><A>Obtener valor del diccionario</A> <K>categories</K> → <A>Elegir de la lista</A> «¿Categoría?».</li>
-          <li><A>Pedir entrada</A> de tipo <strong>Texto</strong>: «Nota (opcional)».</li>
-          <li><A>Obtener contenido de URL</A> POST, con la cabecera y JSON:<CopyField label="URL" value={`${base}?action=expense`} />
-            <ul className="sc-fields">
-              <li><K>amount</K> (Número) → la primera <strong>Entrada proporcionada</strong></li>
-              <li><K>category</K> (Texto) → <strong>Elemento elegido</strong></li>
-              <li><K>note</K> (Texto) → la segunda <strong>Entrada proporcionada</strong></li>
-            </ul>
-          </li>
-          <li><A>Obtener valor del diccionario</A> <K>message</K> → <A>Mostrar notificación</A>.</li>
-          <li>Asígnalo: <strong>Ajustes → Accesibilidad → Tocar → Toque posterior → Doble toque</strong>. En iPhone 15 Pro o posterior también en <strong>Ajustes → Botón de Acción</strong>, y en iOS 18 como control del <strong>Centro de control</strong>.</li>
-          <li className="sc-note">Para el efectivo y la tarjeta física. Elige «Decidir luego» si no lo tienes claro: queda en Pendientes de revisar.</li>
+          <li><A>Obtener contenido de URL</A>:<CopyField label="URL" value={link('action=categories')} masked={masked} /></li>
+          <li><A>Dividir texto</A> (Contenido de URL) por <strong>Nuevas líneas</strong> → <A>Elegir de la lista</A>.</li>
+          <li><A>Pedir entrada</A> de tipo <strong>Número</strong>: «¿Cuánto?». Después <A>Codificar URL</A> con el <strong>Elemento elegido</strong>.</li>
+          <li><A>Obtener contenido de URL</A>:<CopyField label="URL" value={link('action=expense')} masked={masked} />
+            Detrás añade <K>&amount=</K> + <strong>Entrada proporcionada</strong> y <K>&category=</K> + <strong>URL codificada</strong>.</li>
+          <li><A>Mostrar notificación</A> con <strong>Contenido de URL</strong>. Asígnalo en <strong>Ajustes → Accesibilidad → Tocar → Toque posterior</strong> o al botón de Acción.</li>
         </Guide>
 
         <Guide icon="fa-chart-pie" title="¿Cuánto me queda?" sub="Siri y widget">
-          <li>Crea un atajo llamado <strong>Cuánto me queda</strong>.</li>
-          <li><A>Obtener contenido de URL</A> (GET, con la cabecera):<CopyField label="URL" value={`${base}?action=summary`} /></li>
-          <li><A>Obtener valor del diccionario</A> <K>message</K> → <A>Mostrar resultado</A>.</li>
-          <li>Dile <strong>«Oye Siri, cuánto me queda»</strong>. Para una sola categoría, duplica el atajo, añade <K>&category=Ocio</K> al final de la URL y llámalo «Cuánto me queda en ocio».</li>
-          <li>Widget: mantén pulsada la pantalla de inicio → <strong>Editar → Añadir widget → Atajos</strong> y elige este atajo. Lo tocas y te responde.</li>
+          <li><A>Obtener contenido de URL</A>:<CopyField label="URL" value={link('action=summary')} masked={masked} /></li>
+          <li><A>Mostrar resultado</A> con <strong>Contenido de URL</strong>. Llámalo «Cuánto me queda» y díselo a Siri.</li>
+          <li className="sc-note">Para una sola categoría añade <K>&category=Ocio</K> al final del enlace.</li>
         </Guide>
 
         <Guide icon="fa-rotate-left" title="Bizum recibido" sub="Te devuelven tu parte de una ronda">
-          <li>Crea un atajo llamado <strong>Bizum recibido</strong>.</li>
-          <li><A>Obtener contenido de URL</A> (GET, con la cabecera):<CopyField label="URL" value={`${base}?action=recent`} /></li>
-          <li><A>Obtener valor del diccionario</A> <K>labels</K> → <A>Elegir de la lista</A> «¿Qué gasto te han devuelto?».</li>
-          <li><A>Pedir entrada</A> de tipo <strong>Número</strong>: «¿Cuánto te han devuelto?».</li>
-          <li><A>Obtener contenido de URL</A> POST, con la cabecera y JSON:<CopyField label="URL" value={`${base}?action=refund`} />
-            <ul className="sc-fields">
-              <li><K>amount</K> (Número) → <strong>Entrada proporcionada</strong></li>
-              <li><K>expense</K> (Texto) → <strong>Elemento elegido</strong></li>
-            </ul>
-          </li>
-          <li><A>Obtener valor del diccionario</A> <K>message</K> → <A>Mostrar notificación</A>.</li>
-          <li className="sc-note">Se apunta como reembolso enlazado al gasto, igual que desde la app: devuelve el dinero a su categoría o bote.</li>
+          <li><A>Obtener contenido de URL</A>:<CopyField label="URL" value={link('action=recent')} masked={masked} /></li>
+          <li><A>Dividir texto</A> por <strong>Nuevas líneas</strong> → <A>Elegir de la lista</A> «¿Qué gasto te han devuelto?».</li>
+          <li><A>Pedir entrada</A> de tipo <strong>Número</strong>: «¿Cuánto?». Después <A>Codificar URL</A> con el <strong>Elemento elegido</strong>.</li>
+          <li><A>Obtener contenido de URL</A>:<CopyField label="URL" value={link('action=refund')} masked={masked} />
+            Detrás añade <K>&amount=</K> + <strong>Entrada proporcionada</strong> y <K>&expense=</K> + <strong>URL codificada</strong>.</li>
+          <li><A>Mostrar notificación</A> con <strong>Contenido de URL</strong>.</li>
         </Guide>
       </div>
 
