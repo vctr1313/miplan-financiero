@@ -1866,3 +1866,6 @@ html[data-oled][data-theme="dark"] .alert-box { background: #0b0b0c; }
 .sc-rule:first-of-type { border-top: none; }
 .sc-rule-name { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sc-rule .form-control { width: 52%; flex: none; }
+.sc-test { display: grid; gap: 8px; }
+.sc-test-out { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--fill); font-size: 12.5px; white-space: pre-wrap; font-family: inherit; }
+.sc-test-out.bad { color: var(--r5); }

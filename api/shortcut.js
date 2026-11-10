@@ -11,10 +11,12 @@ import {
 // notification as-is -- errors included (Shortcuts doesn't stop on a
 // 4xx, it just hands over the body).
 //
-// Auth: "Authorization: Bearer <token>", the personal token from
-// Ajustes → Atajos de iPhone. Only its SHA-256 is stored.
+// Auth: "Authorization: Bearer <token>" or a token= parameter (simple
+// mode: plain-text answers), the personal token from Ajustes → Atajos
+// de iPhone. Only its SHA-256 is stored.
 //
-// Actions (?action=…; parameters as a JSON body or in the query):
+// Actions (?action=…; GET or POST, parameters in the query, a JSON or
+// form body):
 //   expense     POST amount, merchant?, category?, note?, ask?, source?
 //               category = name or id; "Decidir luego" (or none and no
 //               learnt rule) files it under Pendientes de revisar.
@@ -34,7 +36,15 @@ const LATER = 'Decidir luego'
 const isLater = (v) => typeof v === 'string' && ['decidirluego', 'luego', 'pendiente', 'despues'].includes(
   v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, ''))
 
-const reply = (res, status, body) => res.status(status).json(body)
+// Plain-text mode answers with just the message (or, for categories and
+// recent, one option per line), so a shortcut can show the result as-is
+// with no dictionary steps.
+const reply = (res, status, body) => {
+  res.status(status)
+  if (!res.plainText) return res.json(body)
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  return res.send(body.message)
+}
 const fail = (res, status, message) => reply(res, status, { status: 'error', message })
 
 export const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex')
@@ -44,11 +54,26 @@ export default async function handler(req, res) {
   // Dates and cycle boundaries are local midnights in the app.
   process.env.TZ = 'Europe/Madrid'
 
-  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim()
-  if (!token) return fail(res, 401, 'Falta el token. Cópialo de Ajustes → Atajos de iPhone.')
-
   const p = { ...req.query, ...(req.body && typeof req.body === 'object' ? req.body : {}) }
+  // A shortcut that builds the link with "Codificar URL" may get encoded
+  // twice ("23%252C40") if iOS encodes again: undo any leftover layer.
+  for (const k of ['amount', 'merchant', 'category', 'note', 'expense']) {
+    let v = p[k]
+    for (let i = 0; i < 2 && typeof v === 'string' && /%[0-9A-Fa-f]{2}/.test(v); i++) {
+      try { v = decodeURIComponent(v) } catch { break }
+    }
+    if (v !== undefined) p[k] = v
+  }
   const action = String(p.action || '').toLowerCase()
+  // Two ways in: the "Authorization: Bearer" header, or -- the simple
+  // mode the app's ready-made links use -- a token= parameter, which
+  // needs no headers or JSON in the shortcut and answers in plain text
+  // (format=json switches back to JSON).
+  const headerToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim()
+  const paramToken = typeof p.token === 'string' ? p.token.trim() : ''
+  const token = headerToken || paramToken
+  res.plainText = p.format === 'text' || (!headerToken && !!paramToken && p.format !== 'json')
+  if (!token) return fail(res, 401, 'Falta el token. Cópialo de Ajustes → Atajos de iPhone.')
 
   try {
     await withDb(async (db) => {
@@ -92,7 +117,6 @@ export default async function handler(req, res) {
       }
 
       if (action === 'expense') {
-        if (req.method !== 'POST') return fail(res, 405, 'Usa el método POST para apuntar un gasto.')
         const amount = parseAmount(p.amount)
         if (!amount) return fail(res, 400, `No he entendido el importe "${p.amount ?? ''}".`)
         const merchant = String(p.merchant || '').trim().slice(0, 80)
@@ -109,7 +133,7 @@ export default async function handler(req, res) {
           const rules = await jsonRows(db, 'select * from merchant_rules where household_id = $1', [h])
           const rule = findRule(rules, merchant)
           category = rule && categories.find(c => c.id === rule.category_id && c.type !== 'saving')
-          if (!category && truthy(p.ask)) {
+          if (!category && truthy(p.ask) && !res.plainText) {
             const names = [...expenseCategories(categories).map(c => c.name), LATER]
             return reply(res, 200, {
               status: 'ask', categories: names, amount, merchant,
@@ -154,7 +178,6 @@ export default async function handler(req, res) {
       }
 
       if (action === 'refund') {
-        if (req.method !== 'POST') return fail(res, 405, 'Usa el método POST para apuntar un Bizum.')
         const amount = parseAmount(p.amount)
         if (!amount) return fail(res, 400, `No he entendido el importe "${p.amount ?? ''}".`)
         const data = await load()
