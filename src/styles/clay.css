@@ -1,0 +1,169 @@
+/* ── CLAYMORPHISM SKIN (Ajustes → Apariencia → Estilo) ─────────────
+   Off by default: "Clásico" is the app as designed in global.css.
+   Choosing Claymorphism sets data-skin="clay" on <html> (before first
+   paint, from index.html), and this file re-points the same tokens
+   global.css uses -- surfaces, radii, shadows -- to soft, puffy
+   "clay": pastel lavender ground, rounded everything, raised cards
+   with a light top-left edge and a soft drop, and pressed (inset)
+   fields and tracks. Works with every accent, light and dark, and
+   OLED black. Loaded after global.css so equal-specificity rules win. */
+
+html[data-skin="clay"] {
+  --bg: #efe8ff;
+  --card: #fbf9ff;
+  --text: #2d2346;
+  --muted: #5e5578;
+  --border: rgba(45,35,70,.12);
+  --sep: rgba(45,35,70,.09);
+  --inp: #ede6fc;
+  --fill: rgba(124,98,196,.10);
+  --fill-hover: rgba(124,98,196,.17);
+  --card-border: transparent;
+  --sidebar: rgba(239,232,255,.9);
+  --glass: rgba(251,249,255,.94);
+  --glass-edge: rgba(255,255,255,.9);
+  --g50: #f7f3ff; --g100: #efe8ff; --g200: #e1d8f5;
+  --g300: #c9bfe0; --g500: #8a80a6; --g700: #4e4568;
+  --g800: #3a3155; --g900: #2d2346;
+
+  --radius: 26px;
+  --radius-sm: 16px;
+  --radius-lg: 32px;
+
+  --clay: 8px 8px 18px rgba(124,98,196,.18), -6px -6px 14px rgba(255,255,255,.8),
+          inset 3px 3px 6px rgba(255,255,255,.75), inset -3px -3px 6px rgba(124,98,196,.08);
+  --clay-sm: 4px 4px 10px rgba(124,98,196,.16), -3px -3px 8px rgba(255,255,255,.75),
+             inset 2px 2px 4px rgba(255,255,255,.65);
+  --clay-lift: 12px 12px 26px rgba(124,98,196,.24), -8px -8px 18px rgba(255,255,255,.85),
+               inset 3px 3px 6px rgba(255,255,255,.75), inset -3px -3px 6px rgba(124,98,196,.08);
+  --clay-inset: inset 3px 3px 7px rgba(124,98,196,.18), inset -3px -3px 7px rgba(255,255,255,.9);
+  --clay-puff: inset -3px -3px 7px rgba(0,0,0,.14), inset 3px 3px 7px rgba(255,255,255,.4);
+
+  --shadow-sm: var(--clay);
+  --shadow: var(--clay);
+  --shadow-lift: var(--clay-lift);
+  --shadow-md: 16px 16px 40px rgba(124,98,196,.28), inset 4px 4px 8px rgba(255,255,255,.7);
+}
+
+/* The default (blue) accent becomes clay lavender; any accent picked in
+   Ajustes still applies, through global.css's html[data-accent]. */
+html[data-skin="clay"]:not([data-accent]) {
+  --i5: #7c5cf0; --i6: #6c4ee0; --i7: #5a3fc4; --i9: #33227a;
+  --i50: #f1ecff; --i100: #e4dbff; --i200: #cbbcff;
+  --accent-tint: rgba(124,92,240,.14);
+  --accent-glow: 0 2px 6px rgba(124,92,240,.25), 0 6px 16px rgba(124,92,240,.25);
+  --accent-glow-strong: 0 4px 10px rgba(124,92,240,.3), 0 12px 26px rgba(124,92,240,.32);
+}
+
+html[data-skin="clay"][data-theme="dark"] {
+  --bg: #1a1430;
+  --card: #261e3f;
+  --text: #f2edff;
+  --muted: #b5abd3;
+  --border: rgba(255,255,255,.12);
+  --sep: rgba(255,255,255,.08);
+  --inp: #1f1836;
+  --fill: rgba(181,171,211,.14);
+  --fill-hover: rgba(181,171,211,.22);
+  --card-border: transparent;
+  --sidebar: rgba(26,20,48,.9);
+  --glass: rgba(38,30,63,.95);
+  --glass-edge: rgba(255,255,255,.08);
+  --g50: #261e3f; --g100: #2e2549; --g200: #3a3058; --g300: #4d4270;
+  --g500: #9a90bb; --g700: #c3bad9; --g800: #ddd6ef; --g900: #f2edff;
+
+  --clay: 8px 8px 20px rgba(0,0,0,.5), -4px -4px 12px rgba(255,255,255,.035),
+          inset 2px 2px 5px rgba(255,255,255,.07), inset -3px -3px 6px rgba(0,0,0,.25);
+  --clay-sm: 4px 4px 10px rgba(0,0,0,.45), inset 2px 2px 4px rgba(255,255,255,.06);
+  --clay-lift: 12px 12px 26px rgba(0,0,0,.55), -4px -4px 12px rgba(255,255,255,.04),
+               inset 2px 2px 5px rgba(255,255,255,.08), inset -3px -3px 6px rgba(0,0,0,.25);
+  --clay-inset: inset 3px 3px 7px rgba(0,0,0,.45), inset -2px -2px 6px rgba(255,255,255,.04);
+  --clay-puff: inset -3px -3px 7px rgba(0,0,0,.25), inset 3px 3px 7px rgba(255,255,255,.22);
+
+  --shadow-sm: var(--clay);
+  --shadow: var(--clay);
+  --shadow-lift: var(--clay-lift);
+  --shadow-md: 16px 16px 44px rgba(0,0,0,.6), inset 3px 3px 7px rgba(255,255,255,.06);
+}
+html[data-skin="clay"][data-theme="dark"]:not([data-accent]) {
+  --i5: #a58bff; --i6: #a58bff; --i7: #c4b3ff; --i9: #a58bff;
+  --i50: rgba(165,139,255,.14); --i100: rgba(165,139,255,.22); --i200: rgba(165,139,255,.38);
+  --accent-tint: rgba(165,139,255,.22);
+  --accent-glow: 0 2px 10px rgba(165,139,255,.35);
+  --accent-glow-strong: 0 4px 18px rgba(165,139,255,.45);
+}
+html[data-skin="clay"][data-theme="dark"][data-oled] { --bg: #000000; --sidebar: rgba(0,0,0,.88); }
+
+/* ── Type: rounder and a touch heavier ────────────────────────────── */
+html[data-skin="clay"] body {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 0;
+}
+html[data-skin="clay"] h1,
+html[data-skin="clay"] h2,
+html[data-skin="clay"] h3,
+html[data-skin="clay"] .modal-title,
+html[data-skin="clay"] .stat-card .value { font-weight: 800; letter-spacing: -.01em; }
+
+/* ── Raised surfaces ───────────────────────────────────────────────── */
+html[data-skin="clay"] .card,
+html[data-skin="clay"] .stat-card,
+html[data-skin="clay"] .shared-chip { border: none; box-shadow: var(--clay); }
+html[data-skin="clay"] .card.tappable:hover,
+html[data-skin="clay"] .stat-card.tappable:hover,
+html[data-skin="clay"] .shared-chip:hover { box-shadow: var(--clay-lift); }
+html[data-skin="clay"] .modal { border: none; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
+html[data-skin="clay"] .tx-icon { border-radius: 14px; box-shadow: var(--clay-sm); }
+html[data-skin="clay"] .alert,
+html[data-skin="clay"] .status-line { border-radius: 20px; box-shadow: var(--clay-sm); }
+html[data-skin="clay"] .badge { border-radius: 999px; }
+
+/* ── Buttons: puffy pills ──────────────────────────────────────────── */
+html[data-skin="clay"] .btn { border-radius: 18px; }
+html[data-skin="clay"] .btn-sm { border-radius: 14px; }
+html[data-skin="clay"] .btn-primary {
+  box-shadow: 5px 5px 14px color-mix(in srgb, var(--i5) 38%, transparent), var(--clay-puff);
+}
+html[data-skin="clay"] .btn-primary:hover:not(:disabled) {
+  box-shadow: 7px 7px 18px color-mix(in srgb, var(--i5) 44%, transparent), var(--clay-puff);
+}
+html[data-skin="clay"] .btn-ghost,
+html[data-skin="clay"] .btn-outline,
+html[data-skin="clay"] .btn-danger,
+html[data-skin="clay"] .btn-success { box-shadow: var(--clay-sm); }
+html[data-skin="clay"] .btn-ghost { background: var(--card); }
+html[data-skin="clay"] .btn-ghost:hover:not(:disabled) { background: var(--card); box-shadow: var(--clay); }
+html[data-skin="clay"] .btn-icon { box-shadow: none; }
+
+/* ── Pressed-in fields, tracks and segmented controls ─────────────── */
+html[data-skin="clay"] .form-control { border-radius: 16px; box-shadow: var(--clay-inset); }
+html[data-skin="clay"] .form-control:hover:not(:focus):not(:disabled) { background: var(--inp); }
+html[data-skin="clay"] .form-control:focus { background: var(--inp); border-color: var(--i5); box-shadow: var(--clay-inset), 0 0 0 4px var(--accent-tint); }
+html[data-skin="clay"] .tabs { background: var(--inp); border-radius: 18px; padding: 4px; box-shadow: var(--clay-inset); }
+html[data-skin="clay"] .tab { border-radius: 14px; }
+html[data-skin="clay"] .tab.active { background: var(--card); box-shadow: var(--clay-sm); }
+html[data-skin="clay"] .progress-bar { height: 10px; background: var(--inp); box-shadow: var(--clay-inset); }
+html[data-skin="clay"] .progress-fill { border-radius: 10px; }
+html[data-skin="clay"] .switch { background: var(--inp); box-shadow: var(--clay-inset); }
+html[data-skin="clay"] .switch.on { background: var(--e5); box-shadow: inset 3px 3px 6px rgba(0,0,0,.18); }
+html[data-skin="clay"] .switch-knob { box-shadow: 2px 2px 6px rgba(0,0,0,.2), inset -2px -2px 4px rgba(0,0,0,.06); }
+
+/* ── Chrome: solid clay instead of glass ───────────────────────────── */
+@media (max-width: 768px) {
+  html[data-skin="clay"] .bottom-nav {
+    background: var(--card); border: none; border-radius: 32px;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: 10px 10px 24px rgba(124,98,196,.26), inset 3px 3px 6px rgba(255,255,255,.7);
+  }
+  html[data-skin="clay"][data-theme="dark"] .bottom-nav { box-shadow: 10px 10px 26px rgba(0,0,0,.55), inset 2px 2px 5px rgba(255,255,255,.07); }
+  html[data-skin="clay"] .tab-pill { background: var(--inp); box-shadow: var(--clay-inset); border-radius: 26px; }
+}
+html[data-skin="clay"] .qa-fab {
+  box-shadow: 8px 8px 18px color-mix(in srgb, var(--i5) 42%, transparent), var(--clay-puff);
+}
+html[data-skin="clay"] .mobile-header { border-bottom: none; }
+
+/* Dark clay's default lavender is light: white text on it would be
+   hard to read, so the filled controls take dark ink instead. */
+html[data-skin="clay"][data-theme="dark"]:not([data-accent]) .btn-primary,
+html[data-skin="clay"][data-theme="dark"]:not([data-accent]) .qa-fab:not(.open) { color: #1a1430; }

@@ -60,6 +60,13 @@
         var accent = localStorage.getItem('fp_accent')
         if (accent) document.documentElement.setAttribute('data-accent', accent)
         if (localStorage.getItem('fp_oled') === '1') document.documentElement.setAttribute('data-oled', '')
+        if (localStorage.getItem('fp_skin') === 'clay') {
+          document.documentElement.setAttribute('data-skin', 'clay')
+          var font = document.createElement('link')
+          font.id = 'clay-font'; font.rel = 'stylesheet'
+          font.href = 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap'
+          document.head.appendChild(font)
+        }
       } catch (e) { /* private mode / storage blocked: stay on light */ }
     })()
   </script>
