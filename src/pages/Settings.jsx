@@ -7,7 +7,7 @@ import PushSettingsCard from '../components/PushSettingsCard'
 import IconPicker from '../components/IconPicker'
 import { buildBackup, downloadBackup } from '../lib/backup'
 import { confirmDialog } from '../lib/dialog'
-import { haptic, TEXT_SIZES, getTextSize, applyTextSize, ACCENTS, getAccent, applyAccent, getOled, applyOled } from '../lib/ui'
+import { haptic, TEXT_SIZES, getTextSize, applyTextSize, ACCENTS, getAccent, applyAccent, getOled, applyOled, SKINS, getSkin, applySkin } from '../lib/ui'
 
 export default function Settings() {
   const { profile, setProfile, categories, fixedExpenses, partnerSummary, refresh, transactions, houseGoal, savingGoals, pctHistory, shared } = useApp()
@@ -28,6 +28,8 @@ export default function Settings() {
   const [accent, setAccent] = useState(getAccent)
   const pickAccent = (id) => { haptic('select'); applyAccent(id); setAccent(id) }
   const [oled, setOled] = useState(getOled)
+  const [skin, setSkin] = useState(getSkin)
+  const pickSkin = (id) => { haptic('select'); applySkin(id); setSkin(id) }
   const toggleOled = () => { haptic('select'); applyOled(!oled); setOled(!oled) }
   const [savingProfile, setSavingProfile] = useState(false)
 
@@ -287,7 +289,20 @@ export default function Settings() {
 
       <div className="card mb-4">
         <div className="section-header"><h3><i className="fa fa-font" style={{ color: 'var(--i5)', marginRight: 8 }} />Apariencia</h3></div>
-        <label className="text-sm font-medium" id="textsize-label">Tamaño del texto</label>
+        <label className="text-sm font-medium" id="skin-label">Estilo</label>
+        <div className="skin-row mt-2" role="radiogroup" aria-labelledby="skin-label">
+          {SKINS.map(k => (
+            <button key={k.id} type="button" role="radio" aria-checked={skin === k.id}
+              className={`skin-option ${skin === k.id ? 'on' : ''}`} onClick={() => pickSkin(k.id)}>
+              <span className={`skin-preview skin-preview-${k.id}`} aria-hidden="true"><i /><i /><i /></span>
+              <span className="skin-name">{k.label}</span>
+              {skin === k.id && <i className="fa fa-circle-check skin-check" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted mt-2 mb-3">Cambia el aspecto de toda la app. Solo en este dispositivo.</p>
+
+        <label className="text-sm font-medium" style={{ display: 'block' }} id="textsize-label">Tamaño del texto</label>
         <div className="tabs mt-2" role="radiogroup" aria-labelledby="textsize-label">
           {TEXT_SIZES.map(t => (
             <button key={t.id} type="button" role="radio" aria-checked={textSize === t.id}
@@ -300,7 +315,8 @@ export default function Settings() {
 
         <label className="text-sm font-medium mt-3" style={{ display: 'block' }} id="accent-label">Color de acento</label>
         <div className="accent-row mt-2" role="radiogroup" aria-labelledby="accent-label">
-          {ACCENTS.map(a => (
+          {/* With Claymorphism the default accent is lavender, not blue. */}
+          {ACCENTS.map(acc => (skin === 'clay' && acc.id === 'blue' ? { ...acc, label: 'Lavanda', color: '#7c5cf0' } : acc)).map(a => (
             <button key={a.id} type="button" role="radio" aria-checked={accent === a.id} aria-label={a.label} title={a.label}
               className={`accent-swatch ${accent === a.id ? 'on' : ''}`} style={{ '--sw': a.color }} onClick={() => pickAccent(a.id)}>
               {accent === a.id && <i className="fa fa-check" />}

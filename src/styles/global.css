@@ -1869,3 +1869,26 @@ html[data-oled][data-theme="dark"] .alert-box { background: #0b0b0c; }
 .sc-test { display: grid; gap: 8px; }
 .sc-test-out { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--fill); font-size: 12.5px; white-space: pre-wrap; font-family: inherit; }
 .sc-test-out.bad { color: var(--r5); }
+
+/* ── STYLE PICKER (Ajustes → Apariencia → Estilo) ─────────────────
+   Each option shows a tiny drawing of the look: flat white cards for
+   Clásico, puffy lavender clay for Claymorphism -- drawn the same
+   whichever skin is active, so the two always read as different. */
+.skin-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.skin-option {
+  position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px;
+  border-radius: 16px; border: 2px solid var(--sep); background: var(--card); color: var(--text);
+  text-align: left; font: inherit; transition: border-color .2s, transform .35s var(--spring);
+}
+.skin-option.on { border-color: var(--i5); }
+.skin-option:active { transform: scale(.97); }
+.skin-name { font-size: 13.5px; font-weight: 600; }
+.skin-check { position: absolute; top: 8px; right: 8px; color: var(--i5); font-size: 16px; }
+.skin-preview { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 22px 14px; gap: 6px; height: 58px; padding: 8px; border-radius: 12px; }
+.skin-preview i:first-child { grid-row: span 2; }
+.skin-preview-classic { background: #f5f5f7; }
+.skin-preview-classic i { background: #ffffff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.skin-preview-classic i:last-child { background: #007aff; }
+.skin-preview-clay { background: #efe8ff; }
+.skin-preview-clay i { background: #fbf9ff; border-radius: 10px; box-shadow: 3px 3px 7px rgba(124,98,196,.25), inset 2px 2px 3px #fff; }
+.skin-preview-clay i:last-child { background: #7c5cf0; box-shadow: 3px 3px 7px rgba(124,92,240,.35), inset -2px -2px 3px rgba(0,0,0,.15); }

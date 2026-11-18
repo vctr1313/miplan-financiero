@@ -183,6 +183,33 @@ export const applyAccent = (id) => {
   else document.documentElement.setAttribute('data-accent', id)
   setPref('fp_accent', id, id === 'blue')
 }
+// ── STYLE (SKIN) ──────────────────────────────────────────────
+// "Clásico" is the default look (no attribute); Claymorphism sets
+// data-skin="clay" and src/styles/clay.css takes over. Its rounded
+// font, Nunito, is only fetched when the skin is on.
+export const SKINS = [
+  { id: 'classic', label: 'Clásico' },
+  { id: 'clay', label: 'Claymorphism' },
+]
+export const getSkin = () => (pref('fp_skin', 'classic') === 'clay' ? 'clay' : 'classic')
+export const loadClayFont = () => {
+  if (document.getElementById('clay-font')) return
+  const link = document.createElement('link')
+  link.id = 'clay-font'
+  link.rel = 'stylesheet'
+  link.href = 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap'
+  document.head.appendChild(link)
+}
+export const applySkin = (id) => {
+  if (id === 'clay') {
+    loadClayFont()
+    document.documentElement.setAttribute('data-skin', 'clay')
+  } else {
+    document.documentElement.removeAttribute('data-skin')
+  }
+  setPref('fp_skin', 'clay', id !== 'clay')
+}
+
 export const getOled = () => pref('fp_oled', '') === '1'
 export const applyOled = (on) => {
   if (on) document.documentElement.setAttribute('data-oled', '')
